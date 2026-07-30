@@ -18,6 +18,7 @@ import {
   listRoomsByCodes,
   countMessagesSince,
   createRoom,
+  getOrCreateDirectRoom,
   getRoomByCode,
   getRoomById,
   addRoomMember,
@@ -621,6 +622,33 @@ io.on("connection", (socket) => {
       const reason = "Không tạo được phòng (lỗi cơ sở dữ liệu).";
       socket.emit("room_error", reason);
       respond({ ok: false, reason });
+    }
+  });
+
+  socket.on("open_direct_chat", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user) {
+      respond({ ok: false, reason: "Chưa đăng nhập." });
+      return;
+    }
+    const target = String(payload?.targetName ?? "").trim().slice(0, 32);
+    if (!target) {
+      respond({ ok: false, reason: "Thiếu tên người nhận." });
+      return;
+    }
+    if (target.toLowerCase() === user.name.toLowerCase()) {
+      respond({ ok: false, reason: "Không thể chat riêng với chính mình." });
+      return;
+    }
+    try {
+      const room = await getOrCreateDirectRoom(user.name, target);
+      respond({ ok: true, room });
+    } catch (err) {
+      console.error("[open_direct_chat]", err);
+      respond({ ok: false, reason: "Không mở được chat riêng." });
     }
   });
 

@@ -674,18 +674,19 @@ export async function getRoomByCode(rawCode) {
   return roomRowToClient(rows[0]);
 }
 
-export async function createRoom(name, ownerName = "", avatarUrl = "") {
+export async function createRoom(name, ownerName = "", avatarUrl = "", kind = "group") {
   const trimmed = String(name ?? "").trim().slice(0, 64);
   if (!trimmed) throw new Error("empty name");
   const owner = String(ownerName ?? "").trim().slice(0, 32);
   const avatar = String(avatarUrl ?? "").slice(0, 500);
+  const roomKind = kind === "direct" ? "direct" : "group";
 
   if (useMemory) {
     const code = uniqueRoomCodeMemory();
     const room = {
       id: memoryNextRoomId++,
       name: trimmed,
-      kind: "group",
+      kind: roomKind,
       code,
       owner_name: owner,
       avatar_url: avatar,
@@ -710,9 +711,9 @@ export async function createRoom(name, ownerName = "", avatarUrl = "") {
 
   const code = await uniqueRoomCodePg();
   const { rows } = await pool.query(
-    `INSERT INTO rooms (name, kind, code, owner_name, avatar_url) VALUES ($1, 'group', $2, $3, $4)
+    `INSERT INTO rooms (name, kind, code, owner_name, avatar_url) VALUES ($1, $2, $3, $4, $5)
      RETURNING id, name, kind, code, owner_name, avatar_url`,
-    [trimmed, code, owner || null, avatar || null]
+    [trimmed, roomKind, code, owner || null, avatar || null]
   );
   const r = rows[0];
   if (owner) await addRoomMember(r.id, owner);
@@ -727,6 +728,53 @@ export async function createRoom(name, ownerName = "", avatarUrl = "") {
     lastAt: 0,
     lastName: "",
   };
+}
+
+export async function findDirectRoomBetween(nameA, nameB) {
+  const a = String(nameA ?? "").trim().slice(0, 32);
+  const b = String(nameB ?? "").trim().slice(0, 32);
+  if (!a || !b || a.toLowerCase() === b.toLowerCase()) return null;
+
+  if (useMemory) {
+    for (const r of memoryRooms) {
+      if (r.kind !== "direct") continue;
+      const map = memoryRoomMembers.get(r.id);
+      if (!map || map.size !== 2) continue;
+      const names = [...map.keys()];
+      if (names.includes(a) && names.includes(b)) return roomRowToClient(r);
+    }
+    return null;
+  }
+
+  const { rows } = await pool.query(
+    `
+    SELECT r.id, r.name, r.kind, r.code, r.owner_name, r.avatar_url
+    FROM rooms r
+    WHERE r.kind = 'direct'
+      AND EXISTS (SELECT 1 FROM room_members m1 WHERE m1.room_id = r.id AND m1.user_name = $1)
+      AND EXISTS (SELECT 1 FROM room_members m2 WHERE m2.room_id = r.id AND m2.user_name = $2)
+      AND (SELECT COUNT(*)::int FROM room_members m WHERE m.room_id = r.id) = 2
+    LIMIT 1
+    `,
+    [a, b]
+  );
+  return roomRowToClient(rows[0]);
+}
+
+export async function getOrCreateDirectRoom(creatorName, targetName) {
+  const creator = String(creatorName ?? "").trim().slice(0, 32);
+  const target = String(targetName ?? "").trim().slice(0, 32);
+  if (!creator || !target) throw new Error("missing names");
+  if (creator.toLowerCase() === target.toLowerCase()) throw new Error("same user");
+
+  const existing = await findDirectRoomBetween(creator, target);
+  if (existing) return existing;
+
+  const sorted = [creator, target].sort((x, y) => x.localeCompare(y, "vi"));
+  const label = `${sorted[0]} · ${sorted[1]}`.slice(0, 64);
+  const room = await createRoom(label, creator, "", "direct");
+  await addRoomMember(room.id, target);
+  return room;
 }
 
 export async function roomExists(roomId) {

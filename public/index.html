@@ -1302,6 +1302,104 @@
         object-fit: cover;
       }
 
+      button.msg-avatar {
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        font: inherit;
+      }
+
+      button.msg-avatar:hover {
+        filter: brightness(1.1);
+      }
+
+      .user-profile-modal {
+        max-width: 380px;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      .user-profile-cover {
+        height: 88px;
+        background: linear-gradient(135deg, #1e3a5f, #334155);
+      }
+
+      .user-profile-body {
+        padding: 0 1.15rem 1.15rem;
+        margin-top: -28px;
+      }
+
+      .user-profile-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        border: 3px solid var(--surface);
+        background: linear-gradient(135deg, #475569, #334155);
+        color: #fff;
+        font-size: 1.35rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        margin-bottom: 0.65rem;
+      }
+
+      .user-profile-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .user-profile-name {
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+
+      .user-profile-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .user-profile-actions button {
+        flex: 1;
+        padding: 0.55rem 0.75rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        color: var(--text);
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .user-profile-actions button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+
+      .user-profile-head-title {
+        padding: 0.85rem 1.15rem 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      .user-profile-close {
+        position: absolute;
+        top: 0.65rem;
+        right: 0.65rem;
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.35);
+        color: #fff;
+        cursor: pointer;
+        font-size: 1.1rem;
+        z-index: 2;
+      }
+
       .msg-row.self .msg-avatar {
         order: 2;
         margin-top: 0;
@@ -2700,6 +2798,22 @@
         <div class="modal-actions">
           <button type="button" data-close="modal-create-group">Hủy</button>
           <button type="button" class="primary" id="create-group-submit">Tạo nhóm</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal-user-profile">
+      <div class="modal user-profile-modal" style="position: relative">
+        <button type="button" class="user-profile-close" data-close="modal-user-profile" aria-label="Đóng">×</button>
+        <div class="user-profile-cover"></div>
+        <div class="user-profile-head-title">Thông tin tài khoản</div>
+        <div class="user-profile-body">
+          <div class="user-profile-avatar" id="user-profile-avatar"></div>
+          <div class="user-profile-name" id="user-profile-name"></div>
+          <div class="user-profile-actions">
+            <button type="button" data-close="modal-user-profile">Đóng</button>
+            <button type="button" class="primary" id="user-profile-dm">Nhắn tin</button>
+          </div>
         </div>
       </div>
     </div>
@@ -4372,6 +4486,85 @@
         return (name || "?").trim().slice(0, 1).toUpperCase();
       }
 
+      function peerNameFromDirectRoom(room) {
+        if (!room || room.kind !== "direct" || !room.name || !myName) return null;
+        const parts = room.name.split(" · ").map((s) => s.trim()).filter(Boolean);
+        return parts.find((p) => p !== myName) || null;
+      }
+
+      function displayNameForRoom(room) {
+        if (!room) return "Phòng chat";
+        const peer = peerNameFromDirectRoom(room);
+        return peer || room.name || room.code || "Phòng chat";
+      }
+
+      function avatarUrlForUserName(name) {
+        if (!name) return "";
+        if (name === myName) return loadProfile().avatarUrl || "";
+        if (memberAvatarByName.has(name)) return memberAvatarByName.get(name);
+        const st = roomReaders.get(name);
+        return st?.avatarUrl || "";
+      }
+
+      let userProfileTargetName = "";
+
+      function fillAvatarElement(el, name, avatarUrl) {
+        el.innerHTML = "";
+        const letter = roomInitials(name);
+        const url = avatarUrl || avatarUrlForUserName(name);
+        if (url) {
+          const img = document.createElement("img");
+          img.src = url;
+          img.alt = "";
+          img.addEventListener("error", () => {
+            img.remove();
+            el.textContent = letter;
+          });
+          el.appendChild(img);
+        } else {
+          el.textContent = letter;
+        }
+      }
+
+      function openUserProfile(name, avatarUrl = "") {
+        const n = String(name ?? "").trim();
+        if (!n) return;
+        if (n === myName) {
+          openSettingsModal("account");
+          return;
+        }
+        userProfileTargetName = n;
+        if (avatarUrl) memberAvatarByName.set(n, avatarUrl);
+        fillAvatarElement(document.getElementById("user-profile-avatar"), n, avatarUrl);
+        document.getElementById("user-profile-name").textContent = n;
+        openModal("modal-user-profile");
+      }
+
+      function startDirectChatWith(targetName) {
+        const target = String(targetName ?? "").trim();
+        if (!target || !myName) return;
+        closeModal("modal-user-profile");
+        ensureSession(() => {
+          socket.timeout(25000).emit("open_direct_chat", { targetName: target }, (err, res) => {
+            if (err || !res?.ok) {
+              alert(res?.reason || "Không mở được chat riêng.");
+              return;
+            }
+            const room = res.room;
+            if (!room?.code) {
+              alert("Không nhận được mã phòng.");
+              return;
+            }
+            saveRoomCode(room.code);
+            saveRoomMeta(room.code, displayNameForRoom(room), room.id);
+            localStorage.setItem(STORAGE_LAST_CODE, room.code);
+            syncMyRooms();
+            joinRoomWithAck(room.code, { force: true });
+            toggleMembersPanel(false);
+          });
+        });
+      }
+
       function getSavedRoomMeta() {
         try {
           return JSON.parse(localStorage.getItem("webchat-room-meta") || "{}");
@@ -4384,7 +4577,9 @@
         const q = roomSearch.value.trim().toLowerCase();
         roomListEl.innerHTML = "";
         let list = roomsData.slice();
-        if (q) list = list.filter((r) => r.name.toLowerCase().includes(q));
+        if (q) {
+          list = list.filter((r) => displayNameForRoom(r).toLowerCase().includes(q));
+        }
         if (sidebarTab === "unread") {
           list = list.filter((r) => roomUnreadDisplay(r).count > 0);
         }
@@ -4416,7 +4611,7 @@
           item.innerHTML =
             `<div class="room-avatar">${avHtml}</div>` +
             `<div class="room-meta">` +
-            `<div class="room-top"><div class="room-name">${escapeHtml(room.name)}</div>` +
+            `<div class="room-top"><div class="room-name">${escapeHtml(displayNameForRoom(room))}</div>` +
             `<div class="room-time">${formatRoomTime(room.lastAt)}</div></div>` +
             `<div class="room-preview">${escapeHtml(room.code || "")} · ${escapeHtml(preview)}</div></div>` +
             unreadUi.badge +
@@ -4526,6 +4721,15 @@
             `<div class="room-member-name">${escapeHtml(m.name)}</div>` +
             `<div class="room-member-role${roleClass}">${escapeHtml(roleText)}</div></div>`;
 
+          const avEl = row.querySelector(".room-member-avatar");
+          if (avEl && m.name !== myName) {
+            avEl.style.cursor = "pointer";
+            avEl.addEventListener("click", (e) => {
+              e.stopPropagation();
+              openUserProfile(m.name);
+            });
+          }
+
           const canManage =
             manageLevel &&
             m.name !== myName &&
@@ -4593,7 +4797,7 @@
 
       function renderRoomHeader() {
         const room = roomsData.find((r) => r.id === currentRoomId);
-        const title = roomRoster?.name || room?.name || "Phòng chat";
+        const title = room ? displayNameForRoom(room) : roomRoster?.name || "Phòng chat";
         roomTitleEl.textContent = title;
         const label =
           currentRoomCode && currentRoomCode.length >= 4
@@ -4614,12 +4818,15 @@
         const total = roomRoster?.memberCount ?? 0;
         const onlineN = roomRoster?.onlineCount ?? onlineNames.length;
         const countBtn = document.getElementById("btn-room-members");
-        countBtn.textContent =
-          total > 0
-            ? `${total} thành viên · ${onlineN} đang online`
-            : onlineN > 0
-              ? `${onlineN} đang online`
-              : "0 thành viên";
+        if (room?.kind === "direct") {
+          countBtn.textContent = "Chat riêng";
+        } else if (total > 0) {
+          countBtn.textContent = `${total} thành viên · ${onlineN} đang online`;
+        } else if (onlineN > 0) {
+          countBtn.textContent = `${onlineN} đang online`;
+        } else {
+          countBtn.textContent = "0 thành viên";
+        }
         syncRoomLeaderActionsUi();
       }
 
@@ -4731,6 +4938,9 @@
       });
 
       document.getElementById("create-group-submit").addEventListener("click", submitCreateGroup);
+      document.getElementById("user-profile-dm").addEventListener("click", () => {
+        startDirectChatWith(userProfileTargetName);
+      });
       document.getElementById("create-group-name").addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
@@ -5787,24 +5997,31 @@
       }
 
       function buildMsgAvatarEl(msg) {
-        const el = document.createElement("div");
-        el.className = "msg-avatar";
-        el.title = msg.name || "";
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "msg-avatar";
+        const name = msg.name || "?";
+        btn.title = `Xem ${name}`;
         const url = resolveMessageAvatar(msg);
-        const letter = roomInitials(msg.name || "?");
+        const letter = roomInitials(name);
         if (url) {
           const img = document.createElement("img");
           img.src = url;
           img.alt = "";
+          img.draggable = false;
           img.addEventListener("error", () => {
             img.remove();
-            el.textContent = letter;
+            btn.textContent = letter;
           });
-          el.appendChild(img);
+          btn.appendChild(img);
         } else {
-          el.textContent = letter;
+          btn.textContent = letter;
         }
-        return el;
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openUserProfile(name, url);
+        });
+        return btn;
       }
 
       function appendMessage(msg) {
