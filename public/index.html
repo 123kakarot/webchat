@@ -1178,9 +1178,9 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v15</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v16</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Vào phòng khác hoặc tạo phòng mới ở menu bên trái sau khi đăng nhập.</p>
-        <form id="join-form">
+        <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
           <input id="name" autocomplete="nickname" placeholder="Ví dụ: Lan, Minh…" maxlength="32" required />
           <p id="join-error" hidden style="color:#f87171;font-size:0.85rem;margin-bottom:0.75rem"></p>
@@ -1257,7 +1257,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v15</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v16</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -1496,6 +1496,7 @@
       let roomsData = [];
       let pendingOpenRecentRoom = false;
       let sessionReady = false;
+      let sidebarTab = "all";
       let profileSuffix = "";
       const STORAGE_NAME = "webchat-name";
       const STORAGE_ROOM_CODES = "webchat-room-codes";
@@ -1559,7 +1560,6 @@
       function requestJoin(name, isAuto) {
         const emitJoin = () => {
           socket.timeout(25000).emit("join", { name, rejoin: Boolean(isAuto) }, (err, res) => {
-            if (myName) return;
             if (err) {
               resetJoinUi();
               joinError.textContent =
@@ -1568,7 +1568,7 @@
               return;
             }
             if (res?.ok) {
-              onJoinedSession(res);
+              if (!myName) onJoinedSession(res);
               return;
             }
             if (res?.reason && !myName) onJoinError(res.reason);
@@ -1690,6 +1690,32 @@
       function withServerSession(action) {
         ensureSession(action);
       }
+
+      joinForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (myName) return;
+        const name = nameInput.value.trim();
+        const check = validateDisplayName(name);
+        if (!check.ok) {
+          joinError.textContent = check.reason;
+          joinError.hidden = false;
+          resetJoinUi();
+          return;
+        }
+        joinError.hidden = true;
+        pendingAutoJoin = null;
+        joinBtn.textContent = "Đang kết nối…";
+        startJoinWait();
+        requestJoin(name, false);
+      });
+
+      nameInput.addEventListener("input", () => {
+        if (myName) return;
+        clearJoinWait();
+        pendingAutoJoin = null;
+        resetJoinUi();
+        joinError.hidden = true;
+      });
 
       socket.on("connect", () => {
         statusDot.classList.remove("off");
@@ -2641,32 +2667,6 @@
         } else {
           tryAutoJoinName();
         }
-      });
-
-      joinForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        if (myName) return;
-        const name = nameInput.value.trim();
-        const check = validateDisplayName(name);
-        if (!check.ok) {
-          joinError.textContent = check.reason;
-          joinError.hidden = false;
-          resetJoinUi();
-          return;
-        }
-        joinError.hidden = true;
-        pendingAutoJoin = null;
-        joinBtn.textContent = "Đang kết nối…";
-        startJoinWait();
-        requestJoin(name, false);
-      });
-
-      nameInput.addEventListener("input", () => {
-        if (myName) return;
-        clearJoinWait();
-        pendingAutoJoin = null;
-        resetJoinUi();
-        joinError.hidden = true;
       });
 
       socket.on("join_error", (reason) => {
