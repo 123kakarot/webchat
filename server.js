@@ -176,41 +176,61 @@ io.on("connection", (socket) => {
     socket.emit("rooms_list", rooms);
   });
 
-  socket.on("join_room", async (payload) => {
-    const user = online.get(socket.id);
-    if (!user) {
-      socket.emit("room_join_error", "Phiên đăng nhập hết hạn — tải lại trang (F5) rồi thử lại.");
-      return;
+  socket.on("join_room", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+
+    try {
+      const user = online.get(socket.id);
+      if (!user) {
+        const reason = "Phiên đăng nhập hết hạn — tải lại trang (F5) rồi thử lại.";
+        socket.emit("room_join_error", reason);
+        respond({ ok: false, reason });
+        return;
+      }
+
+      const code = normalizeRoomCode(typeof payload === "string" ? payload : payload?.code);
+      if (code.length < 4) {
+        const reason = "Mã phòng không hợp lệ";
+        socket.emit("room_join_error", reason);
+        respond({ ok: false, reason });
+        return;
+      }
+
+      const room = await getRoomByCode(code);
+      if (!room) {
+        const reason = "Mã phòng không đúng";
+        socket.emit("room_join_error", reason);
+        respond({ ok: false, reason });
+        return;
+      }
+
+      if (user.roomId) {
+        socket.leave(roomChannel(user.roomId));
+      }
+
+      user.roomId = room.id;
+      user.roomCode = room.code;
+      socket.join(roomChannel(room.id));
+
+      const history = await loadRecentMessages(room.id, 250);
+      const data = {
+        ok: true,
+        roomId: room.id,
+        code: room.code,
+        name: room.name,
+        history,
+      };
+      socket.emit("room_joined", data);
+      respond(data);
+      broadcastUsers(room.id);
+    } catch (err) {
+      console.error("[join_room]", err);
+      const reason = "Lỗi server khi vào phòng.";
+      socket.emit("room_join_error", reason);
+      respond({ ok: false, reason });
     }
-
-    const code = normalizeRoomCode(typeof payload === "string" ? payload : payload?.code);
-    if (code.length < 4) {
-      socket.emit("room_join_error", "Mã phòng không hợp lệ");
-      return;
-    }
-
-    const room = await getRoomByCode(code);
-    if (!room) {
-      socket.emit("room_join_error", "Mã phòng không đúng");
-      return;
-    }
-
-    if (user.roomId) {
-      socket.leave(roomChannel(user.roomId));
-    }
-
-    user.roomId = room.id;
-    user.roomCode = room.code;
-    socket.join(roomChannel(room.id));
-
-    const history = await loadRecentMessages(room.id, 250);
-    socket.emit("room_joined", {
-      roomId: room.id,
-      code: room.code,
-      name: room.name,
-      history,
-    });
-    broadcastUsers(room.id);
   });
 
   socket.on("create_room", async (nameRaw, ack) => {

@@ -1097,7 +1097,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v12</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v13</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Vào phòng khác hoặc tạo phòng mới ở menu bên trái sau khi đăng nhập.</p>
         <form id="join-form">
           <label for="name">Tên của bạn</label>
@@ -1176,7 +1176,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v12</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v13</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -1399,6 +1399,7 @@
       let currentRoomCode = null;
       let roomsData = [];
       let pendingOpenRecentRoom = false;
+      let sessionReady = false;
       let profileSuffix = "";
       const STORAGE_NAME = "webchat-name";
       const STORAGE_ROOM_CODES = "webchat-room-codes";
@@ -1510,17 +1511,23 @@
         }
         socket.timeout(15000).emit("join", { name: myName, rejoin: true }, (err, res) => {
           if (err || !res?.ok) {
+            sessionReady = false;
             if (typeof then === "function") then(new Error("join"));
             return;
           }
+          sessionReady = true;
           if (typeof then === "function") then(null, res);
         });
       }
 
-      function withServerSession(action) {
+      function ensureSession(action) {
         if (!ensureLoggedIn()) return;
         if (!socket.connected) {
           alert("Chưa kết nối server — đợi vài giây rồi thử lại.");
+          return;
+        }
+        if (sessionReady) {
+          action();
           return;
         }
         rejoinServerSession((err) => {
@@ -1530,6 +1537,59 @@
           }
           action();
         });
+      }
+
+      function normalizeRoomCodeClient(raw) {
+        return String(raw ?? "")
+          .trim()
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, "")
+          .slice(0, 8);
+      }
+
+      function applyRoomJoined({ roomId, code, name, history }) {
+        currentRoomId = roomId;
+        currentRoomCode = code;
+        saveRoomCode(code);
+        localStorage.setItem(STORAGE_LAST_CODE, code);
+        hideRoomGate();
+        appShell.classList.add("active", "show-chat");
+        chat.classList.add("active");
+        syncMyRooms();
+        renderRoomHeader();
+        renderRoomList();
+        messagesEl.innerHTML = "";
+        messageNodes.clear();
+        const list = Array.isArray(history) ? history : [];
+        for (const item of list) appendMessage(item);
+        const last = list[list.length - 1];
+        if (last) markRoomRead(roomId, last.at);
+        messageInput.focus();
+      }
+
+      function joinRoomWithAck(code) {
+        const c = normalizeRoomCodeClient(code);
+        if (c.length < 4) {
+          alert("Mã phòng không hợp lệ.");
+          return;
+        }
+        ensureSession(() => {
+          socket.timeout(25000).emit("join_room", { code: c }, (err, res) => {
+            if (err) {
+              alert("Không vào được phòng (server không phản hồi).");
+              return;
+            }
+            if (res?.ok) {
+              applyRoomJoined(res);
+              return;
+            }
+            alert(res?.reason || "Không vào được phòng");
+          });
+        });
+      }
+
+      function withServerSession(action) {
+        ensureSession(action);
       }
 
       socket.on("connect", () => {
@@ -1550,7 +1610,10 @@
         }
       });
 
-      socket.on("disconnect", () => statusDot.classList.add("off"));
+      socket.on("disconnect", () => {
+        sessionReady = false;
+        statusDot.classList.add("off");
+      });
 
       function ensureLoggedIn() {
         if (myName) return true;
@@ -1669,7 +1732,7 @@
       }
 
       function promptCreateRoom() {
-        withServerSession(() => {
+        ensureSession(() => {
           const name = prompt("Tên phòng / nhóm mới:", "Nhóm của tôi");
           if (!name?.trim()) return;
           socket.timeout(20000).emit("create_room", name.trim(), (err, res) => {
@@ -1688,10 +1751,8 @@
 
       function onRoomCreated(room) {
         if (!room?.code) return;
-        saveRoomCode(room.code);
         alert("Phòng đã tạo!\n\nMã phòng: " + room.code + "\n\nGửi mã này cho mọi người cần vào.");
-        hideRoomGate();
-        socket.emit("join_room", { code: room.code });
+        joinRoomWithAck(room.code);
       }
 
       function initProfileUi() {
@@ -1759,6 +1820,7 @@
           resetJoinUi();
           updateAvatarUi();
           openMainApp();
+          sessionReady = true;
           if (rejoin && currentRoomCode) {
             pendingOpenRecentRoom = false;
             syncMyRooms();
@@ -1791,10 +1853,7 @@
       function enterRoom(code) {
         if (!ensureLoggedIn()) return;
         roomCodeError.hidden = true;
-        const c = String(code || "").trim();
-        withServerSession(() => {
-          socket.emit("join_room", { code: c });
-        });
+        joinRoomWithAck(code);
       }
 
       function readCursor(roomId) {
@@ -2015,27 +2074,8 @@
         renderRoomHeader();
       });
 
-      socket.on("room_joined", ({ roomId, code, name, history }) => {
-        currentRoomId = roomId;
-        currentRoomCode = code;
-        saveRoomCode(code);
-        localStorage.setItem(STORAGE_LAST_CODE, code);
-        hideRoomGate();
-        appShell.classList.add("active", "show-chat");
-        chat.classList.add("active");
-        syncMyRooms();
-        renderRoomHeader();
-        renderRoomList();
-        messagesEl.innerHTML = "";
-        messageNodes.clear();
-        for (const item of history) appendMessage(item);
-        const last = history[history.length - 1];
-        if (last) markRoomRead(roomId, last.at);
-        messageInput.focus();
-      });
-
-      socket.on("room_created", (room) => {
-        onRoomCreated(room);
+      socket.on("room_joined", (payload) => {
+        if (payload?.ok !== false && payload?.roomId != null) applyRoomJoined(payload);
       });
 
       socket.on("room_preview", (patch) => {
@@ -2462,9 +2502,10 @@
       });
 
       socket.io.on("reconnect", () => {
+        sessionReady = false;
         if (myName) {
           rejoinServerSession((err) => {
-            if (!err && currentRoomCode) enterRoom(currentRoomCode);
+            if (!err && currentRoomCode) joinRoomWithAck(currentRoomCode);
           });
         } else {
           tryAutoJoinName();
