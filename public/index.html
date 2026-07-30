@@ -1669,7 +1669,7 @@
       socket.on("profile_updated", ({ name }) => {
         myName = name;
         localStorage.setItem(STORAGE_NAME, name);
-        youLabel.textContent = youLabel.textContent.replace(/^Bạn: [^·]+/, "Bạn: " + name);
+        youLabel.textContent = "Bạn: " + name + profileSuffix;
         updateAvatarUi();
       });
 
