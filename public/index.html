@@ -14,6 +14,7 @@
       :root {
         --bg: #0f1419;
         --surface: #1a2332;
+        --surface2: #151c28;
         --border: #2d3a4f;
         --text: #e7ecf3;
         --muted: #8b9cb3;
@@ -22,6 +23,8 @@
         --bubble-other: #243044;
         --bubble-self: #1e3a5f;
         --system: #6b7280;
+        --toolbar-icon: #9ca8bc;
+        --mention: #60a5fa;
       }
 
       * {
@@ -92,10 +95,9 @@
 
       .gate-card input:focus {
         outline: 2px solid var(--accent);
-        outline-offset: 0;
       }
 
-      .gate-card button {
+      .gate-card button[type="submit"] {
         width: 100%;
         padding: 0.85rem;
         border: none;
@@ -105,15 +107,6 @@
         font: inherit;
         font-weight: 600;
         cursor: pointer;
-      }
-
-      .gate-card button:hover {
-        background: var(--accent-hover);
-      }
-
-      .gate-card button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
       }
 
       .chat {
@@ -137,7 +130,6 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 0.5rem;
       }
 
       header .title {
@@ -174,10 +166,6 @@
         display: block;
       }
 
-      .online-panel strong {
-        color: var(--text);
-      }
-
       #messages {
         flex: 1;
         overflow-y: auto;
@@ -191,7 +179,6 @@
         text-align: center;
         font-size: 0.75rem;
         color: var(--system);
-        padding: 0.25rem 0;
       }
 
       .msg-row {
@@ -225,6 +212,11 @@
         background: var(--bubble-other);
       }
 
+      .msg-bubble.media {
+        padding: 0.35rem;
+        background: var(--bubble-other);
+      }
+
       .msg-row.self .msg-bubble {
         background: var(--bubble-self);
         border-bottom-right-radius: 4px;
@@ -234,38 +226,257 @@
         border-bottom-left-radius: 4px;
       }
 
-      .composer {
-        padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
-        border-top: 1px solid var(--border);
-        background: var(--surface);
-        display: flex;
-        gap: 0.5rem;
+      .msg-bubble img.chat-img {
+        max-width: min(260px, 70vw);
+        border-radius: 10px;
+        display: block;
       }
 
-      .composer input {
+      .msg-bubble .file-link {
+        color: var(--mention);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+
+      .msg-bubble .file-link:hover {
+        text-decoration: underline;
+      }
+
+      .msg-bubble.sticker-only {
+        background: transparent;
+        padding: 0;
+        font-size: 3.5rem;
+        line-height: 1;
+      }
+
+      .msg-row.self .msg-bubble.sticker-only {
+        background: transparent;
+      }
+
+      .msg-bubble.reaction-only {
+        font-size: 2rem;
+        padding: 0.25rem 0.5rem;
+      }
+
+      .mention {
+        color: var(--mention);
+        font-weight: 500;
+      }
+
+      .composer-wrap {
+        border-top: 1px solid var(--border);
+        background: var(--surface2);
+        padding-bottom: env(safe-area-inset-bottom);
+        position: relative;
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.15rem;
+        padding: 0.45rem 0.65rem 0.25rem;
+        overflow-x: auto;
+      }
+
+      .tool-btn {
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--toolbar-icon);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .tool-btn:hover,
+      .tool-btn.active {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
+
+      .tool-btn svg {
+        width: 22px;
+        height: 22px;
+        fill: currentColor;
+      }
+
+      .tool-btn.like-btn {
+        font-size: 1.35rem;
+        line-height: 1;
+      }
+
+      .composer {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.35rem;
+        padding: 0.35rem 0.65rem 0.65rem;
+        position: relative;
+      }
+
+      .input-wrap {
         flex: 1;
-        padding: 0.7rem 1rem;
-        border-radius: 24px;
+        position: relative;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        min-height: 42px;
+        display: flex;
+        align-items: center;
+      }
+
+      #message-input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        font-size: 0.95rem;
+        padding: 0.55rem 2.5rem 0.55rem 0.75rem;
+        resize: none;
+        max-height: 120px;
+        line-height: 1.4;
+      }
+
+      #message-input:focus {
+        outline: none;
+      }
+
+      .input-wrap:focus-within {
+        border-color: var(--accent);
+      }
+
+      .input-emoji {
+        position: absolute;
+        right: 4px;
+        bottom: 4px;
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        font-size: 1.2rem;
+        border-radius: 8px;
+      }
+
+      .input-emoji:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .send-btn {
+        width: 42px;
+        height: 42px;
+        border: none;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .send-btn svg {
+        width: 20px;
+        height: 20px;
+        fill: currentColor;
+      }
+
+      .picker {
+        display: none;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+        max-height: 220px;
+        overflow-y: auto;
+        padding: 0.65rem;
+      }
+
+      .picker.open {
+        display: block;
+      }
+
+      .picker-grid {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 0.25rem;
+      }
+
+      .picker-grid button {
+        border: none;
+        background: transparent;
+        font-size: 1.45rem;
+        padding: 0.35rem;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .picker-grid button:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .sticker-grid button {
+        font-size: 2rem;
+      }
+
+      .format-bar {
+        display: flex;
+        gap: 0.35rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 0.5rem;
+      }
+
+      .format-bar button {
+        padding: 0.35rem 0.65rem;
         border: 1px solid var(--border);
         background: var(--bg);
         color: var(--text);
+        border-radius: 6px;
         font: inherit;
-      }
-
-      .composer input:focus {
-        outline: 2px solid var(--accent);
-      }
-
-      .composer button {
-        padding: 0.7rem 1.1rem;
-        border: none;
-        border-radius: 24px;
-        background: var(--accent);
-        color: #fff;
-        font: inherit;
-        font-weight: 600;
+        font-size: 0.8rem;
         cursor: pointer;
-        flex-shrink: 0;
+      }
+
+      .mention-list {
+        display: none;
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        right: 0;
+        margin-bottom: 4px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        max-height: 140px;
+        overflow-y: auto;
+        z-index: 10;
+        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
+      }
+
+      .mention-list.open {
+        display: block;
+      }
+
+      .mention-list button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .mention-list button:hover {
+        background: rgba(255, 255, 255, 0.06);
       }
 
       .status-dot {
@@ -280,26 +491,173 @@
       .status-dot.off {
         background: #ef4444;
       }
+
+      input[type="file"] {
+        display: none;
+      }
+
+      .card-bubble {
+        min-width: 200px;
+        font-size: 0.85rem;
+        line-height: 1.5;
+      }
+
+      .card-bubble .card-title {
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+
+      .card-bubble .card-row {
+        color: var(--muted);
+      }
+
+      .card-bubble .card-row strong {
+        color: var(--text);
+      }
+
+      .quick-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+
+      .quick-list button {
+        text-align: left;
+        padding: 0.55rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+
+      .quick-list button:hover {
+        border-color: var(--accent);
+      }
+
+      .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+
+      .modal-backdrop.open {
+        display: flex;
+      }
+
+      .modal {
+        width: 100%;
+        max-width: 360px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.25rem;
+      }
+
+      .modal h2 {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .modal label {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-bottom: 0.25rem;
+        margin-top: 0.65rem;
+      }
+
+      .modal input,
+      .modal textarea {
+        width: 100%;
+        padding: 0.55rem 0.65rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.9rem;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+
+      .modal-actions button {
+        flex: 1;
+        padding: 0.6rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .modal-actions button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+
+      .more-menu {
+        display: none;
+        position: absolute;
+        bottom: 100%;
+        right: 0.65rem;
+        margin-bottom: 0.25rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        min-width: 180px;
+        z-index: 20;
+        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
+        overflow: hidden;
+      }
+
+      .more-menu.open {
+        display: block;
+      }
+
+      .more-menu button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 0.65rem 0.85rem;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+
+      .more-menu button:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
     </style>
   </head>
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
         <h1>Phòng chat chung</h1>
-        <p>
-          Gửi link trang này qua Zalo, Messenger, SMS… Mọi người mở trình duyệt, nhập tên và chat
-          realtime cùng phòng.
-        </p>
+        <p>Gửi link qua Zalo, Messenger… Nhập tên và chat realtime.</p>
         <form id="join-form">
           <label for="name">Tên của bạn</label>
-          <input
-            id="name"
-            name="name"
-            autocomplete="nickname"
-            placeholder="Ví dụ: Lan, Minh…"
-            maxlength="32"
-            required
-          />
+          <input id="name" autocomplete="nickname" placeholder="Ví dụ: Lan, Minh…" maxlength="32" required />
           <button type="submit" id="join-btn">Vào phòng</button>
         </form>
       </div>
@@ -308,21 +666,165 @@
     <main class="chat" id="chat">
       <header>
         <div>
-          <div class="title"><span class="status-dot" id="status-dot"></span>Đang trò chuyện</div>
+          <div class="title"><span class="status-dot" id="status-dot"></span>Phòng chat</div>
           <div class="you" id="you-label"></div>
         </div>
         <button type="button" class="online-toggle" id="online-toggle">0 online</button>
       </header>
       <div class="online-panel" id="online-panel"></div>
-      <div id="messages" role="log" aria-live="polite"></div>
-      <form class="composer" id="send-form">
-        <input id="message-input" placeholder="Nhập tin nhắn…" maxlength="2000" autocomplete="off" />
-        <button type="submit">Gửi</button>
-      </form>
+      <div id="messages" role="log"></div>
+
+      <div class="composer-wrap">
+        <div class="toolbar">
+          <button type="button" class="tool-btn" id="btn-sticker" title="Sticker">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          </button>
+          <button type="button" class="tool-btn" id="btn-image" title="Gửi ảnh">
+            <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+          </button>
+          <button type="button" class="tool-btn" id="btn-file" title="Đính kèm file">
+            <svg viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
+          </button>
+          <button type="button" class="tool-btn" id="btn-contact" title="Danh thiếp">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </button>
+          <button type="button" class="tool-btn" id="btn-screenshot" title="Chụp màn hình">
+            <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zM9 13h6v2H9z"/></svg>
+          </button>
+          <button type="button" class="tool-btn" id="btn-format" title="Định dạng chữ">
+            <svg viewBox="0 0 24 24"><path d="M5 4v3h5.5v12h3V7H19V4H5z"/></svg>
+          </button>
+          <button type="button" class="tool-btn" id="btn-emoji-bar" title="Emoji">
+            <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+          </button>
+          <button type="button" class="tool-btn" id="btn-quick" title="Tin nhắn nhanh">
+            <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12zM7 9h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2z"/></svg>
+          </button>
+          <button type="button" class="tool-btn" id="btn-wallet" title="Thông tin chuyển khoản">
+            <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+          </button>
+          <button type="button" class="tool-btn" id="btn-more" title="Thêm">
+            <svg viewBox="0 0 24 24"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+          </button>
+        </div>
+
+        <div class="more-menu" id="more-menu">
+          <button type="button" data-more="capture-chat">Chụp khung chat</button>
+          <button type="button" data-more="edit-quick">Sửa tin nhắn nhanh</button>
+          <button type="button" data-more="edit-wallet">Lưu TK chuyển khoản</button>
+        </div>
+
+        <div class="picker" id="picker-sticker">
+          <div class="picker-grid sticker-grid" id="sticker-grid"></div>
+        </div>
+        <div class="picker" id="picker-emoji">
+          <div class="picker-grid" id="emoji-grid"></div>
+        </div>
+        <div class="picker" id="picker-format">
+          <div class="format-bar">
+            <button type="button" data-wrap="**">In đậm **</button>
+            <button type="button" data-wrap="_">In nghiêng _</button>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--muted)">Gõ <strong>@tên</strong> để nhắc người trong phòng.</p>
+        </div>
+        <div class="picker" id="picker-quick">
+          <div class="quick-list" id="quick-list"></div>
+        </div>
+
+        <form class="composer" id="send-form">
+          <div class="input-wrap">
+            <textarea
+              id="message-input"
+              rows="1"
+              placeholder="Nhập @, tin nhắn tới phòng chat…"
+              maxlength="2000"
+            ></textarea>
+            <div class="mention-list" id="mention-list"></div>
+            <button type="button" class="input-emoji" id="btn-emoji-input" title="Emoji">😊</button>
+          </div>
+          <button type="button" class="tool-btn like-btn" id="btn-like" title="Gửi 👍">👍</button>
+          <button type="submit" class="send-btn" title="Gửi">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </form>
+      </div>
+
+      <input type="file" id="file-image" accept="image/jpeg,image/png,image/gif,image/webp" />
+      <input type="file" id="file-attach" />
     </main>
+
+    <div class="modal-backdrop" id="modal-contact">
+      <div class="modal">
+        <h2>Gửi danh thiếp</h2>
+        <label>Tên hiển thị</label>
+        <input id="contact-name" maxlength="64" />
+        <label>Số điện thoại / Zalo</label>
+        <input id="contact-phone" maxlength="32" />
+        <label>Ghi chú</label>
+        <input id="contact-note" maxlength="120" />
+        <div class="modal-actions">
+          <button type="button" data-close="modal-contact">Hủy</button>
+          <button type="button" class="primary" id="contact-send">Gửi</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal-wallet">
+      <div class="modal">
+        <h2>Gửi thông tin chuyển khoản</h2>
+        <label>Ngân hàng / ví</label>
+        <input id="pay-bank" maxlength="64" />
+        <label>Số tài khoản</label>
+        <input id="pay-account" maxlength="32" />
+        <label>Tên chủ TK</label>
+        <input id="pay-holder" maxlength="64" />
+        <label>Số tiền (tùy chọn)</label>
+        <input id="pay-amount" maxlength="32" />
+        <label>Nội dung CK</label>
+        <input id="pay-note" maxlength="120" />
+        <div class="modal-actions">
+          <button type="button" data-close="modal-wallet">Hủy</button>
+          <button type="button" class="primary" id="pay-send">Gửi</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal-edit-quick">
+      <div class="modal">
+        <h2>Tin nhắn nhanh (mỗi dòng một mẫu)</h2>
+        <textarea id="quick-edit" rows="6" maxlength="800"></textarea>
+        <div class="modal-actions">
+          <button type="button" data-close="modal-edit-quick">Hủy</button>
+          <button type="button" class="primary" id="quick-save">Lưu</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal-edit-wallet">
+      <div class="modal">
+        <h2>Lưu mặc định chuyển khoản</h2>
+        <label>Ngân hàng</label>
+        <input id="wallet-pref-bank" maxlength="64" />
+        <label>Số TK</label>
+        <input id="wallet-pref-account" maxlength="32" />
+        <label>Tên chủ TK</label>
+        <input id="wallet-pref-holder" maxlength="64" />
+        <div class="modal-actions">
+          <button type="button" data-close="modal-edit-wallet">Hủy</button>
+          <button type="button" class="primary" id="wallet-pref-save">Lưu</button>
+        </div>
+      </div>
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+      const EMOJIS =
+        "😀 😃 😄 😁 😆 😅 🤣 😂 🙂 😊 😇 🥰 😍 🤩 😘 😗 😚 😙 🥲 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 🤨 😐 😑 😶 😏 😒 🙄 😬 🤥 😌 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🤮 🤧 🥵 🥶 🥴 😵 🤯 🤠 🥳 🥸 😎 🤓 🧐 😕 😟 🙁 ☹️ 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 🤬 👍 👎 👏 🙏 ❤️ 🔥 ✨ 🎉".split(
+          " "
+        );
+
+      const STICKERS = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🦄", "🐲", "👻", "🤖", "👽", "🎃", "⭐", "💯"];
+
       const gate = document.getElementById("gate");
       const chat = document.getElementById("chat");
       const joinForm = document.getElementById("join-form");
@@ -335,17 +837,403 @@
       const onlineToggle = document.getElementById("online-toggle");
       const onlinePanel = document.getElementById("online-panel");
       const statusDot = document.getElementById("status-dot");
+      const mentionList = document.getElementById("mention-list");
+      const fileImage = document.getElementById("file-image");
+      const fileAttach = document.getElementById("file-attach");
+
+      const pickers = {
+        sticker: document.getElementById("picker-sticker"),
+        emoji: document.getElementById("picker-emoji"),
+        format: document.getElementById("picker-format"),
+        quick: document.getElementById("picker-quick"),
+      };
+
+      const DEFAULT_QUICK = [
+        "Xin chào mọi người 👋",
+        "Mình đang trên đường, hơi trễ chút nhé",
+        "Ok bạn nhé",
+        "Gửi giúp mình thông tin nhé",
+        "Cảm ơn bạn!",
+      ];
 
       let myName = "";
+      let onlineNames = [];
       const socket = io();
 
-      socket.on("connect", () => {
-        statusDot.classList.remove("off");
+      function loadQuickMessages() {
+        try {
+          const raw = localStorage.getItem("webchat-quick");
+          if (raw) {
+            const arr = JSON.parse(raw);
+            if (Array.isArray(arr) && arr.length) return arr.slice(0, 12);
+          }
+        } catch (_) {}
+        return DEFAULT_QUICK.slice();
+      }
+
+      function saveQuickMessages(list) {
+        localStorage.setItem("webchat-quick", JSON.stringify(list.slice(0, 12)));
+      }
+
+      function loadWalletPref() {
+        try {
+          return JSON.parse(localStorage.getItem("webchat-wallet") || "{}");
+        } catch (_) {
+          return {};
+        }
+      }
+
+      function saveWalletPref(data) {
+        localStorage.setItem("webchat-wallet", JSON.stringify(data));
+      }
+
+      function renderQuickList() {
+        const list = loadQuickMessages();
+        const el = document.getElementById("quick-list");
+        el.innerHTML = "";
+        list.forEach((text) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = text;
+          btn.addEventListener("click", () => {
+            socket.emit("message", { type: "text", text });
+            pickers.quick.classList.remove("open");
+          });
+          el.appendChild(btn);
+        });
+      }
+
+      renderQuickList();
+
+      function escapeHtml(s) {
+        const d = document.createElement("div");
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
+      function formatTextHtml(text) {
+        let s = escapeHtml(text);
+        s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+        s = s.replace(/_(.+?)_/g, "<em>$1</em>");
+        s = s.replace(/@([\w\u00C0-\u1EF9]+)/g, '<span class="mention">@$1</span>');
+        return s;
+      }
+
+      function togglePicker(name) {
+        const el = pickers[name];
+        if (!el) return;
+        document.getElementById("more-menu")?.classList.remove("open");
+        const open = !el.classList.contains("open");
+        Object.values(pickers).forEach((p) => p.classList.remove("open"));
+        document.querySelectorAll(".toolbar .tool-btn").forEach((b) => b.classList.remove("active"));
+        if (open) {
+          el.classList.add("open");
+          const map = {
+            sticker: "btn-sticker",
+            emoji: "btn-emoji-bar",
+            format: "btn-format",
+            quick: "btn-quick",
+          };
+          document.getElementById(map[name])?.classList.add("active");
+        }
+      }
+
+      function openModal(id) {
+        document.getElementById(id)?.classList.add("open");
+        document.getElementById("more-menu")?.classList.remove("open");
+        Object.values(pickers).forEach((p) => p.classList.remove("open"));
+      }
+
+      function closeModal(id) {
+        document.getElementById(id)?.classList.remove("open");
+      }
+
+      function buildPickerGrid(container, items, className, onPick) {
+        container.innerHTML = "";
+        items.forEach((item) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = item;
+          if (className) btn.parentElement?.classList.add(className);
+          btn.addEventListener("click", () => onPick(item));
+          container.appendChild(btn);
+        });
+      }
+
+      buildPickerGrid(document.getElementById("emoji-grid"), EMOJIS, null, (e) => {
+        insertAtCursor(e);
+        messageInput.focus();
       });
 
-      socket.on("disconnect", () => {
-        statusDot.classList.add("off");
+      buildPickerGrid(document.getElementById("sticker-grid"), STICKERS, "sticker", (s) => {
+        socket.emit("message", { type: "sticker", sticker: s });
+        pickers.sticker.classList.remove("open");
       });
+
+      function insertAtCursor(text) {
+        const el = messageInput;
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const val = el.value;
+        el.value = val.slice(0, start) + text + val.slice(end);
+        el.selectionStart = el.selectionEnd = start + text.length;
+        el.dispatchEvent(new Event("input"));
+      }
+
+      function wrapSelection(before, after) {
+        const el = messageInput;
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const val = el.value;
+        const sel = val.slice(start, end) || "văn bản";
+        el.value = val.slice(0, start) + before + sel + after + val.slice(end);
+        el.focus();
+      }
+
+      document.getElementById("btn-sticker").addEventListener("click", () => togglePicker("sticker"));
+      document.getElementById("btn-emoji-bar").addEventListener("click", () => togglePicker("emoji"));
+      document.getElementById("btn-format").addEventListener("click", () => togglePicker("format"));
+      document.getElementById("btn-emoji-input").addEventListener("click", () => togglePicker("emoji"));
+      document.getElementById("btn-quick").addEventListener("click", () => togglePicker("quick"));
+
+      document.getElementById("btn-contact").addEventListener("click", () => {
+        document.getElementById("contact-name").value = myName;
+        openModal("modal-contact");
+      });
+
+      document.getElementById("btn-wallet").addEventListener("click", () => {
+        const w = loadWalletPref();
+        document.getElementById("pay-bank").value = w.bank || "";
+        document.getElementById("pay-account").value = w.account || "";
+        document.getElementById("pay-holder").value = w.holder || "";
+        document.getElementById("pay-amount").value = "";
+        document.getElementById("pay-note").value = "";
+        openModal("modal-wallet");
+      });
+
+      document.getElementById("btn-more").addEventListener("click", () => {
+        document.getElementById("more-menu").classList.toggle("open");
+      });
+
+      document.querySelectorAll("#more-menu [data-more]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const action = btn.dataset.more;
+          if (action === "capture-chat") captureChatArea();
+          if (action === "edit-quick") {
+            document.getElementById("quick-edit").value = loadQuickMessages().join("\n");
+            openModal("modal-edit-quick");
+          }
+          if (action === "edit-wallet") {
+            const w = loadWalletPref();
+            document.getElementById("wallet-pref-bank").value = w.bank || "";
+            document.getElementById("wallet-pref-account").value = w.account || "";
+            document.getElementById("wallet-pref-holder").value = w.holder || "";
+            openModal("modal-edit-wallet");
+          }
+        });
+      });
+
+      document.querySelectorAll("[data-close]").forEach((btn) => {
+        btn.addEventListener("click", () => closeModal(btn.dataset.close));
+      });
+
+      document.querySelectorAll(".modal-backdrop").forEach((bd) => {
+        bd.addEventListener("click", (e) => {
+          if (e.target === bd) bd.classList.remove("open");
+        });
+      });
+
+      document.getElementById("contact-send").addEventListener("click", () => {
+        const displayName = document.getElementById("contact-name").value.trim() || myName;
+        const phone = document.getElementById("contact-phone").value.trim();
+        const note = document.getElementById("contact-note").value.trim();
+        if (!phone && !displayName) return;
+        socket.emit("message", {
+          type: "contact",
+          meta: { displayName, phone, note },
+        });
+        closeModal("modal-contact");
+      });
+
+      document.getElementById("pay-send").addEventListener("click", () => {
+        const bank = document.getElementById("pay-bank").value.trim();
+        const account = document.getElementById("pay-account").value.trim();
+        const holder = document.getElementById("pay-holder").value.trim();
+        const amount = document.getElementById("pay-amount").value.trim();
+        const note = document.getElementById("pay-note").value.trim();
+        if (!account) return;
+        socket.emit("message", {
+          type: "payment",
+          meta: { bank, account, holder, amount, note },
+        });
+        closeModal("modal-wallet");
+      });
+
+      document.getElementById("quick-save").addEventListener("click", () => {
+        const lines = document.getElementById("quick-edit").value
+          .split("\n")
+          .map((s) => s.trim())
+          .filter(Boolean);
+        saveQuickMessages(lines.length ? lines : DEFAULT_QUICK);
+        renderQuickList();
+        closeModal("modal-edit-quick");
+      });
+
+      document.getElementById("wallet-pref-save").addEventListener("click", () => {
+        saveWalletPref({
+          bank: document.getElementById("wallet-pref-bank").value.trim(),
+          account: document.getElementById("wallet-pref-account").value.trim(),
+          holder: document.getElementById("wallet-pref-holder").value.trim(),
+        });
+        closeModal("modal-edit-wallet");
+        appendSystem("Đã lưu thông tin chuyển khoản trên máy bạn.");
+      });
+
+      async function captureScreenToChat() {
+        if (!navigator.mediaDevices?.getDisplayMedia) {
+          appendSystem("Trình duyệt không hỗ trợ chụp màn hình.");
+          return;
+        }
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        } catch {
+          return;
+        }
+        const video = document.createElement("video");
+        video.srcObject = stream;
+        await video.play();
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext("2d").drawImage(video, 0, 0);
+        stream.getTracks().forEach((t) => t.stop());
+        canvas.toBlob(async (blob) => {
+          if (!blob) return;
+          try {
+            const file = new File([blob], "screenshot.png", { type: "image/png" });
+            const { url } = await uploadFile(file);
+            socket.emit("message", { type: "image", url, fileName: "Ảnh chụp màn hình" });
+          } catch {
+            appendSystem("Không gửi được ảnh chụp.");
+          }
+        }, "image/png");
+      }
+
+      async function captureChatArea() {
+        document.getElementById("more-menu").classList.remove("open");
+        try {
+          const html2canvas = await import("https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm");
+          const target = document.getElementById("messages");
+          const canvas = await html2canvas.default(target, {
+            backgroundColor: "#0f1419",
+            scale: 1,
+          });
+          canvas.toBlob(async (blob) => {
+            if (!blob) return;
+            const file = new File([blob], "chat.png", { type: "image/png" });
+            const { url } = await uploadFile(file);
+            socket.emit("message", { type: "image", url, fileName: "Ảnh khung chat" });
+          }, "image/png");
+        } catch {
+          appendSystem("Không chụp được khung chat.");
+        }
+      }
+
+      document.getElementById("btn-screenshot").addEventListener("click", () => captureScreenToChat());
+
+      document.querySelectorAll("#picker-format [data-wrap]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const w = btn.dataset.wrap;
+          wrapSelection(w, w === "**" ? "**" : "_");
+        });
+      });
+
+      document.getElementById("btn-image").addEventListener("click", () => fileImage.click());
+      document.getElementById("btn-file").addEventListener("click", () => fileAttach.click());
+
+      document.getElementById("btn-like").addEventListener("click", () => {
+        socket.emit("message", { type: "reaction", text: "👍" });
+      });
+
+      async function uploadFile(file) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        if (!res.ok) throw new Error("upload failed");
+        return res.json();
+      }
+
+      fileImage.addEventListener("change", async () => {
+        const file = fileImage.files?.[0];
+        fileImage.value = "";
+        if (!file) return;
+        try {
+          const { url } = await uploadFile(file);
+          socket.emit("message", { type: "image", url });
+        } catch {
+          appendSystem("Không gửi được ảnh (tối đa 10MB).");
+        }
+      });
+
+      fileAttach.addEventListener("change", async () => {
+        const file = fileAttach.files?.[0];
+        fileAttach.value = "";
+        if (!file) return;
+        try {
+          const { url, fileName } = await uploadFile(file);
+          socket.emit("message", { type: "file", url, fileName });
+        } catch {
+          appendSystem("Không gửi được file (tối đa 10MB).");
+        }
+      });
+
+      messageInput.addEventListener("input", () => {
+        messageInput.style.height = "auto";
+        messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + "px";
+        updateMentionList();
+      });
+
+      function updateMentionList() {
+        const val = messageInput.value;
+        const pos = messageInput.selectionStart;
+        const before = val.slice(0, pos);
+        const match = before.match(/@([\w\u00C0-\u1EF9]*)$/);
+        if (!match) {
+          mentionList.classList.remove("open");
+          return;
+        }
+        const q = match[1].toLowerCase();
+        const hits = onlineNames.filter((n) => n !== myName && n.toLowerCase().startsWith(q));
+        if (!hits.length) {
+          mentionList.classList.remove("open");
+          return;
+        }
+        mentionList.innerHTML = "";
+        hits.slice(0, 8).forEach((name) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = "@" + name;
+          btn.addEventListener("click", () => {
+            const newBefore = before.replace(/@[\w\u00C0-\u1EF9]*$/, "@" + name + " ");
+            messageInput.value = newBefore + val.slice(pos);
+            mentionList.classList.remove("open");
+            messageInput.focus();
+          });
+          mentionList.appendChild(btn);
+        });
+        mentionList.classList.add("open");
+      }
+
+      messageInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendForm.requestSubmit();
+        }
+      });
+
+      socket.on("connect", () => statusDot.classList.remove("off"));
+      socket.on("disconnect", () => statusDot.classList.add("off"));
 
       joinForm.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -371,15 +1259,74 @@
         messagesEl.scrollTop = messagesEl.scrollHeight;
       }
 
-      function appendMessage({ name, text }) {
+      function appendMessage(msg) {
+        const {
+          name,
+          type = "text",
+          text = "",
+          url = "",
+          fileName = "",
+          sticker = "",
+          meta = {},
+        } = msg;
         const row = document.createElement("div");
         row.className = "msg-row" + (name === myName ? " self" : "");
+
         const nameEl = document.createElement("div");
         nameEl.className = "msg-name";
         nameEl.textContent = name;
+
         const bubble = document.createElement("div");
         bubble.className = "msg-bubble";
-        bubble.textContent = text;
+
+        if (type === "sticker") {
+          bubble.classList.add("sticker-only");
+          bubble.textContent = sticker;
+        } else if (type === "reaction") {
+          bubble.classList.add("reaction-only");
+          bubble.textContent = text;
+        } else if (type === "image") {
+          bubble.classList.add("media");
+          const img = document.createElement("img");
+          img.className = "chat-img";
+          img.src = url;
+          img.alt = fileName || "Ảnh";
+          img.loading = "lazy";
+          bubble.appendChild(img);
+        } else if (type === "file") {
+          const a = document.createElement("a");
+          a.className = "file-link";
+          a.href = url;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.textContent = "📎 " + (fileName || "Tệp đính kèm");
+          bubble.appendChild(a);
+        } else if (type === "contact") {
+          bubble.classList.add("card-bubble");
+          bubble.innerHTML =
+            '<div class="card-title">👤 Danh thiếp</div>' +
+            '<div class="card-row"><strong>' +
+            escapeHtml(meta.displayName || name) +
+            "</strong></div>" +
+            (meta.phone
+              ? '<div class="card-row">📞 ' + escapeHtml(meta.phone) + "</div>"
+              : "") +
+            (meta.note ? '<div class="card-row">' + escapeHtml(meta.note) + "</div>" : "");
+        } else if (type === "payment") {
+          bubble.classList.add("card-bubble");
+          bubble.innerHTML =
+            '<div class="card-title">💳 Chuyển khoản</div>' +
+            (meta.bank ? '<div class="card-row">' + escapeHtml(meta.bank) + "</div>" : "") +
+            '<div class="card-row"><strong>STK: ' +
+            escapeHtml(meta.account || "") +
+            "</strong></div>" +
+            (meta.holder ? '<div class="card-row">' + escapeHtml(meta.holder) + "</div>" : "") +
+            (meta.amount ? '<div class="card-row">Số tiền: ' + escapeHtml(meta.amount) + "</div>" : "") +
+            (meta.note ? '<div class="card-row">ND: ' + escapeHtml(meta.note) + "</div>" : "");
+        } else {
+          bubble.innerHTML = formatTextHtml(text);
+        }
+
         row.appendChild(nameEl);
         row.appendChild(bubble);
         messagesEl.appendChild(row);
@@ -390,22 +1337,22 @@
       socket.on("message", appendMessage);
 
       socket.on("users", (names) => {
+        onlineNames = names;
         onlineToggle.textContent = names.length + " online";
         onlinePanel.innerHTML =
-          "<strong>Đang online:</strong> " +
-          (names.length ? names.join(", ") : "Chưa có ai");
+          "<strong>Đang online:</strong> " + (names.length ? names.join(", ") : "Chưa có ai");
       });
 
-      onlineToggle.addEventListener("click", () => {
-        onlinePanel.classList.toggle("open");
-      });
+      onlineToggle.addEventListener("click", () => onlinePanel.classList.toggle("open"));
 
       sendForm.addEventListener("submit", (e) => {
         e.preventDefault();
         const text = messageInput.value.trim();
         if (!text) return;
-        socket.emit("message", text);
+        socket.emit("message", { type: "text", text });
         messageInput.value = "";
+        messageInput.style.height = "auto";
+        mentionList.classList.remove("open");
       });
     </script>
   </body>
