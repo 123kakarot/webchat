@@ -19,6 +19,7 @@ import {
   createRoom,
   getRoomByCode,
   normalizeRoomCode,
+  getDbOverview,
 } from "./db.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -42,8 +43,43 @@ app.get("/nameFilter.js", (_req, res) => {
 });
 app.use("/uploads", express.static(uploadsDir));
 
-app.get("/api/status", (_req, res) => {
-  res.json({ persistent: isPersistent() });
+app.get("/api/status", async (_req, res) => {
+  try {
+    const overview = await getDbOverview({ roomLimit: 0, messageLimit: 0 });
+    res.json({
+      persistent: isPersistent(),
+      mode: overview.mode,
+      counts: overview.counts,
+    });
+  } catch (err) {
+    console.error("[api/status]", err);
+    res.json({ persistent: isPersistent(), counts: null });
+  }
+});
+
+function adminAuthorized(req) {
+  const secret = process.env.ADMIN_SECRET;
+  if (!secret) return false;
+  return req.query.key === secret || req.get("X-Admin-Secret") === secret;
+}
+
+app.get("/api/db/overview", async (req, res) => {
+  if (!adminAuthorized(req)) {
+    res.status(403).json({
+      error: "Forbidden",
+      hint: "Set ADMIN_SECRET on Render, then open /api/db/overview?key=YOUR_SECRET",
+    });
+    return;
+  }
+  try {
+    const roomLimit = Math.min(Number(req.query.rooms) || 50, 100);
+    const messageLimit = Math.min(Number(req.query.messages) || 30, 100);
+    const data = await getDbOverview({ roomLimit, messageLimit });
+    res.json(data);
+  } catch (err) {
+    console.error("[api/db/overview]", err);
+    res.status(500).json({ error: "DB query failed" });
+  }
 });
 
 const storage = multer.diskStorage({
@@ -72,7 +108,7 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
   });
 });
 
-/** @type {Map<string, { id: string, name: string, roomId: number | null, roomCode: string | null }>} */
+/** @type {Map<string, { id: string, name: string, clientId: string, roomId: number | null, roomCode: string | null }>} */
 const online = new Map();
 
 const ALLOWED_REACTIONS = new Set(["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"]);
@@ -86,15 +122,22 @@ function broadcastUsers(roomId) {
 
 function parseJoinPayload(raw) {
   if (typeof raw === "string") {
-    return { name: raw.trim(), rejoin: false };
+    return { name: raw.trim(), rejoin: false, clientId: "" };
   }
   if (raw && typeof raw === "object") {
     return {
       name: String(raw.name ?? "").trim(),
       rejoin: Boolean(raw.rejoin),
+      clientId: String(raw.clientId ?? "").trim().slice(0, 64),
     };
   }
-  return { name: "", rejoin: false };
+  return { name: "", rejoin: false, clientId: "" };
+}
+
+function ensureClientId(raw) {
+  const id = String(raw ?? "").trim().slice(0, 64);
+  if (id.length >= 8) return id;
+  return crypto.randomUUID();
 }
 
 function roomChannel(roomId) {
@@ -133,7 +176,7 @@ io.on("connection", (socket) => {
       if (typeof ack === "function") ack(payload);
     };
 
-    const { name: rawName, rejoin } = parseJoinPayload(raw);
+    const { name: rawName, rejoin, clientId: rawClientId } = parseJoinPayload(raw);
     const trimmed = rawName.slice(0, 32);
     if (joined) {
       const existing = online.get(socket.id);
@@ -141,6 +184,7 @@ io.on("connection", (socket) => {
         const payload = {
           ok: true,
           name: existing.name,
+          clientId: existing.clientId,
           persistent: isPersistent(),
           rejoin: Boolean(rejoin),
         };
@@ -158,11 +202,13 @@ io.on("connection", (socket) => {
     }
 
     joined = true;
-    online.set(socket.id, { id: socket.id, name: trimmed, roomId: null, roomCode: null });
+    const clientId = ensureClientId(rawClientId);
+    online.set(socket.id, { id: socket.id, name: trimmed, clientId, roomId: null, roomCode: null });
 
     const payload = {
       ok: true,
       name: trimmed,
+      clientId,
       persistent: isPersistent(),
       rejoin: Boolean(rejoin),
     };
@@ -316,6 +362,8 @@ io.on("connection", (socket) => {
     if (type === "reaction") text = text || "👍";
     if (type === "contact" && !meta.phone && !meta.displayName) return;
     if (type === "payment" && !meta.account) return;
+
+    meta.clientId = user.clientId;
 
     await emitMessage(user.roomId, user.roomCode, {
       name: user.name,

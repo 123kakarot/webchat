@@ -1560,7 +1560,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v23</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v24</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Vào phòng khác hoặc tạo phòng mới ở menu bên trái sau khi đăng nhập.</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -1620,7 +1620,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v23</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v24</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -1955,6 +1955,17 @@
       const STORAGE_ROOM_CODES = "webchat-room-codes";
       const STORAGE_LAST_CODE = "webchat-last-code";
       const STORAGE_PROFILE = "webchat-profile";
+      const STORAGE_CLIENT_ID = "webchat-client-id";
+
+      function getOrCreateClientId() {
+        let id = localStorage.getItem(STORAGE_CLIENT_ID);
+        if (id && id.length >= 8) return id.slice(0, 64);
+        id = crypto.randomUUID();
+        localStorage.setItem(STORAGE_CLIENT_ID, id);
+        return id;
+      }
+
+      let myClientId = getOrCreateClientId();
 
       const savedNameEarly = localStorage.getItem(STORAGE_NAME);
       if (savedNameEarly) {
@@ -2012,7 +2023,7 @@
 
       function requestJoin(name, isAuto) {
         const emitJoin = () => {
-          socket.timeout(25000).emit("join", { name, rejoin: Boolean(isAuto) }, (err, res) => {
+          socket.timeout(25000).emit("join", { name, rejoin: Boolean(isAuto), clientId: myClientId }, (err, res) => {
             if (err) {
               resetJoinUi();
               joinError.textContent =
@@ -2058,13 +2069,17 @@
           if (typeof then === "function") then(new Error("offline"));
           return;
         }
-        socket.timeout(15000).emit("join", { name: myName, rejoin: true }, (err, res) => {
+        socket.timeout(15000).emit("join", { name: myName, rejoin: true, clientId: myClientId }, (err, res) => {
           if (err || !res?.ok) {
             sessionReady = false;
             if (typeof then === "function") then(new Error("join"));
             return;
           }
           sessionReady = true;
+          if (res?.clientId) {
+            myClientId = String(res.clientId).slice(0, 64);
+            localStorage.setItem(STORAGE_CLIENT_ID, myClientId);
+          }
           if (typeof then === "function") then(null, res);
         });
       }
@@ -2696,10 +2711,14 @@
         joinRoomWithAck(currentRoomCode, { force: true });
       }
 
-      function onJoinedSession({ name, persistent, rejoin }) {
+      function onJoinedSession({ name, persistent, rejoin, clientId }) {
         try {
           clearJoinWait();
           myName = name;
+          if (clientId) {
+            myClientId = String(clientId).slice(0, 64);
+            localStorage.setItem(STORAGE_CLIENT_ID, myClientId);
+          }
           pendingAutoJoin = null;
           localStorage.setItem(STORAGE_NAME, name);
           youLabel.textContent =
@@ -3782,6 +3801,17 @@
         row.classList.add("actions-open");
       }
 
+      function messageSenderId(msg) {
+        const meta = msg.meta && typeof msg.meta === "object" ? msg.meta : {};
+        return meta.clientId || msg.clientId || "";
+      }
+
+      function isMyMessage(msg) {
+        const cid = messageSenderId(msg);
+        if (myClientId && cid) return cid === myClientId;
+        return msg.name === myName;
+      }
+
       function appendMessage(msg) {
         const { id, name, reactions = {} } = msg;
         if (id == null) {
@@ -3789,7 +3819,7 @@
         }
 
         const row = document.createElement("div");
-        row.className = "msg-row" + (name === myName ? " self" : "");
+        row.className = "msg-row" + (isMyMessage(msg) ? " self" : "");
         row.dataset.msgId = String(id);
 
         const nameEl = document.createElement("div");
