@@ -28,6 +28,8 @@ import {
   removeRoomReadStateForUser,
   isNameAllowedInRoom,
   listRegisteredRoomMemberNames,
+  getRoomMemberRoleMap,
+  setRoomMemberRole,
   normalizeRoomCode,
   upsertRoomRead,
   getRoomReads,
@@ -35,7 +37,7 @@ import {
   getDbOverview,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "39");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "40");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -168,13 +170,16 @@ async function buildRoomRoster(roomId) {
   const onlineSet = new Set(
     [...online.values()].filter((u) => u.roomId === roomId).map((u) => u.name)
   );
+  const roleMap = await getRoomMemberRoleMap(roomId);
   const members = memberNames.map((name) => ({
     name,
     online: onlineSet.has(name),
     isOwner: Boolean(owner && name === owner),
+    isDeputy: roleMap[name] === "deputy",
   }));
   members.sort((a, b) => {
     if (a.isOwner !== b.isOwner) return a.isOwner ? -1 : 1;
+    if (a.isDeputy !== b.isDeputy) return a.isDeputy ? -1 : 1;
     if (a.online !== b.online) return a.online ? -1 : 1;
     return a.name.localeCompare(b.name, "vi");
   });
@@ -232,6 +237,33 @@ async function enforceRoomMembership(roomId, ownerName = "") {
       }
     }
   }
+}
+
+async function kickMemberByName(roomId, targetName, reason) {
+  const rid = Number(roomId);
+  const target = String(targetName ?? "").trim().slice(0, 32);
+  if (!Number.isFinite(rid) || !target) return;
+  await removeRoomMember(rid, target);
+  await removeRoomReadStateForUser(rid, target);
+  const room = await getRoomById(rid);
+  for (const [sid, u] of online) {
+    if (Number(u.roomId) === rid && u.name === target) {
+      const sock = io.sockets.sockets.get(sid);
+      if (sock) kickUserFromRoom(sock, u, reason);
+    }
+  }
+  await enforceRoomMembership(rid, room?.ownerName || "");
+}
+
+function isRoomOwner(userName, ownerName) {
+  return Boolean(ownerName && userName === ownerName);
+}
+
+async function actorManageLevel(roomId, actorName, ownerName) {
+  if (isRoomOwner(actorName, ownerName)) return "owner";
+  const roles = await getRoomMemberRoleMap(roomId);
+  if (roles[actorName] === "deputy") return "deputy";
+  return null;
 }
 
 function parseJoinPayload(raw) {
@@ -383,7 +415,7 @@ io.on("connection", (socket) => {
 
     if (authPolicy !== AUTH_POLICY || clientBuild !== MIN_CLIENT_BUILD) {
       const reason =
-        "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v39 — sau đó nhập lại tên.";
+        "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v40 — sau đó nhập lại tên.";
       socket.emit("join_error", reason);
       socket.emit("upgrade_required", { reason });
       respond({ ok: false, reason });
@@ -733,12 +765,154 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("room_member_manage", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user?.roomId) {
+      respond({ ok: false, reason: "Chưa vào phòng." });
+      return;
+    }
+    const room = await getRoomById(user.roomId);
+    if (!room) {
+      respond({ ok: false, reason: "Phòng không tồn tại." });
+      return;
+    }
+    const action = String(payload?.action ?? "").trim();
+    const target = String(payload?.targetName ?? "").trim().slice(0, 32);
+    if (!target) {
+      respond({ ok: false, reason: "Thiếu tên thành viên." });
+      return;
+    }
+    const level = await actorManageLevel(user.roomId, user.name, room.ownerName || "");
+    if (!level) {
+      respond({ ok: false, reason: "Bạn không có quyền quản lý thành viên." });
+      return;
+    }
+
+    const owner = room.ownerName || "";
+    const roles = await getRoomMemberRoleMap(user.roomId);
+    const targetIsOwner = isRoomOwner(target, owner);
+    const targetIsDeputy = roles[target] === "deputy";
+    const registered = await listRegisteredRoomMemberNames(user.roomId);
+    const onList = registered.some((n) => n === target) || targetIsOwner;
+
+    try {
+      if (action === "kick") {
+        if (target === user.name) {
+          respond({ ok: false, reason: "Không thể tự mời chính mình ra." });
+          return;
+        }
+        if (targetIsOwner) {
+          respond({ ok: false, reason: "Không thể mời trưởng nhóm ra." });
+          return;
+        }
+        if (level === "deputy" && (targetIsDeputy || !onList)) {
+          respond({ ok: false, reason: "Phó phòng chỉ mời được thành viên thường." });
+          return;
+        }
+        await kickMemberByName(
+          user.roomId,
+          target,
+          "Bạn đã bị trưởng/phó phòng mời ra khỏi nhóm."
+        );
+        io.to(roomChannel(user.roomId)).emit("system", {
+          text: `${user.name} đã mời ${target} ra khỏi nhóm`,
+          roomId: user.roomId,
+        });
+        broadcastRoomRoster(user.roomId);
+        respond({ ok: true });
+        return;
+      }
+
+      if (action === "set_deputy" || action === "unset_deputy" || action === "transfer_owner") {
+        if (level !== "owner") {
+          respond({ ok: false, reason: "Chỉ trưởng nhóm mới làm được thao tác này." });
+          return;
+        }
+      }
+
+      if (action === "set_deputy") {
+        if (targetIsOwner || target === user.name) {
+          respond({ ok: false, reason: "Không thể gán phó phòng cho trưởng nhóm." });
+          return;
+        }
+        if (!registered.includes(target)) {
+          respond({ ok: false, reason: "Thành viên chưa có trong danh sách phòng." });
+          return;
+        }
+        const ok = await setRoomMemberRole(user.roomId, target, "deputy");
+        if (!ok) {
+          respond({ ok: false, reason: "Không gán được phó phòng." });
+          return;
+        }
+        io.to(roomChannel(user.roomId)).emit("system", {
+          text: `${user.name} bổ nhiệm ${target} làm phó phòng`,
+          roomId: user.roomId,
+        });
+        broadcastRoomRoster(user.roomId);
+        respond({ ok: true });
+        return;
+      }
+
+      if (action === "unset_deputy") {
+        if (!targetIsDeputy) {
+          respond({ ok: false, reason: "Thành viên này không phải phó phòng." });
+          return;
+        }
+        await setRoomMemberRole(user.roomId, target, "member");
+        io.to(roomChannel(user.roomId)).emit("system", {
+          text: `${user.name} bỏ chức phó phòng của ${target}`,
+          roomId: user.roomId,
+        });
+        broadcastRoomRoster(user.roomId);
+        respond({ ok: true });
+        return;
+      }
+
+      if (action === "transfer_owner") {
+        if (target === user.name) {
+          respond({ ok: false, reason: "Bạn đang là trưởng nhóm." });
+          return;
+        }
+        if (!registered.includes(target) && !targetIsOwner) {
+          await addRoomMember(user.roomId, target);
+        }
+        const updated = await updateRoomFields(user.roomId, { ownerName: target });
+        if (!updated) {
+          respond({ ok: false, reason: "Không chuyển được trưởng nhóm." });
+          return;
+        }
+        if (roles[target] === "deputy") {
+          await setRoomMemberRole(user.roomId, target, "member");
+        }
+        await addRoomMember(user.roomId, target);
+        await addRoomMember(user.roomId, user.name);
+        io.to(roomChannel(user.roomId)).emit("room_updated", updated);
+        io.to(watchChannel(updated.code)).emit("room_updated", updated);
+        io.to(roomChannel(user.roomId)).emit("system", {
+          text: `${user.name} chuyển quyền trưởng nhóm cho ${target}`,
+          roomId: user.roomId,
+        });
+        broadcastRoomRoster(user.roomId);
+        respond({ ok: true, room: updated });
+        return;
+      }
+
+      respond({ ok: false, reason: "Thao tác không hợp lệ." });
+    } catch (err) {
+      console.error("[room_member_manage]", err);
+      respond({ ok: false, reason: "Lỗi server." });
+    }
+  });
+
   socket.on("message", async (payload) => {
     const user = online.get(socket.id);
     if (!user || !user.roomId) return;
     if (!user.authPolicyOk) {
       socket.emit("upgrade_required", {
-        reason: "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v39.",
+        reason: "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v40.",
       });
       socket.disconnect(true);
       return;

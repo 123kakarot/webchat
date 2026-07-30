@@ -15,6 +15,8 @@ let memoryNextId = 1;
 
 /** @type {Array<{ id: number, name: string, kind: string, code: string, owner_name?: string, avatar_url?: string }>} */
 const memoryRooms = [];
+/** @type {Map<number, Map<string, string>>} */
+const memoryRoomMembers = new Map();
 /** @type {Map<number, Map<string, { lastMessageId: number, avatarUrl: string }>>} */
 const memoryRoomReads = new Map();
 let memoryNextRoomId = 1;
@@ -120,8 +122,11 @@ export async function initDb() {
       room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
       user_name VARCHAR(32) NOT NULL,
       joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      role VARCHAR(16) NOT NULL DEFAULT 'member',
       PRIMARY KEY (room_id, user_name)
     );
+
+    ALTER TABLE room_members ADD COLUMN IF NOT EXISTS role VARCHAR(16) NOT NULL DEFAULT 'member';
 
     CREATE TABLE IF NOT EXISTS room_read_state (
       room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
@@ -342,8 +347,8 @@ export async function listRegisteredRoomMemberNames(roomId) {
   if (!Number.isFinite(rid)) return [];
 
   if (useMemory) {
-    const set = memoryRoomMembers.get(rid);
-    return set ? [...set].filter(Boolean).sort((a, b) => a.localeCompare(b, "vi")) : [];
+    const map = memoryRoomMembers.get(rid);
+    return map ? [...map.keys()].filter(Boolean).sort((a, b) => a.localeCompare(b, "vi")) : [];
   }
 
   const { rows } = await pool.query(
@@ -420,19 +425,62 @@ export async function removeRoomReadStateForUser(roomId, userName) {
   await pool.query(`DELETE FROM room_read_state WHERE room_id = $1 AND user_name = $2`, [rid, name]);
 }
 
+export async function getRoomMemberRoleMap(roomId) {
+  const rid = Number(roomId);
+  if (!Number.isFinite(rid)) return {};
+
+  if (useMemory) {
+    const map = memoryRoomMembers.get(rid);
+    if (!map) return {};
+    return Object.fromEntries(map);
+  }
+
+  const { rows } = await pool.query(
+    `SELECT user_name, role FROM room_members WHERE room_id = $1`,
+    [rid]
+  );
+  /** @type {Record<string, string>} */
+  const out = {};
+  for (const r of rows) {
+    out[r.user_name] = r.role === "deputy" ? "deputy" : "member";
+  }
+  return out;
+}
+
+export async function setRoomMemberRole(roomId, userName, role) {
+  const rid = Number(roomId);
+  const name = String(userName ?? "").trim().slice(0, 32);
+  const nextRole = role === "deputy" ? "deputy" : "member";
+  if (!Number.isFinite(rid) || !name) return false;
+
+  if (useMemory) {
+    const map = memoryRoomMembers.get(rid);
+    if (!map || !map.has(name)) return false;
+    map.set(name, nextRole);
+    return true;
+  }
+
+  const { rowCount } = await pool.query(
+    `UPDATE room_members SET role = $3 WHERE room_id = $1 AND user_name = $2`,
+    [rid, name, nextRole]
+  );
+  return rowCount > 0;
+}
+
 export async function addRoomMember(roomId, userName) {
   const rid = Number(roomId);
   const name = String(userName ?? "").trim().slice(0, 32);
   if (!Number.isFinite(rid) || !name) return;
 
   if (useMemory) {
-    if (!memoryRoomMembers.has(rid)) memoryRoomMembers.set(rid, new Set());
-    memoryRoomMembers.get(rid).add(name);
+    if (!memoryRoomMembers.has(rid)) memoryRoomMembers.set(rid, new Map());
+    const map = memoryRoomMembers.get(rid);
+    if (!map.has(name)) map.set(name, "member");
     return;
   }
 
   await pool.query(
-    `INSERT INTO room_members (room_id, user_name) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+    `INSERT INTO room_members (room_id, user_name, role) VALUES ($1, $2, 'member') ON CONFLICT DO NOTHING`,
     [rid, name]
   );
 }
@@ -447,9 +495,9 @@ export async function listRoomMemberNames(roomId) {
   }
 
   if (useMemory) {
-    const set = memoryRoomMembers.get(rid) ?? new Set();
+    const map = memoryRoomMembers.get(rid) ?? new Map();
     const fromMsg = memoryMessages.filter((m) => m.roomId === rid).map((m) => m.name);
-    return [...new Set([...set, ...fromMsg])].filter(Boolean).sort((a, b) => a.localeCompare(b, "vi"));
+    return [...new Set([...map.keys(), ...fromMsg])].filter(Boolean).sort((a, b) => a.localeCompare(b, "vi"));
   }
 
   const { rows } = await pool.query(
@@ -644,8 +692,8 @@ export async function createRoom(name, ownerName = "", avatarUrl = "") {
     };
     memoryRooms.push(room);
     if (owner) {
-      if (!memoryRoomMembers.has(room.id)) memoryRoomMembers.set(room.id, new Set());
-      memoryRoomMembers.get(room.id).add(owner);
+      if (!memoryRoomMembers.has(room.id)) memoryRoomMembers.set(room.id, new Map());
+      memoryRoomMembers.get(room.id).set(owner, "member");
     }
     return {
       id: room.id,

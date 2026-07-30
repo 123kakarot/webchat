@@ -309,6 +309,7 @@
         align-items: center;
         gap: 0.65rem;
         padding: 0.55rem 0.85rem;
+        position: relative;
       }
 
       .room-member-avatar {
@@ -360,6 +361,70 @@
 
       .room-member-role.leader {
         color: #fbbf24;
+      }
+
+      .room-member-role.deputy {
+        color: #93c5fd;
+      }
+
+      .room-member-manage {
+        flex-shrink: 0;
+        position: relative;
+      }
+
+      .room-member-manage-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 1.1rem;
+        line-height: 1;
+      }
+
+      .room-member-manage-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
+
+      .room-member-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 4px;
+        min-width: 200px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+        z-index: 20;
+        padding: 0.35rem 0;
+      }
+
+      .room-member-menu[hidden] {
+        display: none !important;
+      }
+
+      .room-member-menu button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        font-size: 0.82rem;
+        padding: 0.5rem 0.85rem;
+        cursor: pointer;
+      }
+
+      .room-member-menu button:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .room-member-menu button.danger {
+        color: #f87171;
       }
 
       .room-members-actions {
@@ -2344,7 +2409,7 @@
 
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v39</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v40</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -2406,7 +2471,7 @@
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <button type="button" class="room-head-avatar" id="room-head-avatar" title="Ảnh nhóm"><span id="room-head-avatar-letter">?</span></button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v39</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v40</span></div>
           <button type="button" class="room-member-count" id="btn-room-members">0 thành viên</button>
           <div class="you" id="you-label" style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
@@ -2825,7 +2890,7 @@
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
-      const CLIENT_BUILD = "39";
+      const CLIENT_BUILD = "40";
 
       function joinPayload(name, rejoin) {
         return {
@@ -4331,6 +4396,31 @@
         if (wantOpen) renderMembersPanel();
       }
 
+      function closeAllMemberMenus() {
+        document.querySelectorAll(".room-member-menu").forEach((el) => {
+          el.hidden = true;
+        });
+      }
+
+      function myRoomManageLevel() {
+        if (myName && currentRoomOwnerName && myName === currentRoomOwnerName) return "owner";
+        const me = roomRoster?.members?.find((m) => m.name === myName);
+        if (me?.isDeputy) return "deputy";
+        return null;
+      }
+
+      function runMemberManage(action, targetName) {
+        closeAllMemberMenus();
+        socket.timeout(20000).emit("room_member_manage", { action, targetName }, (err, res) => {
+          if (err || !res?.ok) {
+            alert(res?.reason || "Không thực hiện được.");
+            return;
+          }
+          if (res.room) applyRoomUpdate(res.room);
+          showProfileToast("Đã cập nhật");
+        });
+      }
+
       function renderMembersPanel() {
         const listEl = document.getElementById("room-members-list");
         const members = roomRoster?.members || [];
@@ -4339,6 +4429,7 @@
         document.getElementById("room-members-sub").textContent =
           `Danh sách thành viên (${total}) · ${onlineN} online`;
         listEl.innerHTML = "";
+        const manageLevel = myRoomManageLevel();
         for (const m of members) {
           const row = document.createElement("div");
           row.className = "room-member-row";
@@ -4347,6 +4438,9 @@
           if (m.isOwner) {
             roleText = "🔑 Trưởng nhóm" + (m.online ? "" : " · Offline");
             roleClass = " leader";
+          } else if (m.isDeputy) {
+            roleText = "⭐ Phó phòng" + (m.online ? "" : " · Offline");
+            roleClass = " deputy";
           } else if (m.name === myName) {
             roleText = (m.online ? "Đang online" : "Offline") + " · Bạn";
           }
@@ -4356,6 +4450,65 @@
             `<div class="room-member-meta">` +
             `<div class="room-member-name">${escapeHtml(m.name)}</div>` +
             `<div class="room-member-role${roleClass}">${escapeHtml(roleText)}</div></div>`;
+
+          const canManage =
+            manageLevel &&
+            m.name !== myName &&
+            !m.isOwner &&
+            (manageLevel === "owner" || (manageLevel === "deputy" && !m.isDeputy));
+
+          if (canManage) {
+            const manage = document.createElement("div");
+            manage.className = "room-member-manage";
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "room-member-manage-btn";
+            btn.title = "Quản lý";
+            btn.textContent = "⋯";
+            const menu = document.createElement("div");
+            menu.className = "room-member-menu";
+            menu.hidden = true;
+
+            const addItem = (label, action, danger = false) => {
+              const b = document.createElement("button");
+              b.type = "button";
+              b.textContent = label;
+              if (danger) b.classList.add("danger");
+              b.addEventListener("click", (e) => {
+                e.stopPropagation();
+                if (action === "kick") {
+                  if (!confirm(`Mời ${m.name} ra khỏi nhóm?`)) return;
+                  runMemberManage("kick", m.name);
+                  return;
+                }
+                if (action === "transfer_owner") {
+                  if (!confirm(`Chuyển quyền trưởng nhóm cho ${m.name}?`)) return;
+                  runMemberManage("transfer_owner", m.name);
+                  return;
+                }
+                runMemberManage(action, m.name);
+              });
+              menu.appendChild(b);
+            };
+
+            addItem("Mời ra khỏi nhóm", "kick", true);
+            if (manageLevel === "owner") {
+              if (m.isDeputy) addItem("Bỏ chức phó phòng", "unset_deputy");
+              else addItem("Bổ nhiệm phó phòng", "set_deputy");
+              addItem("Chuyển quyền trưởng nhóm", "transfer_owner");
+            }
+
+            btn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              const willOpen = menu.hidden;
+              closeAllMemberMenus();
+              menu.hidden = !willOpen;
+            });
+            manage.appendChild(btn);
+            manage.appendChild(menu);
+            row.appendChild(manage);
+          }
+
           listEl.appendChild(row);
         }
         const isOwner = Boolean(myName && currentRoomOwnerName && myName === currentRoomOwnerName);
@@ -4531,6 +4684,7 @@
       });
       document.getElementById("room-members-close").addEventListener("click", () => toggleMembersPanel(false));
       document.getElementById("room-members-backdrop").addEventListener("click", () => toggleMembersPanel(false));
+      document.addEventListener("click", () => closeAllMemberMenus());
       appShell.addEventListener("click", (e) => {
         const panel = document.getElementById("room-members-panel");
         if (!panel.classList.contains("open")) return;
