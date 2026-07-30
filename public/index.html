@@ -1353,6 +1353,12 @@
         min-height: 18px;
       }
 
+      .msg-row:not(.self) .msg-seen {
+        justify-content: flex-start;
+        padding-right: 0;
+        padding-left: 0.1rem;
+      }
+
       .msg-seen-avatar {
         width: 18px;
         height: 18px;
@@ -2138,7 +2144,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v33</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v34</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. <strong>Tên không được trùng</strong> người đang online (kể cả khác hoa thường).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -2200,7 +2206,7 @@
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <button type="button" class="room-head-avatar" id="room-head-avatar" title="Ảnh nhóm"><span id="room-head-avatar-letter">?</span></button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v33</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v34</span></div>
           <button type="button" class="room-member-count" id="btn-room-members">0 thành viên</button>
           <div class="you" id="you-label" style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
@@ -2882,7 +2888,6 @@
         clearPendingReply();
         clearPendingImages();
         lastMarkReadSent = 0;
-        applyRoomReads(readers);
         const sameRoom = Number(roomId) === Number(currentRoomId);
         currentRoomId = roomId;
         currentRoomOwnerName = ownerName || roster?.ownerName || "";
@@ -2912,6 +2917,7 @@
           messageNodes.clear();
           for (const item of list) appendMessage(item);
         }
+        applyRoomReads(readers);
         const last = list[list.length - 1];
         if (last) markRoomRead(roomId, last.at);
         scheduleMarkRead(true);
@@ -3012,9 +3018,14 @@
 
       function refreshAllSeenAvatars() {
         for (const [msgId, node] of messageNodes) {
-          if (!node.seenEl || !node.msg || !isMyMessage(node.msg)) continue;
+          if (!node.seenEl || !node.msg) continue;
           renderSeenAvatars(node.seenEl, msgId, node.msg.name);
         }
+      }
+
+      function messageSupportsSeen(msg) {
+        const t = msg?.type || "text";
+        return t !== "reaction";
       }
 
       function joinRoomWithAck(code, opts = {}) {
@@ -5150,14 +5161,15 @@
         const seenEl = document.createElement("div");
         seenEl.className = "msg-seen";
         seenEl.hidden = true;
-        if (isMyMessage(msg)) stack.appendChild(seenEl);
+        const showSeen = messageSupportsSeen(msg);
+        if (showSeen) stack.appendChild(seenEl);
 
         row.appendChild(nameEl);
         row.appendChild(stack);
         messagesEl.appendChild(row);
 
-        messageNodes.set(id, { row, reactionsEl, seenEl, msg: { ...msg } });
-        if (isMyMessage(msg)) renderSeenAvatars(seenEl, id, name);
+        messageNodes.set(id, { row, reactionsEl, seenEl: showSeen ? seenEl : null, msg: { ...msg } });
+        if (showSeen) renderSeenAvatars(seenEl, id, name);
 
         scheduleMarkRead();
 
@@ -5186,7 +5198,10 @@
         updateMessageReactions(messageId, reactions);
       });
 
-      socket.on("room_roster", (roster) => setRoomRoster(roster));
+      socket.on("room_roster", (roster) => {
+        setRoomRoster(roster);
+        scheduleMarkRead(true);
+      });
 
       socket.on("room_updated", (room) => {
         if (!room?.id) return;
