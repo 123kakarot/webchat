@@ -1097,6 +1097,88 @@
         position: relative;
       }
 
+      .composer-reply-bar {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+        background: rgba(59, 130, 246, 0.08);
+      }
+
+      .composer-reply-bar[hidden] {
+        display: none !important;
+      }
+
+      .composer-reply-inner {
+        flex: 1;
+        min-width: 0;
+        border-left: 3px solid var(--accent);
+        padding-left: 0.55rem;
+      }
+
+      .composer-reply-label {
+        font-size: 0.75rem;
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .composer-reply-preview {
+        font-size: 0.8rem;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 0.15rem;
+      }
+
+      .composer-reply-cancel {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 1.1rem;
+        cursor: pointer;
+      }
+
+      .composer-reply-cancel:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
+
+      .msg-reply-quote {
+        background: rgba(0, 0, 0, 0.22);
+        border-left: 3px solid var(--accent);
+        border-radius: 6px;
+        padding: 0.4rem 0.55rem;
+        margin-bottom: 0.45rem;
+        cursor: pointer;
+      }
+
+      .msg-row.self .msg-reply-quote {
+        background: rgba(0, 0, 0, 0.18);
+      }
+
+      .msg-reply-quote-name {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 0.15rem;
+      }
+
+      .msg-reply-quote-text {
+        font-size: 0.8rem;
+        color: var(--muted);
+        line-height: 1.35;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
       .toolbar {
         display: flex;
         align-items: center;
@@ -1478,7 +1560,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v20</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v21</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Vào phòng khác hoặc tạo phòng mới ở menu bên trái sau khi đăng nhập.</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -1538,7 +1620,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v20</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v21</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -1606,6 +1688,14 @@
         </div>
         <div class="picker" id="picker-quick">
           <div class="quick-list" id="quick-list"></div>
+        </div>
+
+        <div id="composer-reply-bar" class="composer-reply-bar" hidden>
+          <div class="composer-reply-inner">
+            <div class="composer-reply-label">Trả lời <span id="composer-reply-name"></span></div>
+            <div class="composer-reply-preview" id="composer-reply-preview"></div>
+          </div>
+          <button type="button" class="composer-reply-cancel" id="composer-reply-cancel" title="Hủy trả lời">×</button>
         </div>
 
         <form class="composer" id="send-form" action="javascript:void(0)" method="post">
@@ -1857,6 +1947,7 @@
       let roomsData = [];
       let pendingOpenRecentRoom = false;
       let roomsSyncRetried = false;
+      let pendingReply = null;
       let sessionReady = false;
       let sidebarTab = "all";
       let profileSuffix = "";
@@ -2006,6 +2097,7 @@
       }
 
       function applyRoomJoined({ roomId, code, name, history }) {
+        clearPendingReply();
         const sameRoom = Number(roomId) === Number(currentRoomId);
         currentRoomId = roomId;
         const normalized = normalizeRoomCodeClient(code || "");
@@ -2104,7 +2196,11 @@
           appendSystem("Hãy chọn phòng trước khi gửi tin.");
           return;
         }
-        const sendPayload = () => socket.emit("message", { type: "text", text });
+        const meta = pendingReply ? buildReplyMeta() : {};
+        const sendPayload = () => {
+          socket.emit("message", { type: "text", text, meta: Object.keys(meta).length ? meta : undefined });
+          clearPendingReply();
+        };
         const doSend = () => {
           joinRoomWithAck(currentRoomCode, { force: false, onDone: sendPayload });
         };
@@ -2117,6 +2213,8 @@
         messageInput.style.height = "auto";
         mentionList.classList.remove("open");
       }
+
+      document.getElementById("composer-reply-cancel").addEventListener("click", clearPendingReply);
 
       sendForm.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -3443,13 +3541,88 @@
 
       function messagePreview(msg) {
         const { type = "text", text = "", fileName = "", sticker = "", meta = {} } = msg;
-        if (type === "text") return text.slice(0, 120);
+        if (type === "text") {
+          const raw = String(text || "");
+          if (raw.includes("(←") || raw.includes("(↩")) return raw.split(/[):]/).pop()?.trim().slice(0, 120) || raw.slice(0, 120);
+          return raw.slice(0, 120);
+        }
         if (type === "sticker") return sticker;
         if (type === "image") return "🖼 Ảnh";
         if (type === "file") return "📎 " + (fileName || "File");
         if (type === "contact") return "👤 " + (meta.displayName || "Danh thiếp");
         if (type === "payment") return "💳 Chuyển khoản";
         return text || "Tin nhắn";
+      }
+
+      function buildReplyMeta() {
+        if (!pendingReply) return {};
+        return {
+          replyToId: String(pendingReply.id),
+          replyToName: pendingReply.name,
+          replyToPreview: pendingReply.preview,
+          replyToType: pendingReply.type,
+        };
+      }
+
+      function renderComposerReplyBar() {
+        const bar = document.getElementById("composer-reply-bar");
+        if (!pendingReply) {
+          bar.hidden = true;
+          return;
+        }
+        document.getElementById("composer-reply-name").textContent = pendingReply.name;
+        document.getElementById("composer-reply-preview").textContent = pendingReply.preview;
+        bar.hidden = false;
+      }
+
+      function setPendingReply(msg) {
+        pendingReply = {
+          id: msg.id,
+          name: msg.name,
+          type: msg.type || "text",
+          preview: messagePreview(msg),
+        };
+        renderComposerReplyBar();
+        closeAllReactionPickers();
+        messageInput.focus();
+        const prefix = "@" + msg.name + " ";
+        if (!messageInput.value.trim()) messageInput.value = prefix;
+        else if (!messageInput.value.includes("@" + msg.name)) messageInput.value = prefix + messageInput.value;
+      }
+
+      function clearPendingReply() {
+        pendingReply = null;
+        renderComposerReplyBar();
+      }
+
+      function scrollToMessage(messageId) {
+        const row = messagesEl.querySelector('[data-msg-id="' + messageId + '"]');
+        if (!row) return;
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+        row.classList.add("actions-open");
+        setTimeout(() => row.classList.remove("actions-open"), 1200);
+      }
+
+      function appendReplyQuote(bubble, meta) {
+        const name = meta.replyToName;
+        const preview = meta.replyToPreview;
+        if (!name && !preview) return;
+        const quote = document.createElement("div");
+        quote.className = "msg-reply-quote";
+        quote.innerHTML =
+          '<div class="msg-reply-quote-name">' +
+          escapeHtml(name || "Tin nhắn") +
+          "</div>" +
+          '<div class="msg-reply-quote-text">' +
+          escapeHtml(preview || "") +
+          "</div>";
+        if (meta.replyToId) {
+          quote.addEventListener("click", (e) => {
+            e.stopPropagation();
+            scrollToMessage(meta.replyToId);
+          });
+        }
+        bubble.appendChild(quote);
       }
 
       function fillBubble(bubble, msg) {
@@ -3463,8 +3636,18 @@
           meta = {},
           at,
         } = msg;
+
+        const replyMeta =
+          meta.replyToName || meta.replyToPreview
+            ? meta
+            : meta.replyToId
+              ? meta
+              : null;
+
         bubble.className = "msg-bubble";
         bubble.innerHTML = "";
+
+        if (replyMeta) appendReplyQuote(bubble, replyMeta);
 
         if (type === "sticker") {
           bubble.classList.add("sticker-only");
@@ -3586,9 +3769,7 @@
         btnReply.textContent = "↩";
         btnReply.addEventListener("click", (e) => {
           e.stopPropagation();
-          const preview = messagePreview(msg);
-          insertAtCursor("@" + name + " (↩ " + preview.slice(0, 40) + "): ");
-          messageInput.focus();
+          setPendingReply(msg);
         });
 
         const btnForward = document.createElement("button");
