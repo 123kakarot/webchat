@@ -803,10 +803,13 @@
     <main class="chat" id="chat">
       <header>
         <div>
-          <div class="title"><span class="status-dot" id="status-dot"></span>Phòng chat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v2</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span>Phòng chat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v3</span></div>
           <div class="you" id="you-label"></div>
         </div>
-        <button type="button" class="online-toggle" id="online-toggle">0 online</button>
+        <div style="display:flex;gap:0.35rem;align-items:center">
+          <button type="button" class="online-toggle" id="change-name-btn" title="Đổi tên">Đổi tên</button>
+          <button type="button" class="online-toggle" id="online-toggle">0 online</button>
+        </div>
       </header>
       <div class="online-panel" id="online-panel"></div>
       <div id="messages" role="log"></div>
@@ -997,9 +1000,26 @@
 
       let myName = "";
       let onlineNames = [];
+      let pendingAutoJoin = null;
+      const STORAGE_NAME = "webchat-name";
       const messageNodes = new Map();
       const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"];
       const socket = io();
+
+      const savedName = localStorage.getItem(STORAGE_NAME);
+      if (savedName) {
+        nameInput.value = savedName;
+        const check = validateDisplayName(savedName);
+        if (check.ok) {
+          pendingAutoJoin = savedName;
+          joinBtn.textContent = "Đang vào lại…";
+          joinBtn.disabled = true;
+        }
+      }
+
+      function requestJoin(name, rejoin = false) {
+        socket.emit("join", { name, rejoin });
+      }
 
       function loadQuickMessages() {
         try {
@@ -1373,7 +1393,12 @@
         }
       });
 
-      socket.on("connect", () => statusDot.classList.remove("off"));
+      socket.on("connect", () => {
+        statusDot.classList.remove("off");
+        if (pendingAutoJoin && !myName) {
+          requestJoin(pendingAutoJoin, true);
+        }
+      });
       socket.on("disconnect", () => statusDot.classList.add("off"));
 
       joinForm.addEventListener("submit", (e) => {
@@ -1388,21 +1413,42 @@
         }
         joinError.hidden = true;
         joinBtn.disabled = true;
-        socket.emit("join", name);
+        requestJoin(name, false);
       });
 
       socket.on("join_error", (reason) => {
         joinBtn.disabled = false;
+        joinBtn.textContent = "Vào phòng";
+        pendingAutoJoin = null;
+        localStorage.removeItem(STORAGE_NAME);
         joinError.textContent = reason;
         joinError.hidden = false;
       });
 
-      socket.on("joined", ({ name }) => {
+      socket.on("joined", ({ name, persistent, rejoin }) => {
         myName = name;
+        pendingAutoJoin = null;
+        localStorage.setItem(STORAGE_NAME, name);
         gate.style.display = "none";
         chat.classList.add("active");
-        youLabel.textContent = "Bạn: " + name;
+        youLabel.textContent =
+          "Bạn: " + name + (persistent ? " · lưu cloud" : " · chỉ tạm (chưa có DB)");
+        joinBtn.textContent = "Vào phòng";
+        joinBtn.disabled = false;
         messageInput.focus();
+      });
+
+      socket.on("history", (items) => {
+        messagesEl.innerHTML = "";
+        messageNodes.clear();
+        for (const item of items) {
+          appendMessage(item);
+        }
+      });
+
+      document.getElementById("change-name-btn").addEventListener("click", () => {
+        localStorage.removeItem(STORAGE_NAME);
+        location.reload();
       });
 
       function appendSystem(text) {
