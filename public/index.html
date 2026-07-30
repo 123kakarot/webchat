@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Phòng chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0f1419;
+        --surface: #1a2332;
+        --border: #2d3a4f;
+        --text: #e7ecf3;
+        --muted: #8b9cb3;
+        --accent: #3b82f6;
+        --accent-hover: #2563eb;
+        --bubble-other: #243044;
+        --bubble-self: #1e3a5f;
+        --system: #6b7280;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Be Vietnam Pro", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .gate {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        background: radial-gradient(ellipse at top, #1a2744 0%, var(--bg) 60%);
+      }
+
+      .gate-card {
+        width: 100%;
+        max-width: 380px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      }
+
+      .gate-card h1 {
+        font-size: 1.35rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .gate-card p {
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin-bottom: 1.5rem;
+      }
+
+      .gate-card label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+      }
+
+      .gate-card input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .gate-card input:focus {
+        outline: 2px solid var(--accent);
+        outline-offset: 0;
+      }
+
+      .gate-card button {
+        width: 100%;
+        padding: 0.85rem;
+        border: none;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .gate-card button:hover {
+        background: var(--accent-hover);
+      }
+
+      .gate-card button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .chat {
+        display: none;
+        flex: 1;
+        flex-direction: column;
+        max-width: 720px;
+        width: 100%;
+        margin: 0 auto;
+        height: 100dvh;
+      }
+
+      .chat.active {
+        display: flex;
+      }
+
+      header {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+
+      header .title {
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+
+      header .you {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .online-toggle {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        padding: 0.35rem 0.65rem;
+        border-radius: 8px;
+        font: inherit;
+        font-size: 0.75rem;
+        cursor: pointer;
+      }
+
+      .online-panel {
+        display: none;
+        padding: 0.5rem 1rem;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .online-panel.open {
+        display: block;
+      }
+
+      .online-panel strong {
+        color: var(--text);
+      }
+
+      #messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+
+      .msg-system {
+        text-align: center;
+        font-size: 0.75rem;
+        color: var(--system);
+        padding: 0.25rem 0;
+      }
+
+      .msg-row {
+        display: flex;
+        flex-direction: column;
+        max-width: 85%;
+      }
+
+      .msg-row.self {
+        align-self: flex-end;
+        align-items: flex-end;
+      }
+
+      .msg-name {
+        font-size: 0.7rem;
+        color: var(--muted);
+        margin-bottom: 0.15rem;
+        padding: 0 0.35rem;
+      }
+
+      .msg-row.self .msg-name {
+        display: none;
+      }
+
+      .msg-bubble {
+        padding: 0.55rem 0.85rem;
+        border-radius: 14px;
+        font-size: 0.95rem;
+        line-height: 1.45;
+        word-break: break-word;
+        background: var(--bubble-other);
+      }
+
+      .msg-row.self .msg-bubble {
+        background: var(--bubble-self);
+        border-bottom-right-radius: 4px;
+      }
+
+      .msg-row:not(.self) .msg-bubble {
+        border-bottom-left-radius: 4px;
+      }
+
+      .composer {
+        padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .composer input {
+        flex: 1;
+        padding: 0.7rem 1rem;
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+      }
+
+      .composer input:focus {
+        outline: 2px solid var(--accent);
+      }
+
+      .composer button {
+        padding: 0.7rem 1.1rem;
+        border: none;
+        border-radius: 24px;
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #22c55e;
+        display: inline-block;
+        margin-right: 6px;
+      }
+
+      .status-dot.off {
+        background: #ef4444;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="gate" id="gate">
+      <div class="gate-card">
+        <h1>Phòng chat chung</h1>
+        <p>
+          Gửi link trang này qua Zalo, Messenger, SMS… Mọi người mở trình duyệt, nhập tên và chat
+          realtime cùng phòng.
+        </p>
+        <form id="join-form">
+          <label for="name">Tên của bạn</label>
+          <input
+            id="name"
+            name="name"
+            autocomplete="nickname"
+            placeholder="Ví dụ: Lan, Minh…"
+            maxlength="32"
+            required
+          />
+          <button type="submit" id="join-btn">Vào phòng</button>
+        </form>
+      </div>
+    </section>
+
+    <main class="chat" id="chat">
+      <header>
+        <div>
+          <div class="title"><span class="status-dot" id="status-dot"></span>Đang trò chuyện</div>
+          <div class="you" id="you-label"></div>
+        </div>
+        <button type="button" class="online-toggle" id="online-toggle">0 online</button>
+      </header>
+      <div class="online-panel" id="online-panel"></div>
+      <div id="messages" role="log" aria-live="polite"></div>
+      <form class="composer" id="send-form">
+        <input id="message-input" placeholder="Nhập tin nhắn…" maxlength="2000" autocomplete="off" />
+        <button type="submit">Gửi</button>
+      </form>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const gate = document.getElementById("gate");
+      const chat = document.getElementById("chat");
+      const joinForm = document.getElementById("join-form");
+      const nameInput = document.getElementById("name");
+      const joinBtn = document.getElementById("join-btn");
+      const messagesEl = document.getElementById("messages");
+      const sendForm = document.getElementById("send-form");
+      const messageInput = document.getElementById("message-input");
+      const youLabel = document.getElementById("you-label");
+      const onlineToggle = document.getElementById("online-toggle");
+      const onlinePanel = document.getElementById("online-panel");
+      const statusDot = document.getElementById("status-dot");
+
+      let myName = "";
+      const socket = io();
+
+      socket.on("connect", () => {
+        statusDot.classList.remove("off");
+      });
+
+      socket.on("disconnect", () => {
+        statusDot.classList.add("off");
+      });
+
+      joinForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const name = nameInput.value.trim();
+        if (!name) return;
+        joinBtn.disabled = true;
+        socket.emit("join", name);
+      });
+
+      socket.on("joined", ({ name }) => {
+        myName = name;
+        gate.style.display = "none";
+        chat.classList.add("active");
+        youLabel.textContent = "Bạn: " + name;
+        messageInput.focus();
+      });
+
+      function appendSystem(text) {
+        const el = document.createElement("div");
+        el.className = "msg-system";
+        el.textContent = text;
+        messagesEl.appendChild(el);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function appendMessage({ name, text }) {
+        const row = document.createElement("div");
+        row.className = "msg-row" + (name === myName ? " self" : "");
+        const nameEl = document.createElement("div");
+        nameEl.className = "msg-name";
+        nameEl.textContent = name;
+        const bubble = document.createElement("div");
+        bubble.className = "msg-bubble";
+        bubble.textContent = text;
+        row.appendChild(nameEl);
+        row.appendChild(bubble);
+        messagesEl.appendChild(row);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      socket.on("system", appendSystem);
+      socket.on("message", appendMessage);
+
+      socket.on("users", (names) => {
+        onlineToggle.textContent = names.length + " online";
+        onlinePanel.innerHTML =
+          "<strong>Đang online:</strong> " +
+          (names.length ? names.join(", ") : "Chưa có ai");
+      });
+
+      onlineToggle.addEventListener("click", () => {
+        onlinePanel.classList.toggle("open");
+      });
+
+      sendForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const text = messageInput.value.trim();
+        if (!text) return;
+        socket.emit("message", text);
+        messageInput.value = "";
+      });
+    </script>
+  </body>
+</html>
