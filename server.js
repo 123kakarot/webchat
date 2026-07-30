@@ -355,6 +355,7 @@ function watchChannel(code) {
 
 function previewText(msg) {
   const type = msg.type || "text";
+  if (type === "system") return String(msg.text || "").slice(0, 80);
   if (type === "sticker") return "Sticker " + (msg.sticker || "");
   if (type === "image") return "Hình ảnh";
   if (type === "file") return "📎 " + (msg.fileName || "Tệp");
@@ -378,6 +379,18 @@ async function emitMessage(roomId, roomCode, payload) {
     io.to(watchChannel(roomCode)).emit("room_preview", previewPatch);
   }
   return saved;
+}
+
+async function postRoomSystem(roomId, roomCode, text) {
+  const rid = Number(roomId);
+  const line = String(text ?? "").trim().slice(0, 500);
+  if (!Number.isFinite(rid) || !line) return null;
+  const code = roomCode ? normalizeRoomCode(roomCode) : "";
+  return emitMessage(rid, code.length >= 4 ? code : "", {
+    name: "—",
+    type: "system",
+    text: line,
+  });
 }
 
 io.on("connection", (socket) => {
@@ -536,6 +549,9 @@ io.on("connection", (socket) => {
         await removeRoomReadStateForUser(room.id, previousName);
       }
 
+      const prevRid = user.roomId;
+      const enteringFresh = Number(prevRid) !== Number(room.id);
+
       if (user.roomId) {
         clearUserTyping(user);
         socket.leave(roomChannel(user.roomId));
@@ -546,6 +562,10 @@ io.on("connection", (socket) => {
       socket.join(roomChannel(room.id));
 
       await addRoomMember(room.id, user.name);
+
+      if (enteringFresh) {
+        await postRoomSystem(room.id, room.code, `${user.name} đã online`);
+      }
 
       const history = await loadRecentMessages(room.id, 250);
       const roster = await buildRoomRoster(room.id);
@@ -672,10 +692,12 @@ io.on("connection", (socket) => {
     }
     socket.emit("profile_updated", { name: trimmed });
     if (user.roomId) {
-      io.to(roomChannel(user.roomId)).emit("system", {
-        text: `${old} đổi tên thành ${trimmed}`,
-        roomId: user.roomId,
-      });
+      const roomMeta = await getRoomById(user.roomId);
+      await postRoomSystem(
+        user.roomId,
+        roomMeta?.code || user.roomCode || "",
+        `${old} đổi tên thành ${trimmed}`
+      );
       broadcastRoomRoster(user.roomId);
     }
   });
@@ -817,10 +839,11 @@ io.on("connection", (socket) => {
           target,
           "Bạn đã bị trưởng/phó phòng mời ra khỏi nhóm."
         );
-        io.to(roomChannel(user.roomId)).emit("system", {
-          text: `${user.name} đã mời ${target} ra khỏi nhóm`,
-          roomId: user.roomId,
-        });
+        await postRoomSystem(
+          user.roomId,
+          room.code,
+          `${user.name} đã mời ${target} ra khỏi nhóm`
+        );
         broadcastRoomRoster(user.roomId);
         respond({ ok: true });
         return;
@@ -847,10 +870,11 @@ io.on("connection", (socket) => {
           respond({ ok: false, reason: "Không gán được phó phòng." });
           return;
         }
-        io.to(roomChannel(user.roomId)).emit("system", {
-          text: `${user.name} bổ nhiệm ${target} làm phó phòng`,
-          roomId: user.roomId,
-        });
+        await postRoomSystem(
+          user.roomId,
+          room.code,
+          `${user.name} bổ nhiệm ${target} làm phó phòng`
+        );
         broadcastRoomRoster(user.roomId);
         respond({ ok: true });
         return;
@@ -862,10 +886,11 @@ io.on("connection", (socket) => {
           return;
         }
         await setRoomMemberRole(user.roomId, target, "member");
-        io.to(roomChannel(user.roomId)).emit("system", {
-          text: `${user.name} bỏ chức phó phòng của ${target}`,
-          roomId: user.roomId,
-        });
+        await postRoomSystem(
+          user.roomId,
+          room.code,
+          `${user.name} bỏ chức phó phòng của ${target}`
+        );
         broadcastRoomRoster(user.roomId);
         respond({ ok: true });
         return;
@@ -891,10 +916,11 @@ io.on("connection", (socket) => {
         await addRoomMember(user.roomId, user.name);
         io.to(roomChannel(user.roomId)).emit("room_updated", updated);
         io.to(watchChannel(updated.code)).emit("room_updated", updated);
-        io.to(roomChannel(user.roomId)).emit("system", {
-          text: `${user.name} chuyển quyền trưởng nhóm cho ${target}`,
-          roomId: user.roomId,
-        });
+        await postRoomSystem(
+          user.roomId,
+          updated.code,
+          `${user.name} chuyển quyền trưởng nhóm cho ${target}`
+        );
         broadcastRoomRoster(user.roomId);
         respond({ ok: true, room: updated });
         return;
@@ -989,13 +1015,18 @@ io.on("connection", (socket) => {
     io.emit("message_reactions", { messageId, reactions });
   });
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     const user = online.get(socket.id);
     if (user) {
       const rid = user.roomId;
+      const code = user.roomCode;
+      const name = user.name;
       clearUserTyping(user);
       online.delete(socket.id);
-      if (rid) broadcastRoomRoster(rid);
+      if (rid && name) {
+        await postRoomSystem(rid, code || "", `${name} đã offline`);
+        broadcastRoomRoster(rid);
+      }
     }
   });
 });

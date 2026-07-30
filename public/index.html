@@ -5430,7 +5430,7 @@
       function appendSystem(payload) {
         const text = typeof payload === "string" ? payload : payload?.text;
         const roomId = typeof payload === "object" ? payload?.roomId : currentRoomId;
-        if (roomId != null && roomId !== currentRoomId) return;
+        if (roomId != null && Number(roomId) !== Number(currentRoomId)) return;
         if (!text) return;
         const el = document.createElement("div");
         el.className = "msg-system";
@@ -5692,8 +5692,12 @@
       }
 
       function appendMessage(msg) {
-        const { id, name, reactions = {} } = msg;
+        const { id, name, reactions = {}, type } = msg;
         if (id == null) {
+          return;
+        }
+        if ((type || "text") === "system") {
+          appendSystem({ text: msg.text, roomId: msg.roomId });
           return;
         }
 
