@@ -1149,6 +1149,88 @@
         color: var(--text);
       }
 
+      .composer-images {
+        padding: 0.5rem 0.75rem 0.35rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .composer-images[hidden] {
+        display: none !important;
+      }
+
+      .composer-images-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.45rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .composer-images-clear {
+        border: none;
+        background: transparent;
+        color: var(--accent);
+        font: inherit;
+        font-size: 0.8rem;
+        cursor: pointer;
+      }
+
+      .composer-images-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        align-items: center;
+      }
+
+      .composer-img-thumb {
+        position: relative;
+        width: 56px;
+        height: 56px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+
+      .composer-img-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .composer-img-thumb button {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        width: 18px;
+        height: 18px;
+        border: none;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+        font-size: 0.75rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .composer-img-add {
+        width: 56px;
+        height: 56px;
+        border-radius: 8px;
+        border: 1px dashed var(--border);
+        background: transparent;
+        color: var(--muted);
+        font-size: 1.35rem;
+        cursor: pointer;
+      }
+
+      .composer-img-add:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
       .msg-reply-quote {
         background: rgba(0, 0, 0, 0.22);
         border-left: 3px solid var(--accent);
@@ -1560,7 +1642,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v26</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v27</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Mỗi lần tải lại trang cần đăng nhập lại; <strong>tên không được trùng</strong> người đang online.</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -1620,7 +1702,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v26</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v27</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -1696,6 +1778,14 @@
             <div class="composer-reply-preview" id="composer-reply-preview"></div>
           </div>
           <button type="button" class="composer-reply-cancel" id="composer-reply-cancel" title="Hủy trả lời">×</button>
+        </div>
+
+        <div id="composer-images" class="composer-images" hidden>
+          <div class="composer-images-head">
+            <span id="composer-images-count">0 ảnh</span>
+            <button type="button" class="composer-images-clear" id="composer-images-clear">Xóa tất cả</button>
+          </div>
+          <div class="composer-images-grid" id="composer-images-grid"></div>
         </div>
 
         <form class="composer" id="send-form" action="javascript:void(0)" method="post">
@@ -1948,6 +2038,9 @@
       let pendingOpenRecentRoom = false;
       let roomsSyncRetried = false;
       let pendingReply = null;
+      /** @type {{ id: string, file: File, previewUrl: string }[]} */
+      let pendingImages = [];
+      const MAX_PENDING_IMAGES = 10;
       let sessionReady = false;
       let sidebarTab = "all";
       let profileSuffix = "";
@@ -2097,6 +2190,7 @@
 
       function applyRoomJoined({ roomId, code, name, history }) {
         clearPendingReply();
+        clearPendingImages();
         const sameRoom = Number(roomId) === Number(currentRoomId);
         currentRoomId = roomId;
         const normalized = normalizeRoomCodeClient(code || "");
@@ -2185,8 +2279,81 @@
       });
 
       function sendChatMessage() {
+        submitComposer();
+      }
+
+      function clearPendingImages() {
+        for (const item of pendingImages) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+        pendingImages = [];
+        renderPendingImages();
+      }
+
+      function renderPendingImages() {
+        const bar = document.getElementById("composer-images");
+        const grid = document.getElementById("composer-images-grid");
+        const countEl = document.getElementById("composer-images-count");
+        if (!bar || !grid) return;
+        if (!pendingImages.length) {
+          bar.hidden = true;
+          grid.innerHTML = "";
+          return;
+        }
+        bar.hidden = false;
+        countEl.textContent = pendingImages.length + " ảnh";
+        grid.innerHTML = "";
+        for (const item of pendingImages) {
+          const wrap = document.createElement("div");
+          wrap.className = "composer-img-thumb";
+          wrap.innerHTML =
+            `<img src="${item.previewUrl}" alt="" />` +
+            `<button type="button" title="Xóa">×</button>`;
+          wrap.querySelector("button").addEventListener("click", () => {
+            URL.revokeObjectURL(item.previewUrl);
+            pendingImages = pendingImages.filter((x) => x.id !== item.id);
+            renderPendingImages();
+          });
+          grid.appendChild(wrap);
+        }
+        if (pendingImages.length < MAX_PENDING_IMAGES) {
+          const add = document.createElement("button");
+          add.type = "button";
+          add.className = "composer-img-add";
+          add.title = "Thêm ảnh";
+          add.textContent = "+";
+          add.addEventListener("click", () => fileImage.click());
+          grid.appendChild(add);
+        }
+      }
+
+      function queueImageFile(file) {
+        if (!file?.type?.startsWith("image/")) return false;
+        if (!chat.classList.contains("active") || !currentRoomId) {
+          appendSystem("Hãy chọn phòng chat trước khi đính kèm ảnh.");
+          return false;
+        }
+        if (pendingImages.length >= MAX_PENDING_IMAGES) {
+          showProfileToast("Tối đa " + MAX_PENDING_IMAGES + " ảnh — gửi hoặc xóa bớt");
+          return false;
+        }
+        const id = crypto.randomUUID();
+        pendingImages.push({ id, file, previewUrl: URL.createObjectURL(file) });
+        renderPendingImages();
+        return true;
+      }
+
+      async function emitImageMessage(file, meta = {}) {
+        const { url } = await uploadFile(file);
+        const payload = { type: "image", url };
+        if (Object.keys(meta).length) payload.meta = meta;
+        socket.emit("message", payload);
+      }
+
+      function submitComposer() {
         const text = messageInput.value.trim();
-        if (!text) return;
+        const images = pendingImages.slice();
+        if (!text && !images.length) return;
         if (!myName) {
           ensureLoggedIn();
           return;
@@ -2195,31 +2362,44 @@
           appendSystem("Hãy chọn phòng trước khi gửi tin.");
           return;
         }
-        const meta = pendingReply ? buildReplyMeta() : {};
-        const sendPayload = () => {
-          const payload = { type: "text", text };
-          if (Object.keys(meta).length) payload.meta = meta;
-          socket.emit("message", payload);
-          clearPendingReply();
+
+        const run = async () => {
+          try {
+            let replyMeta = pendingReply ? buildReplyMeta() : {};
+            if (text) {
+              const payload = { type: "text", text };
+              if (Object.keys(replyMeta).length) payload.meta = replyMeta;
+              socket.emit("message", payload);
+              replyMeta = {};
+            }
+            for (const item of images) {
+              await emitImageMessage(item.file, replyMeta);
+              replyMeta = {};
+            }
+            if (pendingReply) clearPendingReply();
+            clearPendingImages();
+            messageInput.value = "";
+            messageInput.style.height = "auto";
+            mentionList.classList.remove("open");
+          } catch {
+            appendSystem("Không gửi được ảnh (tối đa 10MB/ảnh).");
+          }
         };
-        const doSend = () => {
-          joinRoomWithAck(currentRoomCode, { force: false, onDone: sendPayload });
-        };
+
+        const doSend = () => joinRoomWithAck(currentRoomCode, { force: false, onDone: run });
         if (sessionReady) {
           doSend();
         } else {
           ensureSession(doSend);
         }
-        messageInput.value = "";
-        messageInput.style.height = "auto";
-        mentionList.classList.remove("open");
       }
 
       document.getElementById("composer-reply-cancel").addEventListener("click", clearPendingReply);
+      document.getElementById("composer-images-clear").addEventListener("click", clearPendingImages);
 
       sendForm.addEventListener("submit", (e) => {
         e.preventDefault();
-        sendChatMessage();
+        submitComposer();
       });
 
       socket.on("connect", () => {
@@ -3391,17 +3571,7 @@
       }
 
       async function sendImageFile(file) {
-        if (!file?.type?.startsWith("image/")) return;
-        if (!currentRoomId) {
-          appendSystem("Hãy chọn một nhóm chat trước khi gửi ảnh.");
-          return;
-        }
-        try {
-          const { url } = await uploadFile(file);
-          socket.emit("message", { type: "image", url });
-        } catch {
-          appendSystem("Không gửi được ảnh (tối đa 10MB).");
-        }
+        return queueImageFile(file);
       }
 
       function handlePasteImage(e) {
@@ -3414,7 +3584,7 @@
             if (item.kind === "file" && item.type.startsWith("image/")) {
               e.preventDefault();
               const file = item.getAsFile();
-              if (file) sendImageFile(file);
+              if (file) queueImageFile(file);
               return;
             }
           }
@@ -3424,7 +3594,7 @@
           for (const file of cd.files) {
             if (file.type.startsWith("image/")) {
               e.preventDefault();
-              sendImageFile(file);
+              queueImageFile(file);
               return;
             }
           }
@@ -3442,7 +3612,7 @@
         const file = fileImage.files?.[0];
         fileImage.value = "";
         if (!file) return;
-        await sendImageFile(file);
+        queueImageFile(file);
       });
 
       fileAttach.addEventListener("change", async () => {
