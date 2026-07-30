@@ -160,11 +160,14 @@ function broadcastUsers(roomId) {
 async function buildRoomRoster(roomId) {
   const room = await getRoomById(roomId);
   if (!room) return null;
-  const memberNames = await listRoomMemberNames(roomId);
+  const owner = room.ownerName || "";
+  let memberNames = await listRoomMemberNames(roomId);
+  if (owner && !memberNames.includes(owner)) {
+    memberNames = [...memberNames, owner].sort((a, b) => a.localeCompare(b, "vi"));
+  }
   const onlineSet = new Set(
     [...online.values()].filter((u) => u.roomId === roomId).map((u) => u.name)
   );
-  const owner = room.ownerName || "";
   const members = memberNames.map((name) => ({
     name,
     online: onlineSet.has(name),

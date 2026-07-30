@@ -416,6 +416,11 @@ export async function listRoomMemberNames(roomId) {
   const rid = Number(roomId);
   if (!Number.isFinite(rid)) return [];
 
+  const registered = await listRegisteredRoomMemberNames(roomId);
+  if (registered.length > 0) {
+    return registered;
+  }
+
   if (useMemory) {
     const set = memoryRoomMembers.get(rid) ?? new Set();
     const fromMsg = memoryMessages.filter((m) => m.roomId === rid).map((m) => m.name);
