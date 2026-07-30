@@ -31,7 +31,11 @@ const io = new Server(httpServer, {
   cors: { origin: "*" },
 });
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "public"), { index: false }));
+app.get("/", (_req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 app.get("/nameFilter.js", (_req, res) => {
   res.type("application/javascript");
   res.sendFile(path.join(__dirname, "nameFilter.js"));
@@ -127,7 +131,17 @@ io.on("connection", (socket) => {
   socket.on("join", async (raw) => {
     const { name: rawName, rejoin } = parseJoinPayload(raw);
     const trimmed = rawName.slice(0, 32);
-    if (joined) return;
+    if (joined) {
+      const existing = online.get(socket.id);
+      if (existing?.name) {
+        socket.emit("joined", {
+          name: existing.name,
+          persistent: isPersistent(),
+          rejoin: Boolean(rejoin),
+        });
+      }
+      return;
+    }
 
     const check = validateDisplayName(trimmed);
     if (!check.ok) {
