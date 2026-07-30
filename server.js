@@ -41,6 +41,15 @@ const io = new Server(httpServer, {
   cors: { origin: "*" },
 });
 
+io.use((socket, next) => {
+  const build = String(socket.handshake.auth?.clientBuild ?? "").trim();
+  if (build !== MIN_CLIENT_BUILD) {
+    return next(new Error("UPGRADE_REQUIRED"));
+  }
+  socket.data.clientBuild = build;
+  next();
+});
+
 app.use(express.static(path.join(__dirname, "public"), { index: false }));
 app.get("/", (_req, res) => {
   res.set("Cache-Control", "no-store");
@@ -52,6 +61,9 @@ app.get("/nameFilter.js", (_req, res) => {
 });
 app.use("/uploads", express.static(uploadsDir));
 
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "37");
+const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
+
 app.get("/api/status", async (_req, res) => {
   try {
     const overview = await getDbOverview({ roomLimit: 0, messageLimit: 0 });
@@ -59,10 +71,17 @@ app.get("/api/status", async (_req, res) => {
       persistent: isPersistent(),
       mode: overview.mode,
       counts: overview.counts,
+      minClientBuild: MIN_CLIENT_BUILD,
+      authPolicy: AUTH_POLICY,
     });
   } catch (err) {
     console.error("[api/status]", err);
-    res.json({ persistent: isPersistent(), counts: null });
+    res.json({
+      persistent: isPersistent(),
+      counts: null,
+      minClientBuild: MIN_CLIENT_BUILD,
+      authPolicy: AUTH_POLICY,
+    });
   }
 });
 
@@ -117,7 +136,7 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
   });
 });
 
-/** @type {Map<string, { id: string, name: string, clientId: string, roomId: number | null, roomCode: string | null }>} */
+/** @type {Map<string, { id: string, name: string, clientId: string, roomId: number | null, roomCode: string | null, authPolicyOk: boolean }>} */
 const online = new Map();
 
 const ALLOWED_REACTIONS = new Set(["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"]);
@@ -173,16 +192,18 @@ async function broadcastRoomReads(roomId) {
 
 function parseJoinPayload(raw) {
   if (typeof raw === "string") {
-    return { name: raw.trim(), rejoin: false, clientId: "" };
+    return { name: raw.trim(), rejoin: false, clientId: "", authPolicy: "", clientBuild: "" };
   }
   if (raw && typeof raw === "object") {
     return {
       name: String(raw.name ?? "").trim(),
       rejoin: Boolean(raw.rejoin),
       clientId: String(raw.clientId ?? "").trim().slice(0, 64),
+      authPolicy: String(raw.authPolicy ?? "").trim(),
+      clientBuild: String(raw.clientBuild ?? "").trim(),
     };
   }
-  return { name: "", rejoin: false, clientId: "" };
+  return { name: "", rejoin: false, clientId: "", authPolicy: "", clientBuild: "" };
 }
 
 function ensureClientId(raw) {
@@ -253,7 +274,7 @@ io.on("connection", (socket) => {
       if (typeof ack === "function") ack(payload);
     };
 
-    const { name: rawName, rejoin, clientId: rawClientId } = parseJoinPayload(raw);
+    const { name: rawName, rejoin, clientId: rawClientId, authPolicy, clientBuild } = parseJoinPayload(raw);
     const trimmed = rawName.slice(0, 32);
     if (joined) {
       const existing = online.get(socket.id);
@@ -278,10 +299,26 @@ io.on("connection", (socket) => {
       return;
     }
 
+    if (authPolicy !== AUTH_POLICY || clientBuild !== MIN_CLIENT_BUILD) {
+      const reason =
+        "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v37 — sau đó nhập lại tên.";
+      socket.emit("join_error", reason);
+      socket.emit("upgrade_required", { reason });
+      respond({ ok: false, reason });
+      return;
+    }
+
     const clientId = ensureClientId(rawClientId);
 
     joined = true;
-    online.set(socket.id, { id: socket.id, name: trimmed, clientId, roomId: null, roomCode: null });
+    online.set(socket.id, {
+      id: socket.id,
+      name: trimmed,
+      clientId,
+      roomId: null,
+      roomCode: null,
+      authPolicyOk: true,
+    });
 
     const payload = {
       ok: true,
@@ -560,6 +597,13 @@ io.on("connection", (socket) => {
   socket.on("message", async (payload) => {
     const user = online.get(socket.id);
     if (!user || !user.roomId) return;
+    if (!user.authPolicyOk) {
+      socket.emit("upgrade_required", {
+        reason: "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v37.",
+      });
+      socket.disconnect(true);
+      return;
+    }
 
     let type = "text";
     let text = "";

@@ -2139,12 +2139,56 @@
         background: rgba(255, 255, 255, 0.06);
       }
 
+      .upgrade-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: rgba(8, 12, 18, 0.92);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.25rem;
+      }
+
+      .upgrade-overlay[hidden] {
+        display: none !important;
+      }
+
+      .upgrade-card {
+        max-width: 420px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.5rem 1.35rem;
+        text-align: center;
+      }
+
+      .upgrade-card h2 {
+        margin: 0 0 0.75rem;
+        font-size: 1.15rem;
+      }
+
+      .upgrade-card p {
+        margin: 0 0 1.25rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
     </style>
   </head>
   <body>
+    <div id="upgrade-overlay" class="upgrade-overlay" hidden>
+      <div class="upgrade-card">
+        <h2>Cần cập nhật Webchat</h2>
+        <p id="upgrade-overlay-msg">Tải lại trang để dùng phiên bản mới và nhập lại tên.</p>
+        <button type="button" class="gate-btn" id="upgrade-reload-btn" style="width:100%">Tải lại trang (Ctrl+F5)</button>
+      </div>
+    </div>
+
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v36</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v37</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -2206,7 +2250,7 @@
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <button type="button" class="room-head-avatar" id="room-head-avatar" title="Ảnh nhóm"><span id="room-head-avatar-letter">?</span></button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v36</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v37</span></div>
           <button type="button" class="room-member-count" id="btn-room-members">0 thành viên</button>
           <div class="you" id="you-label" style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
@@ -2614,6 +2658,45 @@
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
+      const CLIENT_BUILD = "37";
+
+      function joinPayload(name, rejoin) {
+        return {
+          name,
+          rejoin: Boolean(rejoin),
+          clientId: myClientId,
+          authPolicy: AUTH_POLICY,
+          clientBuild: CLIENT_BUILD,
+        };
+      }
+
+      function showUpgradeOverlay(message) {
+        const el = document.getElementById("upgrade-overlay");
+        const msgEl = document.getElementById("upgrade-overlay-msg");
+        if (msgEl && message) msgEl.textContent = message;
+        if (el) el.hidden = false;
+      }
+
+      function forceUpgradeReload(message) {
+        myName = "";
+        sessionReady = false;
+        pendingAutoJoin = null;
+        currentRoomId = null;
+        currentRoomCode = null;
+        localStorage.removeItem(STORAGE_NAME);
+        localStorage.removeItem(STORAGE_LAST_CODE);
+        appShell.classList.remove("active", "show-chat");
+        chat.classList.remove("active");
+        gate.style.display = "";
+        hideRoomGate();
+        resetJoinUi();
+        showUpgradeOverlay(
+          message ||
+            "Webchat đã cập nhật. Tải lại trang (Ctrl+F5) rồi nhập lại tên — trong nhóm không được trùng tên."
+        );
+      }
+
+      document.getElementById("upgrade-reload-btn").addEventListener("click", () => location.reload());
 
       function applyAuthPolicyMigration() {
         if (localStorage.getItem("webchat-auth-policy") === AUTH_POLICY) return;
@@ -2765,7 +2848,11 @@
       });
 
       const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"];
-      const socket = io({ transports: ["websocket", "polling"], reconnectionAttempts: 20 });
+      const socket = io({
+        transports: ["websocket", "polling"],
+        reconnectionAttempts: 20,
+        auth: { clientBuild: CLIENT_BUILD },
+      });
 
       let joinWaitTimer = null;
 
@@ -2808,7 +2895,7 @@
 
       function requestJoin(name, isAuto) {
         const emitJoin = () => {
-          socket.timeout(25000).emit("join", { name, rejoin: Boolean(isAuto), clientId: myClientId }, (err, res) => {
+          socket.timeout(25000).emit("join", joinPayload(name, isAuto), (err, res) => {
             if (err) {
               resetJoinUi();
               joinError.textContent =
@@ -2820,7 +2907,10 @@
               if (!myName) onJoinedSession(res);
               return;
             }
-            if (res?.reason && !myName) onJoinError(res.reason);
+            if (res?.reason) {
+              if (myName) forceUpgradeReload(res.reason);
+              else onJoinError(res.reason);
+            }
           });
         };
 
@@ -2854,9 +2944,13 @@
           if (typeof then === "function") then(new Error("offline"));
           return;
         }
-        socket.timeout(15000).emit("join", { name: myName, rejoin: true, clientId: myClientId }, (err, res) => {
+        socket.timeout(15000).emit("join", joinPayload(myName, true), (err, res) => {
           if (err || !res?.ok) {
             sessionReady = false;
+            if (res?.reason) forceUpgradeReload(res.reason);
+            else if (myName) {
+              forceUpgradeReload("Không vào lại được phiên — tải lại trang (Ctrl+F5) rồi nhập lại tên.");
+            }
             if (typeof then === "function") then(new Error("join"));
             return;
           }
@@ -3238,7 +3332,12 @@
         }
       });
 
-      socket.on("connect_error", () => {
+      socket.on("connect_error", (err) => {
+        const msg = err?.message || String(err || "");
+        if (/UPGRADE/i.test(msg)) {
+          forceUpgradeReload("Webchat đã cập nhật. Bấm nút bên dưới hoặc Ctrl+F5, rồi nhập lại tên.");
+          return;
+        }
         if (!myName && pendingAutoJoin) {
           clearJoinWait();
           resetJoinUi();
@@ -3246,6 +3345,22 @@
           joinError.hidden = false;
         }
       });
+
+      socket.on("upgrade_required", (payload) => {
+        forceUpgradeReload(payload?.reason || payload?.message);
+      });
+
+      setInterval(async () => {
+        try {
+          const res = await fetch("/api/status", { cache: "no-store" });
+          const data = await res.json();
+          if (data.minClientBuild && data.minClientBuild !== CLIENT_BUILD) {
+            forceUpgradeReload(
+              `Server yêu cầu bản mới (v${data.minClientBuild}). Tải lại trang (Ctrl+F5).`
+            );
+          }
+        } catch (_) {}
+      }, 45000);
 
       socket.on("disconnect", () => {
         sessionReady = false;
@@ -4850,7 +4965,7 @@
       socket.on("join_error", (reason) => {
         if (myName) {
           sessionReady = false;
-          console.warn("join_error while logged in:", reason);
+          forceUpgradeReload(typeof reason === "string" ? reason : "Cần tải lại trang (Ctrl+F5).");
           return;
         }
         onJoinError(reason);

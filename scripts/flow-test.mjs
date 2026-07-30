@@ -6,6 +6,12 @@ import { io } from "socket.io-client";
 
 const base = process.argv[2] || "http://127.0.0.1:3000";
 const NAME = "FlowBot";
+const CLIENT_BUILD = "37";
+const AUTH_POLICY = "36";
+
+function joinPayload(name, rejoin = false) {
+  return { name, rejoin, authPolicy: AUTH_POLICY, clientBuild: CLIENT_BUILD };
+}
 
 function once(socket, event, timeoutMs = 8000) {
   return new Promise((resolve, reject) => {
@@ -27,7 +33,10 @@ function emitAck(socket, event, payload, timeoutMs = 8000) {
 }
 
 async function main() {
-  const socket = io(base, { transports: ["polling", "websocket"] });
+  const socket = io(base, {
+    transports: ["polling", "websocket"],
+    auth: { clientBuild: CLIENT_BUILD },
+  });
   await new Promise((res, rej) => {
     socket.once("connect", res);
     socket.once("connect_error", rej);
@@ -35,7 +44,7 @@ async function main() {
   });
   console.log("OK connect");
 
-  const joinRes = await emitAck(socket, "join", { name: NAME, rejoin: false });
+  const joinRes = await emitAck(socket, "join", joinPayload(NAME, false));
   if (!joinRes?.ok) throw new Error("join failed: " + JSON.stringify(joinRes));
   console.log("OK join", joinRes.name);
 
@@ -52,7 +61,7 @@ async function main() {
   await once(socket, "message", 5000).catch(() => null);
   console.log("OK message sent");
 
-  const join2 = await emitAck(socket, "join", { name: NAME, rejoin: true });
+  const join2 = await emitAck(socket, "join", joinPayload(NAME, true));
   if (!join2?.ok) throw new Error("rejoin failed");
   const room2 = await emitAck(socket, "join_room", { code });
   if (!room2?.ok) throw new Error("rejoin_room failed");
