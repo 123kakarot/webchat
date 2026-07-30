@@ -19,6 +19,11 @@ import {
   countMessagesSince,
   createRoom,
   getRoomByCode,
+  getRoomById,
+  addRoomMember,
+  listRoomMemberNames,
+  updateRoomFields,
+  deleteRoomById,
   normalizeRoomCode,
   getDbOverview,
 } from "./db.js";
@@ -119,6 +124,43 @@ function broadcastUsers(roomId) {
     .filter((u) => u.roomId === roomId)
     .map((u) => u.name);
   io.to(`room:${roomId}`).emit("users", names);
+}
+
+async function buildRoomRoster(roomId) {
+  const room = await getRoomById(roomId);
+  if (!room) return null;
+  const memberNames = await listRoomMemberNames(roomId);
+  const onlineSet = new Set(
+    [...online.values()].filter((u) => u.roomId === roomId).map((u) => u.name)
+  );
+  const owner = room.ownerName || "";
+  const members = memberNames.map((name) => ({
+    name,
+    online: onlineSet.has(name),
+    isOwner: Boolean(owner && name === owner),
+  }));
+  members.sort((a, b) => {
+    if (a.isOwner !== b.isOwner) return a.isOwner ? -1 : 1;
+    if (a.online !== b.online) return a.online ? -1 : 1;
+    return a.name.localeCompare(b.name, "vi");
+  });
+  return {
+    roomId: room.id,
+    code: room.code,
+    name: room.name,
+    ownerName: owner,
+    avatarUrl: room.avatarUrl || "",
+    memberCount: members.length,
+    onlineCount: onlineSet.size,
+    members,
+  };
+}
+
+function broadcastRoomRoster(roomId) {
+  buildRoomRoster(roomId).then((roster) => {
+    if (roster) io.to(`room:${roomId}`).emit("room_roster", roster);
+  });
+  broadcastUsers(roomId);
 }
 
 function parseJoinPayload(raw) {
@@ -313,17 +355,23 @@ io.on("connection", (socket) => {
       user.roomCode = room.code;
       socket.join(roomChannel(room.id));
 
+      await addRoomMember(room.id, user.name);
+
       const history = await loadRecentMessages(room.id, 250);
+      const roster = await buildRoomRoster(room.id);
       const data = {
         ok: true,
         roomId: room.id,
         code: room.code,
         name: room.name,
+        ownerName: room.ownerName || "",
+        avatarUrl: room.avatarUrl || "",
+        roster,
         history,
       };
       socket.emit("room_joined", data);
       respond(data);
-      broadcastUsers(room.id);
+      broadcastRoomRoster(room.id);
     } catch (err) {
       console.error("[join_room]", err);
       const reason = "Lỗi server khi vào phòng.";
@@ -345,10 +393,14 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const name = typeof nameRaw === "string" ? nameRaw : String(nameRaw?.name ?? "Nhóm mới");
+    const name =
+      typeof nameRaw === "string"
+        ? nameRaw
+        : String(nameRaw?.name ?? nameRaw?.roomName ?? "Nhóm mới");
+    const avatarUrl = typeof nameRaw === "object" && nameRaw ? String(nameRaw.avatarUrl ?? "").slice(0, 500) : "";
 
     try {
-      const room = await createRoom(name);
+      const room = await createRoom(name, user.name, avatarUrl);
       socket.emit("room_created", room);
       respond({ ok: true, room });
     } catch (err) {
@@ -383,7 +435,92 @@ io.on("connection", (socket) => {
         text: `${old} đổi tên thành ${trimmed}`,
         roomId: user.roomId,
       });
-      broadcastUsers(user.roomId);
+      broadcastRoomRoster(user.roomId);
+    }
+  });
+
+  socket.on("update_room", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user?.roomId) {
+      respond({ ok: false, reason: "Chưa vào phòng." });
+      return;
+    }
+    const room = await getRoomById(user.roomId);
+    if (!room) {
+      respond({ ok: false, reason: "Phòng không tồn tại." });
+      return;
+    }
+    if (room.ownerName && user.name !== room.ownerName) {
+      respond({ ok: false, reason: "Chỉ trưởng nhóm mới được đổi thông tin nhóm." });
+      return;
+    }
+    const nextName = payload?.name != null ? String(payload.name).trim().slice(0, 64) : undefined;
+    const nextAvatar = payload?.avatarUrl != null ? String(payload.avatarUrl).slice(0, 500) : undefined;
+    if (nextName !== undefined && !nextName) {
+      respond({ ok: false, reason: "Tên nhóm không được trống." });
+      return;
+    }
+    try {
+      const updated = await updateRoomFields(user.roomId, {
+        name: nextName,
+        avatarUrl: nextAvatar,
+      });
+      if (!updated) {
+        respond({ ok: false, reason: "Không cập nhật được." });
+        return;
+      }
+      io.to(roomChannel(user.roomId)).emit("room_updated", updated);
+      io.to(watchChannel(updated.code)).emit("room_updated", updated);
+      broadcastRoomRoster(user.roomId);
+      respond({ ok: true, room: updated });
+    } catch (err) {
+      console.error("[update_room]", err);
+      respond({ ok: false, reason: "Lỗi server." });
+    }
+  });
+
+  socket.on("delete_room", async (_payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user?.roomId || !user.roomCode) {
+      respond({ ok: false, reason: "Chưa vào phòng." });
+      return;
+    }
+    const room = await getRoomById(user.roomId);
+    if (!room) {
+      respond({ ok: false, reason: "Phòng không tồn tại." });
+      return;
+    }
+    if (!room.ownerName || user.name !== room.ownerName) {
+      respond({ ok: false, reason: "Chỉ trưởng nhóm mới được xóa phòng." });
+      return;
+    }
+    const code = room.code;
+    const rid = room.id;
+    try {
+      const ok = await deleteRoomById(rid);
+      if (!ok) {
+        respond({ ok: false, reason: "Không xóa được phòng." });
+        return;
+      }
+      const patch = { code, roomId: rid, deleted: true };
+      io.to(roomChannel(rid)).emit("room_deleted", patch);
+      io.to(watchChannel(code)).emit("room_deleted", patch);
+      for (const u of online.values()) {
+        if (u.roomId === rid) {
+          u.roomId = null;
+          u.roomCode = null;
+        }
+      }
+      respond({ ok: true, code });
+    } catch (err) {
+      console.error("[delete_room]", err);
+      respond({ ok: false, reason: "Lỗi server." });
     }
   });
 
@@ -455,13 +592,7 @@ io.on("connection", (socket) => {
     if (user) {
       const rid = user.roomId;
       online.delete(socket.id);
-      if (rid) {
-        io.to(roomChannel(rid)).emit("system", {
-          text: `${user.name} đã rời phòng`,
-          roomId: rid,
-        });
-        broadcastUsers(rid);
-      }
+      if (rid) broadcastRoomRoster(rid);
     }
   });
 });

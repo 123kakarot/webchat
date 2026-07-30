@@ -176,9 +176,227 @@
       .chat {
         display: none;
         flex: 1;
-        flex-direction: column;
+        flex-direction: row;
         min-width: 0;
         height: 100dvh;
+        position: relative;
+      }
+
+      .chat-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+      }
+
+      .room-head-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: none;
+        padding: 0;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        color: #fff;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .room-head-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .room-member-count {
+        border: none;
+        background: transparent;
+        padding: 0;
+        margin: 0.15rem 0 0;
+        font: inherit;
+        font-size: 0.78rem;
+        color: var(--muted);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .room-member-count:hover {
+        color: var(--accent);
+        text-decoration: underline;
+      }
+
+      .room-members-panel {
+        width: min(320px, 92vw);
+        flex-shrink: 0;
+        border-left: 1px solid var(--border);
+        background: var(--surface);
+        display: none;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      .room-members-panel.open {
+        display: flex;
+      }
+
+      .room-members-head {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 0.85rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .room-members-head h3 {
+        flex: 1;
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      .room-members-head button {
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        font-size: 1.25rem;
+        cursor: pointer;
+        padding: 0.25rem;
+      }
+
+      .room-members-sub {
+        padding: 0.5rem 0.85rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .room-members-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.35rem 0;
+      }
+
+      .room-member-row {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.55rem 0.85rem;
+      }
+
+      .room-member-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #475569, #334155);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        flex-shrink: 0;
+        position: relative;
+      }
+
+      .room-member-avatar .status-dot-member {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid var(--surface);
+        background: #64748b;
+      }
+
+      .room-member-avatar .status-dot-member.on {
+        background: #22c55e;
+      }
+
+      .room-member-meta {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .room-member-name {
+        font-size: 0.88rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .room-member-role {
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin-top: 0.1rem;
+      }
+
+      .room-member-role.leader {
+        color: #fbbf24;
+      }
+
+      .room-members-actions {
+        padding: 0.75rem 0.85rem;
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+
+      .create-group-modal {
+        max-width: 420px;
+      }
+
+      .create-group-brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.85rem;
+        margin: 1rem 0;
+      }
+
+      .create-group-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        border: 2px dashed var(--border);
+        background: var(--bg);
+        color: var(--muted);
+        font-size: 1.5rem;
+        cursor: pointer;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .create-group-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .create-group-brand input {
+        width: 100%;
+        text-align: center;
+        font-size: 1rem;
+        padding: 0.55rem 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .create-group-hint {
+        font-size: 0.8rem;
+        color: var(--muted);
+        text-align: center;
+        margin: 0 0 0.75rem;
       }
 
       .app-shell {
@@ -745,6 +963,13 @@
         justify-content: center;
         font-weight: 600;
         flex-shrink: 0;
+      }
+
+      .room-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
       }
 
       .room-meta {
@@ -1853,7 +2078,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v30</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v31</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. <strong>Tên không được trùng</strong> người đang online (kể cả khác hoa thường).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -1909,21 +2134,23 @@
       </aside>
 
     <main class="chat" id="chat">
+      <div class="chat-main" id="chat-main">
       <header>
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
+          <button type="button" class="room-head-avatar" id="room-head-avatar" title="Ảnh nhóm"><span id="room-head-avatar-letter">?</span></button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v30</span></div>
-          <div class="you" id="you-label"></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v31</span></div>
+          <button type="button" class="room-member-count" id="btn-room-members">0 thành viên</button>
+          <div class="you" id="you-label" style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
         </div>
         <div style="display:flex;gap:0.35rem;align-items:center">
           <button type="button" class="online-toggle" id="change-name-btn" title="Đổi tên">Đổi tên</button>
-          <button type="button" class="online-toggle" id="online-toggle">0 online</button>
         </div>
       </header>
-      <div class="online-panel" id="online-panel"></div>
+      <div class="online-panel" id="online-panel" hidden></div>
       <div id="messages" role="log"></div>
 
       <div class="composer-wrap">
@@ -2019,6 +2246,20 @@
 
       <input type="file" id="file-image" accept="image/jpeg,image/png,image/gif,image/webp" />
       <input type="file" id="file-attach" />
+      </div>
+
+      <aside class="room-members-panel" id="room-members-panel" aria-label="Thành viên nhóm">
+        <div class="room-members-head">
+          <button type="button" id="room-members-close" aria-label="Đóng">←</button>
+          <h3>Thành viên</h3>
+        </div>
+        <div class="room-members-sub" id="room-members-sub">Danh sách thành viên</div>
+        <div class="room-members-list" id="room-members-list"></div>
+        <div class="room-members-actions" id="room-members-actions" hidden>
+          <button type="button" class="app-btn secondary block" id="btn-room-avatar">Đổi ảnh nhóm</button>
+          <button type="button" class="app-btn block" id="btn-delete-room" style="background:#dc2626">Xóa nhóm</button>
+        </div>
+      </aside>
     </main>
 
       <nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Menu chính">
@@ -2044,6 +2285,21 @@
         <button type="button" class="gate-btn" id="modal-join-code" style="width:100%;margin-bottom:0.5rem">🔑 Tham gia bằng mã</button>
         <button type="button" class="gate-btn secondary" id="modal-create-room" style="width:100%">➕ Tạo phòng mới</button>
         <button type="button" data-close="modal-room-action" class="gate-btn secondary" style="width:100%;margin-top:0.5rem">Đóng</button>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal-create-group">
+      <div class="modal create-group-modal">
+        <h2 style="text-align:center;margin-bottom:0.25rem">Tạo nhóm</h2>
+        <div class="create-group-brand">
+          <button type="button" class="create-group-avatar" id="create-group-avatar-btn" title="Chọn ảnh nhóm">📷</button>
+          <input id="create-group-name" maxlength="64" placeholder="Nhập tên nhóm..." autocomplete="off" />
+        </div>
+        <p class="create-group-hint">Bạn (<span id="create-group-owner-label">—</span>) là <strong>trưởng nhóm</strong> — có quyền đổi ảnh và xóa nhóm.</p>
+        <div class="modal-actions">
+          <button type="button" data-close="modal-create-group">Hủy</button>
+          <button type="button" class="primary" id="create-group-submit">Tạo nhóm</button>
+        </div>
       </div>
     </div>
 
@@ -2188,6 +2444,8 @@
 
     <input type="file" id="file-avatar" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
     <input type="file" id="file-bg" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
+    <input type="file" id="file-group-avatar-create" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
+    <input type="file" id="file-group-avatar-room" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
     <div id="profile-toast" class="profile-toast" role="status" aria-live="polite"></div>
 
     <div id="image-lightbox" class="image-lightbox" role="dialog" aria-modal="true" aria-label="Xem ảnh">
@@ -2239,7 +2497,6 @@
       const sendForm = document.getElementById("send-form");
       const messageInput = document.getElementById("message-input");
       const youLabel = document.getElementById("you-label");
-      const onlineToggle = document.getElementById("online-toggle");
       const onlinePanel = document.getElementById("online-panel");
       const statusDot = document.getElementById("status-dot");
       const mentionList = document.getElementById("mention-list");
@@ -2266,6 +2523,10 @@
       let pendingAutoJoin = null;
       let currentRoomId = null;
       let currentRoomCode = null;
+      let roomRoster = null;
+      let currentRoomOwnerName = "";
+      let currentRoomAvatarUrl = "";
+      let createGroupAvatarUrl = "";
       let roomsData = [];
       let pendingOpenRecentRoom = false;
       let roomsSyncRetried = false;
@@ -2550,11 +2811,14 @@
           .slice(0, 8);
       }
 
-      function applyRoomJoined({ roomId, code, name, history }) {
+      function applyRoomJoined({ roomId, code, name, history, ownerName, avatarUrl, roster }) {
         clearPendingReply();
         clearPendingImages();
         const sameRoom = Number(roomId) === Number(currentRoomId);
         currentRoomId = roomId;
+        currentRoomOwnerName = ownerName || roster?.ownerName || "";
+        currentRoomAvatarUrl = avatarUrl || roster?.avatarUrl || "";
+        if (roster) roomRoster = roster;
         const normalized = normalizeRoomCodeClient(code || "");
         currentRoomCode = normalized.length >= 4 ? normalized : null;
         if (currentRoomCode) {
@@ -2568,6 +2832,7 @@
         syncMyRooms();
         renderRoomHeader();
         renderRoomList();
+        renderMembersPanel();
         if (!sameRoom) {
           messagesEl.innerHTML = "";
           messageNodes.clear();
@@ -3032,30 +3297,60 @@
         if (code?.trim()) enterRoom(code.trim());
       }
 
-      function promptCreateRoom() {
+      function openCreateGroupModal() {
+        if (!ensureLoggedIn()) return;
         ensureSession(() => {
-          const name = prompt("Tên phòng / nhóm mới:", "Nhóm của tôi");
-          if (!name?.trim()) return;
-          socket.timeout(20000).emit("create_room", name.trim(), (err, res) => {
+          createGroupAvatarUrl = "";
+          const btn = document.getElementById("create-group-avatar-btn");
+          btn.innerHTML = "📷";
+          document.getElementById("create-group-name").value = "Nhóm của tôi";
+          document.getElementById("create-group-owner-label").textContent = myName || "Bạn";
+          openModal("modal-create-group");
+          document.getElementById("create-group-name").focus();
+        });
+      }
+
+      function submitCreateGroup() {
+        const name = document.getElementById("create-group-name").value.trim();
+        if (!name) {
+          alert("Nhập tên nhóm.");
+          return;
+        }
+        socket.timeout(20000).emit(
+          "create_room",
+          { name, avatarUrl: createGroupAvatarUrl || "" },
+          (err, res) => {
             if (err) {
               alert("Không tạo được phòng (server không phản hồi).");
               return;
             }
             if (res?.ok && res.room) {
+              closeModal("modal-create-group");
               onRoomCreated(res.room);
               return;
             }
             if (res?.reason) alert(res.reason);
-          });
-        });
+          }
+        );
+      }
+
+      function promptCreateRoom() {
+        openCreateGroupModal();
       }
 
       function onRoomCreated(room) {
         if (!room?.code) return;
         saveRoomCode(room.code);
         localStorage.setItem(STORAGE_LAST_CODE, room.code);
+        if (room.ownerName) currentRoomOwnerName = room.ownerName;
+        if (room.avatarUrl) currentRoomAvatarUrl = room.avatarUrl;
         syncMyRooms();
-        alert("Phòng đã tạo!\n\nMã phòng: " + room.code + "\n\nGửi mã này cho mọi người cần vào.");
+        closeModal("modal-create-group");
+        alert(
+          "Nhóm đã tạo!\n\nMã: " +
+            room.code +
+            "\nBạn là trưởng nhóm.\n\nGửi mã cho mọi người cần vào."
+        );
         joinRoomWithAck(room.code, { force: true });
       }
 
@@ -3409,8 +3704,11 @@
             room.lastName && room.preview
               ? room.lastName + ": " + room.preview
               : room.preview || "Chưa có tin nhắn";
+          const avHtml = room.avatarUrl
+            ? `<img src="${String(room.avatarUrl).replace(/"/g, "&quot;")}" alt="" />`
+            : escapeHtml(roomInitials(room.name));
           item.innerHTML =
-            `<div class="room-avatar">${roomInitials(room.name)}</div>` +
+            `<div class="room-avatar">${avHtml}</div>` +
             `<div class="room-meta">` +
             `<div class="room-top"><div class="room-name">${escapeHtml(room.name)}</div>` +
             `<div class="room-time">${formatRoomTime(room.lastAt)}</div></div>` +
@@ -3434,9 +3732,68 @@
         if (room?.code) enterRoom(room.code);
       }
 
+      function setRoomRoster(roster) {
+        if (!roster || Number(roster.roomId) !== Number(currentRoomId)) return;
+        roomRoster = roster;
+        currentRoomOwnerName = roster.ownerName || "";
+        currentRoomAvatarUrl = roster.avatarUrl || "";
+        onlineNames = roster.members.filter((m) => m.online).map((m) => m.name);
+        const i = roomsData.findIndex((r) => r.id === roster.roomId);
+        if (i >= 0) {
+          roomsData[i] = {
+            ...roomsData[i],
+            name: roster.name || roomsData[i].name,
+            ownerName: roster.ownerName,
+            avatarUrl: roster.avatarUrl,
+          };
+        }
+        renderRoomHeader();
+        renderRoomList();
+        renderMembersPanel();
+      }
+
+      function toggleMembersPanel(open) {
+        const panel = document.getElementById("room-members-panel");
+        const wantOpen = open ?? !panel.classList.contains("open");
+        panel.classList.toggle("open", wantOpen);
+        if (wantOpen) renderMembersPanel();
+      }
+
+      function renderMembersPanel() {
+        const listEl = document.getElementById("room-members-list");
+        const members = roomRoster?.members || [];
+        const total = roomRoster?.memberCount ?? members.length;
+        const onlineN = roomRoster?.onlineCount ?? members.filter((m) => m.online).length;
+        document.getElementById("room-members-sub").textContent =
+          `Danh sách thành viên (${total}) · ${onlineN} online`;
+        listEl.innerHTML = "";
+        for (const m of members) {
+          const row = document.createElement("div");
+          row.className = "room-member-row";
+          let roleText = m.online ? "Đang online" : "Offline";
+          let roleClass = "";
+          if (m.isOwner) {
+            roleText = "🔑 Trưởng nhóm" + (m.online ? "" : " · Offline");
+            roleClass = " leader";
+          } else if (m.name === myName) {
+            roleText = (m.online ? "Đang online" : "Offline") + " · Bạn";
+          }
+          row.innerHTML =
+            `<div class="room-member-avatar">${roomInitials(m.name)}` +
+            `<span class="status-dot-member${m.online ? " on" : ""}"></span></div>` +
+            `<div class="room-member-meta">` +
+            `<div class="room-member-name">${escapeHtml(m.name)}</div>` +
+            `<div class="room-member-role${roleClass}">${escapeHtml(roleText)}</div></div>`;
+          listEl.appendChild(row);
+        }
+        const isOwner = Boolean(myName && currentRoomOwnerName && myName === currentRoomOwnerName);
+        document.getElementById("room-members-actions").hidden = !isOwner;
+      }
+
       function renderRoomHeader() {
         const room = roomsData.find((r) => r.id === currentRoomId);
-        roomTitleEl.textContent = room?.name || "Phòng chat";
+        const title = roomRoster?.name || room?.name || "Phòng chat";
+        roomTitleEl.textContent = title;
         const label =
           currentRoomCode && currentRoomCode.length >= 4
             ? currentRoomCode
@@ -3444,6 +3801,59 @@
               ? room.code
               : "—";
         document.getElementById("room-code-label").textContent = label;
+
+        const avUrl = currentRoomAvatarUrl || room?.avatarUrl || roomRoster?.avatarUrl || "";
+        const avBtn = document.getElementById("room-head-avatar");
+        if (avUrl) {
+          avBtn.innerHTML = `<img src="${avUrl.replace(/"/g, "&quot;")}" alt="" />`;
+        } else {
+          avBtn.innerHTML = `<span id="room-head-avatar-letter">${roomInitials(title)}</span>`;
+        }
+
+        const total = roomRoster?.memberCount ?? 0;
+        const onlineN = roomRoster?.onlineCount ?? onlineNames.length;
+        const countBtn = document.getElementById("btn-room-members");
+        countBtn.textContent =
+          total > 0
+            ? `${total} thành viên · ${onlineN} đang online`
+            : onlineN > 0
+              ? `${onlineN} đang online`
+              : "0 thành viên";
+      }
+
+      function updateRoomAvatarOnServer(url) {
+        socket.timeout(15000).emit("update_room", { avatarUrl: url }, (err, res) => {
+          if (err || !res?.ok) {
+            alert(res?.reason || "Không đổi được ảnh nhóm.");
+            return;
+          }
+          currentRoomAvatarUrl = url;
+          renderRoomHeader();
+          renderRoomList();
+          showProfileToast("Đã đổi ảnh nhóm");
+        });
+      }
+
+      function deleteCurrentRoom() {
+        if (!confirm("Xóa nhóm này vĩnh viễn?\nToàn bộ tin nhắn sẽ mất. Không hoàn tác được.")) return;
+        socket.timeout(20000).emit("delete_room", {}, (err, res) => {
+          if (err || !res?.ok) {
+            alert(res?.reason || "Không xóa được nhóm.");
+            return;
+          }
+          if (res.code) removeSavedRoom(res.code);
+          currentRoomId = null;
+          currentRoomCode = null;
+          roomRoster = null;
+          toggleMembersPanel(false);
+          appShell.classList.remove("show-chat");
+          chat.classList.remove("active");
+          messagesEl.innerHTML = "";
+          messageNodes.clear();
+          syncMyRooms();
+          renderRoomList();
+          renderRoomHeader();
+        });
       }
 
       document.querySelectorAll(".sidebar-tabs button").forEach((btn) => {
@@ -3469,7 +3879,59 @@
       });
       document.getElementById("modal-create-room").addEventListener("click", () => {
         closeModal("modal-room-action");
-        promptCreateRoom();
+        openCreateGroupModal();
+      });
+
+      document.getElementById("create-group-submit").addEventListener("click", submitCreateGroup);
+      document.getElementById("create-group-name").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          submitCreateGroup();
+        }
+      });
+      document.getElementById("create-group-avatar-btn").addEventListener("click", () => {
+        document.getElementById("file-group-avatar-create").click();
+      });
+      document.getElementById("file-group-avatar-create").addEventListener("change", async () => {
+        const file = document.getElementById("file-group-avatar-create").files?.[0];
+        document.getElementById("file-group-avatar-create").value = "";
+        if (!file) return;
+        try {
+          const { url } = await uploadFile(file);
+          createGroupAvatarUrl = url;
+          document.getElementById("create-group-avatar-btn").innerHTML = `<img src="${url}" alt="" />`;
+        } catch {
+          alert("Không tải được ảnh.");
+        }
+      });
+
+      document.getElementById("btn-room-members").addEventListener("click", () => toggleMembersPanel(true));
+      document.getElementById("room-members-close").addEventListener("click", () => toggleMembersPanel(false));
+      document.getElementById("btn-delete-room").addEventListener("click", deleteCurrentRoom);
+      document.getElementById("btn-room-avatar").addEventListener("click", () => {
+        document.getElementById("file-group-avatar-room").click();
+      });
+      document.getElementById("room-head-avatar").addEventListener("click", () => {
+        if (myName && myName === currentRoomOwnerName) {
+          document.getElementById("file-group-avatar-room").click();
+        } else {
+          toggleMembersPanel(true);
+        }
+      });
+      document.getElementById("file-group-avatar-room").addEventListener("change", async () => {
+        const file = document.getElementById("file-group-avatar-room").files?.[0];
+        document.getElementById("file-group-avatar-room").value = "";
+        if (!file) return;
+        if (myName !== currentRoomOwnerName) {
+          alert("Chỉ trưởng nhóm mới đổi ảnh.");
+          return;
+        }
+        try {
+          const { url } = await uploadFile(file);
+          updateRoomAvatarOnServer(url);
+        } catch {
+          alert("Không tải được ảnh.");
+        }
       });
 
       document.getElementById("nav-chats").addEventListener("click", () => {
@@ -4529,14 +4991,42 @@
         updateMessageReactions(messageId, reactions);
       });
 
-      socket.on("users", (names) => {
-        onlineNames = names;
-        onlineToggle.textContent = names.length + " online";
-        onlinePanel.innerHTML =
-          "<strong>Đang online:</strong> " + (names.length ? names.join(", ") : "Chưa có ai");
+      socket.on("room_roster", (roster) => setRoomRoster(roster));
+
+      socket.on("room_updated", (room) => {
+        if (!room?.id) return;
+        const i = roomsData.findIndex((r) => r.id === room.id);
+        if (i >= 0) roomsData[i] = { ...roomsData[i], ...room };
+        if (Number(room.id) === Number(currentRoomId)) {
+          currentRoomOwnerName = room.ownerName || currentRoomOwnerName;
+          currentRoomAvatarUrl = room.avatarUrl ?? currentRoomAvatarUrl;
+          renderRoomHeader();
+          renderRoomList();
+        }
       });
 
-      onlineToggle.addEventListener("click", () => onlinePanel.classList.toggle("open"));
+      socket.on("room_deleted", (payload) => {
+        const code = payload?.code;
+        if (code) removeSavedRoom(code);
+        if (Number(payload?.roomId) === Number(currentRoomId)) {
+          alert("Nhóm đã bị xóa bởi trưởng nhóm.");
+          currentRoomId = null;
+          currentRoomCode = null;
+          roomRoster = null;
+          toggleMembersPanel(false);
+          appShell.classList.remove("show-chat");
+          chat.classList.remove("active");
+          messagesEl.innerHTML = "";
+          messageNodes.clear();
+        }
+        syncMyRooms();
+        renderRoomList();
+        renderRoomHeader();
+      });
+
+      socket.on("users", (names) => {
+        if (Array.isArray(names)) onlineNames = names;
+      });
     </script>
   </body>
 </html>

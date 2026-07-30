@@ -13,8 +13,10 @@ const memoryReactions = new Map();
 const memoryMessages = [];
 let memoryNextId = 1;
 
-/** @type {Array<{ id: number, name: string, kind: string, code: string }>} */
+/** @type {Array<{ id: number, name: string, kind: string, code: string, owner_name?: string, avatar_url?: string }>} */
 const memoryRooms = [];
+/** @type {Map<number, Set<string>>} */
+const memoryRoomMembers = new Map();
 let memoryNextRoomId = 1;
 
 export function generateRoomCode() {
@@ -109,6 +111,16 @@ export async function initDb() {
       user_name VARCHAR(32) NOT NULL,
       emoji VARCHAR(8) NOT NULL,
       PRIMARY KEY (message_id, user_name)
+    );
+
+    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS owner_name VARCHAR(32);
+    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500);
+
+    CREATE TABLE IF NOT EXISTS room_members (
+      room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      user_name VARCHAR(32) NOT NULL,
+      joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (room_id, user_name)
     );
   `);
 
@@ -229,6 +241,129 @@ export async function countMessagesSince(roomId, sinceMs) {
   return rows[0]?.c ?? 0;
 }
 
+function roomRowToClient(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    kind: row.kind,
+    code: row.code,
+    ownerName: row.owner_name ?? row.ownerName ?? "",
+    avatarUrl: row.avatar_url ?? row.avatarUrl ?? "",
+  };
+}
+
+export async function addRoomMember(roomId, userName) {
+  const rid = Number(roomId);
+  const name = String(userName ?? "").trim().slice(0, 32);
+  if (!Number.isFinite(rid) || !name) return;
+
+  if (useMemory) {
+    if (!memoryRoomMembers.has(rid)) memoryRoomMembers.set(rid, new Set());
+    memoryRoomMembers.get(rid).add(name);
+    return;
+  }
+
+  await pool.query(
+    `INSERT INTO room_members (room_id, user_name) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+    [rid, name]
+  );
+}
+
+export async function listRoomMemberNames(roomId) {
+  const rid = Number(roomId);
+  if (!Number.isFinite(rid)) return [];
+
+  if (useMemory) {
+    const set = memoryRoomMembers.get(rid) ?? new Set();
+    const fromMsg = memoryMessages.filter((m) => m.roomId === rid).map((m) => m.name);
+    return [...new Set([...set, ...fromMsg])].filter(Boolean).sort((a, b) => a.localeCompare(b, "vi"));
+  }
+
+  const { rows } = await pool.query(
+    `
+    SELECT user_name FROM room_members WHERE room_id = $1
+    UNION
+    SELECT DISTINCT name AS user_name FROM messages WHERE room_id = $1
+    ORDER BY user_name ASC
+    `,
+    [rid]
+  );
+  return rows.map((r) => r.user_name).filter(Boolean);
+}
+
+export async function getRoomById(roomId) {
+  const rid = Number(roomId);
+  if (!Number.isFinite(rid)) return null;
+
+  if (useMemory) {
+    const room = memoryRooms.find((r) => r.id === rid);
+    return room ? roomRowToClient(room) : null;
+  }
+
+  const { rows } = await pool.query(
+    `SELECT id, name, kind, code, owner_name, avatar_url FROM rooms WHERE id = $1`,
+    [rid]
+  );
+  return roomRowToClient(rows[0]);
+}
+
+export async function updateRoomFields(roomId, { name, avatarUrl, ownerName } = {}) {
+  const rid = Number(roomId);
+  if (!Number.isFinite(rid)) return null;
+
+  if (useMemory) {
+    const room = memoryRooms.find((r) => r.id === rid);
+    if (!room) return null;
+    if (name != null) room.name = String(name).trim().slice(0, 64) || room.name;
+    if (avatarUrl != null) room.avatar_url = String(avatarUrl).slice(0, 500);
+    if (ownerName != null) room.owner_name = String(ownerName).trim().slice(0, 32);
+    return roomRowToClient(room);
+  }
+
+  const sets = [];
+  const vals = [];
+  let i = 1;
+  if (name != null) {
+    sets.push(`name = $${i++}`);
+    vals.push(String(name).trim().slice(0, 64));
+  }
+  if (avatarUrl != null) {
+    sets.push(`avatar_url = $${i++}`);
+    vals.push(String(avatarUrl).slice(0, 500));
+  }
+  if (ownerName != null) {
+    sets.push(`owner_name = $${i++}`);
+    vals.push(String(ownerName).trim().slice(0, 32));
+  }
+  if (!sets.length) return getRoomById(rid);
+  vals.push(rid);
+  const { rows } = await pool.query(
+    `UPDATE rooms SET ${sets.join(", ")} WHERE id = $${i} RETURNING id, name, kind, code, owner_name, avatar_url`,
+    vals
+  );
+  return roomRowToClient(rows[0]);
+}
+
+export async function deleteRoomById(roomId) {
+  const rid = Number(roomId);
+  if (!Number.isFinite(rid)) return false;
+
+  if (useMemory) {
+    const idx = memoryRooms.findIndex((r) => r.id === rid);
+    if (idx < 0) return false;
+    memoryRooms.splice(idx, 1);
+    memoryRoomMembers.delete(rid);
+    for (let j = memoryMessages.length - 1; j >= 0; j--) {
+      if (memoryMessages[j].roomId === rid) memoryMessages.splice(j, 1);
+    }
+    return true;
+  }
+
+  const { rowCount } = await pool.query(`DELETE FROM rooms WHERE id = $1`, [rid]);
+  return rowCount > 0;
+}
+
 export async function listRoomsByCodes(codes) {
   const normalized = [...new Set(codes.map(normalizeRoomCode).filter(Boolean))];
   if (!normalized.length) return [];
@@ -240,13 +375,21 @@ export async function listRoomsByCodes(codes) {
         const roomMsgs = memoryMessages.filter((m) => m.roomId === r.id);
         const last = roomMsgs[roomMsgs.length - 1];
         const p = previewFromMessage(last);
-        return { id: r.id, name: r.name, kind: r.kind, code: r.code, ...p };
+        return {
+          id: r.id,
+          name: r.name,
+          kind: r.kind,
+          code: r.code,
+          ownerName: r.owner_name ?? "",
+          avatarUrl: r.avatar_url ?? "",
+          ...p,
+        };
       });
   }
 
   const { rows } = await pool.query(
     `
-    SELECT r.id, r.name, r.kind, r.code,
+    SELECT r.id, r.name, r.kind, r.code, r.owner_name, r.avatar_url,
            lm.name AS last_name,
            lm.type AS last_type,
            lm.text AS last_text,
@@ -277,6 +420,8 @@ export async function listRoomsByCodes(codes) {
       name: row.name,
       kind: row.kind,
       code: row.code,
+      ownerName: row.owner_name || "",
+      avatarUrl: row.avatar_url || "",
       preview: String(preview).slice(0, 80),
       lastAt: row.last_at ? Math.round(Number(row.last_at)) : 0,
       lastName: row.last_name || "",
@@ -298,29 +443,44 @@ export async function getRoomByCode(rawCode) {
   if (useMemory) {
     const room = memoryRooms.find((r) => r.code === code);
     if (!room) return null;
-    return { id: room.id, name: room.name, kind: room.kind, code: room.code };
+    return roomRowToClient(room);
   }
 
   const { rows } = await pool.query(
-    `SELECT id, name, kind, code FROM rooms WHERE code = $1`,
+    `SELECT id, name, kind, code, owner_name, avatar_url FROM rooms WHERE code = $1`,
     [code]
   );
-  return rows[0] ?? null;
+  return roomRowToClient(rows[0]);
 }
 
-export async function createRoom(name) {
+export async function createRoom(name, ownerName = "", avatarUrl = "") {
   const trimmed = String(name ?? "").trim().slice(0, 64);
   if (!trimmed) throw new Error("empty name");
+  const owner = String(ownerName ?? "").trim().slice(0, 32);
+  const avatar = String(avatarUrl ?? "").slice(0, 500);
 
   if (useMemory) {
     const code = uniqueRoomCodeMemory();
-    const room = { id: memoryNextRoomId++, name: trimmed, kind: "group", code };
+    const room = {
+      id: memoryNextRoomId++,
+      name: trimmed,
+      kind: "group",
+      code,
+      owner_name: owner,
+      avatar_url: avatar,
+    };
     memoryRooms.push(room);
+    if (owner) {
+      if (!memoryRoomMembers.has(room.id)) memoryRoomMembers.set(room.id, new Set());
+      memoryRoomMembers.get(room.id).add(owner);
+    }
     return {
       id: room.id,
       name: room.name,
       kind: room.kind,
       code: room.code,
+      ownerName: owner,
+      avatarUrl: avatar,
       preview: "Chưa có tin nhắn",
       lastAt: 0,
       lastName: "",
@@ -329,15 +489,19 @@ export async function createRoom(name) {
 
   const code = await uniqueRoomCodePg();
   const { rows } = await pool.query(
-    `INSERT INTO rooms (name, kind, code) VALUES ($1, 'group', $2) RETURNING id, name, kind, code`,
-    [trimmed, code]
+    `INSERT INTO rooms (name, kind, code, owner_name, avatar_url) VALUES ($1, 'group', $2, $3, $4)
+     RETURNING id, name, kind, code, owner_name, avatar_url`,
+    [trimmed, code, owner || null, avatar || null]
   );
   const r = rows[0];
+  if (owner) await addRoomMember(r.id, owner);
   return {
     id: r.id,
     name: r.name,
     kind: r.kind,
     code: r.code,
+    ownerName: r.owner_name || "",
+    avatarUrl: r.avatar_url || "",
     preview: "Chưa có tin nhắn",
     lastAt: 0,
     lastName: "",
