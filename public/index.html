@@ -1100,6 +1100,149 @@
         max-width: min(260px, 70vw);
         border-radius: 10px;
         display: block;
+        cursor: zoom-in;
+      }
+
+      .image-lightbox {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        background: rgba(8, 12, 18, 0.92);
+        flex-direction: column;
+      }
+
+      .image-lightbox.open {
+        display: flex;
+      }
+
+      .image-lightbox-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.65rem 1rem;
+        color: var(--text);
+        flex-shrink: 0;
+      }
+
+      .image-lightbox-top button {
+        border: none;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        font-size: 1.25rem;
+        cursor: pointer;
+      }
+
+      .image-lightbox-body {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+        position: relative;
+      }
+
+      .image-lightbox-main {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem 1rem;
+        min-width: 0;
+      }
+
+      .image-lightbox-main img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border-radius: 4px;
+      }
+
+      .image-lightbox-nav {
+        position: absolute;
+        right: 220px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        z-index: 2;
+      }
+
+      .image-lightbox-nav button {
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        cursor: pointer;
+        font-size: 1.1rem;
+      }
+
+      .image-lightbox-nav button:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+
+      .image-lightbox-thumbs {
+        width: 200px;
+        flex-shrink: 0;
+        border-left: 1px solid rgba(255, 255, 255, 0.08);
+        overflow-y: auto;
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+
+      .image-lightbox-thumbs button {
+        border: 2px solid transparent;
+        border-radius: 8px;
+        padding: 0;
+        background: transparent;
+        cursor: pointer;
+        overflow: hidden;
+        aspect-ratio: 1;
+      }
+
+      .image-lightbox-thumbs button.active {
+        border-color: var(--accent);
+      }
+
+      .image-lightbox-thumbs img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .image-lightbox-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.65rem 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        flex-shrink: 0;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .image-lightbox-foot a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      @media (max-width: 768px) {
+        .image-lightbox-thumbs {
+          display: none;
+        }
+
+        .image-lightbox-nav {
+          right: 0.75rem;
+        }
       }
 
       .msg-bubble .file-link {
@@ -1687,7 +1830,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v28</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v29</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. <strong>Tên không được trùng</strong> người đang online (kể cả khác hoa thường).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -1747,7 +1890,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v28</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v29</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -2024,6 +2167,27 @@
     <input type="file" id="file-bg" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
     <div id="profile-toast" class="profile-toast" role="status" aria-live="polite"></div>
 
+    <div id="image-lightbox" class="image-lightbox" role="dialog" aria-modal="true" aria-label="Xem ảnh">
+      <div class="image-lightbox-top">
+        <span id="image-lightbox-title">Ảnh</span>
+        <button type="button" id="image-lightbox-close" aria-label="Đóng">×</button>
+      </div>
+      <div class="image-lightbox-body">
+        <div class="image-lightbox-nav">
+          <button type="button" id="image-lightbox-prev" aria-label="Ảnh trước">▲</button>
+          <button type="button" id="image-lightbox-next" aria-label="Ảnh sau">▼</button>
+        </div>
+        <div class="image-lightbox-main">
+          <img id="image-lightbox-img" alt="" />
+        </div>
+        <aside class="image-lightbox-thumbs" id="image-lightbox-thumbs" aria-label="Ảnh trong phòng"></aside>
+      </div>
+      <div class="image-lightbox-foot">
+        <span id="image-lightbox-meta"></span>
+        <a id="image-lightbox-download" href="#" download>Tải xuống</a>
+      </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script type="module">
       import { validateDisplayName } from "/nameFilter.js";
@@ -2117,6 +2281,120 @@
 
       const BG_PRESETS = ["#0f1419", "#1a1a2e", "#162447", "#1b263b", "#2d132c", "#1c3334", "#2c1810", "#eef2ff"];
       const messageNodes = new Map();
+      const imageLightboxEl = document.getElementById("image-lightbox");
+      const imageLightboxImg = document.getElementById("image-lightbox-img");
+      const imageLightboxThumbs = document.getElementById("image-lightbox-thumbs");
+      let imageLightboxIdx = 0;
+      let imageLightboxList = [];
+
+      function getRoomImageMessages() {
+        return [...messageNodes.values()]
+          .map((n) => n.msg)
+          .filter((m) => m && m.type === "image" && m.url)
+          .sort((a, b) => Number(a.id) - Number(b.id));
+      }
+
+      function formatMessageDayLabel(at) {
+        if (at == null || at === "") return "";
+        const d = new Date(Number(at));
+        if (Number.isNaN(d.getTime())) return "";
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const startOfMsg = new Date(d);
+        startOfMsg.setHours(0, 0, 0, 0);
+        if (startOfMsg.getTime() === startOfToday.getTime()) return "Hôm nay";
+        return d.toLocaleDateString("vi-VN");
+      }
+
+      function renderImageLightbox() {
+        const m = imageLightboxList[imageLightboxIdx];
+        if (!m) return;
+        imageLightboxImg.src = m.url;
+        imageLightboxImg.alt = m.fileName || "Ảnh";
+        const roomLabel = (roomTitleEl.textContent || "Phòng chat").replace(/\s*v\d+\s*$/i, "").trim();
+        document.getElementById("image-lightbox-title").textContent = roomLabel || "Ảnh";
+        const day = formatMessageDayLabel(m.at);
+        document.getElementById("image-lightbox-meta").textContent =
+          (m.name || "Ẩn danh") + " · " + formatMessageTime(m.at) + (day ? " " + day : "");
+        const dl = document.getElementById("image-lightbox-download");
+        dl.href = m.url;
+        dl.download = m.fileName || "image";
+        document.getElementById("image-lightbox-prev").disabled = imageLightboxIdx <= 0;
+        document.getElementById("image-lightbox-next").disabled = imageLightboxIdx >= imageLightboxList.length - 1;
+
+        imageLightboxThumbs.innerHTML = "";
+        const header = document.createElement("div");
+        header.style.cssText = "font-size:0.75rem;color:var(--muted);margin-bottom:0.15rem;flex-shrink:0";
+        header.textContent = day || "Ảnh trong phòng";
+        imageLightboxThumbs.appendChild(header);
+        imageLightboxList.forEach((item, i) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          if (i === imageLightboxIdx) btn.classList.add("active");
+          const timg = document.createElement("img");
+          timg.src = item.url;
+          timg.alt = "";
+          btn.appendChild(timg);
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            imageLightboxIdx = i;
+            renderImageLightbox();
+          });
+          imageLightboxThumbs.appendChild(btn);
+        });
+        const activeThumb = imageLightboxThumbs.querySelector("button.active");
+        if (activeThumb) activeThumb.scrollIntoView({ block: "nearest" });
+      }
+
+      function openImageLightbox(messageId) {
+        imageLightboxList = getRoomImageMessages();
+        if (!imageLightboxList.length) return;
+        let idx = imageLightboxList.findIndex((m) => Number(m.id) === Number(messageId));
+        if (idx < 0) idx = 0;
+        imageLightboxIdx = idx;
+        renderImageLightbox();
+        imageLightboxEl.classList.add("open");
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeImageLightbox() {
+        imageLightboxEl.classList.remove("open");
+        document.body.style.overflow = "";
+        imageLightboxImg.removeAttribute("src");
+      }
+
+      document.getElementById("image-lightbox-close").addEventListener("click", closeImageLightbox);
+      document.getElementById("image-lightbox-prev").addEventListener("click", () => {
+        if (imageLightboxIdx > 0) {
+          imageLightboxIdx -= 1;
+          renderImageLightbox();
+        }
+      });
+      document.getElementById("image-lightbox-next").addEventListener("click", () => {
+        if (imageLightboxIdx < imageLightboxList.length - 1) {
+          imageLightboxIdx += 1;
+          renderImageLightbox();
+        }
+      });
+      imageLightboxEl.addEventListener("click", (e) => {
+        if (e.target === imageLightboxEl) closeImageLightbox();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (!imageLightboxEl.classList.contains("open")) return;
+        if (e.key === "Escape") closeImageLightbox();
+        else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+          if (imageLightboxIdx > 0) {
+            imageLightboxIdx -= 1;
+            renderImageLightbox();
+          }
+        } else if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+          if (imageLightboxIdx < imageLightboxList.length - 1) {
+            imageLightboxIdx += 1;
+            renderImageLightbox();
+          }
+        }
+      });
+
       const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"];
       const socket = io({ transports: ["websocket", "polling"], reconnectionAttempts: 20 });
 
@@ -3932,6 +4210,10 @@
           img.src = url;
           img.alt = fileName || "Ảnh";
           img.loading = "lazy";
+          img.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (msg.id != null) openImageLightbox(msg.id);
+          });
           bubble.appendChild(img);
         } else if (type === "file") {
           const a = document.createElement("a");
