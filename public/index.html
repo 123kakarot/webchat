@@ -2144,7 +2144,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v34</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v35</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. <strong>Tên không được trùng</strong> người đang online (kể cả khác hoa thường).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -2206,14 +2206,15 @@
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <button type="button" class="room-head-avatar" id="room-head-avatar" title="Ảnh nhóm"><span id="room-head-avatar-letter">?</span></button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v34</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v35</span></div>
           <button type="button" class="room-member-count" id="btn-room-members">0 thành viên</button>
           <div class="you" id="you-label" style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
         </div>
         <div style="display:flex;gap:0.35rem;align-items:center">
-          <button type="button" class="online-toggle" id="change-name-btn" title="Đổi tên">Đổi tên</button>
+          <button type="button" class="online-toggle" id="change-name-btn" title="Đổi tên hiển thị của bạn">Tên của bạn</button>
+          <button type="button" class="online-toggle" id="btn-room-rename-head" title="Đổi tên nhóm" hidden>Đổi tên nhóm</button>
         </div>
       </header>
       <div class="online-panel" id="online-panel" hidden></div>
@@ -2324,6 +2325,7 @@
         <div class="room-members-sub" id="room-members-sub">Danh sách thành viên</div>
         <div class="room-members-list" id="room-members-list"></div>
         <div class="room-members-actions" id="room-members-actions" hidden>
+          <button type="button" class="app-btn secondary block" id="btn-room-rename">Đổi tên nhóm</button>
           <button type="button" class="app-btn secondary block" id="btn-room-avatar">Đổi ảnh nhóm</button>
           <button type="button" class="app-btn block" id="btn-delete-room" style="background:#dc2626">Xóa nhóm</button>
         </div>
@@ -2907,6 +2909,7 @@
         renderRoomHeader();
         renderRoomList();
         renderMembersPanel();
+        syncRoomLeaderActionsUi();
         if (!sameRoom) {
           messagesEl.innerHTML = "";
           messageNodes.clear();
@@ -3930,6 +3933,7 @@
         renderRoomHeader();
         renderRoomList();
         renderMembersPanel();
+        syncRoomLeaderActionsUi();
       }
 
       function toggleMembersPanel(open) {
@@ -3973,6 +3977,7 @@
         }
         const isOwner = Boolean(myName && currentRoomOwnerName && myName === currentRoomOwnerName);
         document.getElementById("room-members-actions").hidden = !isOwner;
+        syncRoomLeaderActionsUi();
       }
 
       function renderRoomHeader() {
@@ -4004,6 +4009,7 @@
             : onlineN > 0
               ? `${onlineN} đang online`
               : "0 thành viên";
+        syncRoomLeaderActionsUi();
       }
 
       function updateRoomAvatarOnServer(url) {
@@ -4017,6 +4023,52 @@
           renderRoomList();
           showProfileToast("Đã đổi ảnh nhóm");
         });
+      }
+
+      function promptRenameRoom() {
+        if (myName !== currentRoomOwnerName) {
+          alert("Chỉ trưởng nhóm mới được đổi tên nhóm.");
+          return;
+        }
+        const room = roomsData.find((r) => r.id === currentRoomId);
+        const current = roomRoster?.name || room?.name || roomTitleEl.textContent || "";
+        const next = prompt("Tên nhóm mới:", current.replace(/\s*v\d+\s*$/i, "").trim());
+        if (next == null) return;
+        const trimmed = next.trim();
+        if (!trimmed) {
+          alert("Tên nhóm không được trống.");
+          return;
+        }
+        socket.timeout(15000).emit("update_room", { name: trimmed }, (err, res) => {
+          if (err || !res?.ok) {
+            alert(res?.reason || "Không đổi được tên nhóm.");
+            return;
+          }
+          applyRoomUpdate(res.room);
+          showProfileToast("Đã đổi tên nhóm");
+        });
+      }
+
+      function applyRoomUpdate(room) {
+        if (!room?.id) return;
+        const i = roomsData.findIndex((r) => r.id === room.id);
+        if (i >= 0) roomsData[i] = { ...roomsData[i], ...room, name: room.name };
+        if (Number(room.id) !== Number(currentRoomId)) return;
+        if (room.name) {
+          if (roomRoster) roomRoster = { ...roomRoster, name: room.name };
+          saveRoomMeta(currentRoomCode, room.name, room.id);
+        }
+        if (room.avatarUrl != null) currentRoomAvatarUrl = room.avatarUrl;
+        if (room.ownerName) currentRoomOwnerName = room.ownerName;
+        renderRoomHeader();
+        renderRoomList();
+        renderMembersPanel();
+      }
+
+      function syncRoomLeaderActionsUi() {
+        const isOwner = Boolean(myName && currentRoomOwnerName && myName === currentRoomOwnerName);
+        const headBtn = document.getElementById("btn-room-rename-head");
+        if (headBtn) headBtn.hidden = !isOwner;
       }
 
       function deleteCurrentRoom() {
@@ -4104,6 +4156,8 @@
         toggleMembersPanel(false);
       });
       document.getElementById("btn-delete-room").addEventListener("click", deleteCurrentRoom);
+      document.getElementById("btn-room-rename").addEventListener("click", promptRenameRoom);
+      document.getElementById("btn-room-rename-head").addEventListener("click", promptRenameRoom);
       document.getElementById("btn-room-avatar").addEventListener("click", () => {
         document.getElementById("file-group-avatar-room").click();
       });
@@ -5204,15 +5258,7 @@
       });
 
       socket.on("room_updated", (room) => {
-        if (!room?.id) return;
-        const i = roomsData.findIndex((r) => r.id === room.id);
-        if (i >= 0) roomsData[i] = { ...roomsData[i], ...room };
-        if (Number(room.id) === Number(currentRoomId)) {
-          currentRoomOwnerName = room.ownerName || currentRoomOwnerName;
-          currentRoomAvatarUrl = room.avatarUrl ?? currentRoomAvatarUrl;
-          renderRoomHeader();
-          renderRoomList();
-        }
+        applyRoomUpdate(room);
       });
 
       socket.on("room_deleted", (payload) => {
