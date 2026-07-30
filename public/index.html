@@ -649,6 +649,33 @@
         padding: 0.65rem 0.75rem;
         cursor: pointer;
         border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        align-items: center;
+        position: relative;
+      }
+
+      .room-remove {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 1.1rem;
+        line-height: 1;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.15s, background 0.15s, color 0.15s;
+      }
+
+      .room-item:hover .room-remove,
+      .room-item:focus-within .room-remove {
+        opacity: 1;
+      }
+
+      .room-remove:hover {
+        background: rgba(248, 113, 113, 0.15);
+        color: #f87171;
       }
 
       .room-item:hover {
@@ -770,8 +797,8 @@
           padding-top: max(0.65rem, env(safe-area-inset-top, 0px));
         }
 
-        #panel-profile.profile-panel-inner {
-          padding-bottom: 1rem;
+        .room-remove {
+          opacity: 1;
         }
       }
 
@@ -1451,7 +1478,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v19</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v20</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Vào phòng khác hoặc tạo phòng mới ở menu bên trái sau khi đăng nhập.</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -1511,7 +1538,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v19</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v20</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -1724,8 +1751,9 @@
             <div class="settings-tab-panel" id="settings-panel-general">
               <h3>Cài đặt chung</h3>
               <div class="settings-row">
-                <label>Ghi nhớ tài khoản trên trình duyệt này</label>
-                <p style="font-size:0.85rem;color:var(--muted);line-height:1.5">Tên và danh sách phòng được lưu cục bộ. Ảnh đại diện & giao diện lưu sau khi bấm <strong>Lưu thay đổi</strong>.</p>
+                <label>Danh sách phòng</label>
+                <p style="font-size:0.85rem;color:var(--muted);line-height:1.5;margin-bottom:0.5rem">Trong cột Tin nhắn, bấm <strong>×</strong> trên từng phòng để xóa khỏi danh sách (không xóa trên server).</p>
+                <button type="button" class="app-btn secondary" id="btn-clear-room-list">Xóa toàn bộ danh sách phòng</button>
               </div>
             </div>
             <div class="settings-tab-panel" id="settings-panel-appearance" hidden>
@@ -1828,6 +1856,7 @@
       let currentRoomCode = null;
       let roomsData = [];
       let pendingOpenRecentRoom = false;
+      let roomsSyncRetried = false;
       let sessionReady = false;
       let sidebarTab = "all";
       let profileSuffix = "";
@@ -2418,10 +2447,36 @@
       function getSavedRoomCodes() {
         try {
           const arr = JSON.parse(localStorage.getItem(STORAGE_ROOM_CODES) || "[]");
-          return Array.isArray(arr) ? arr.map((c) => String(c).toUpperCase()) : [];
+          let codes = Array.isArray(arr) ? arr.map((c) => normalizeRoomCodeClient(c)).filter((c) => c.length >= 4) : [];
+          if (!codes.length) {
+            ensureRoomCodesSeed(false);
+            const again = JSON.parse(localStorage.getItem(STORAGE_ROOM_CODES) || "[]");
+            codes = Array.isArray(again)
+              ? again.map((c) => normalizeRoomCodeClient(c)).filter((c) => c.length >= 4)
+              : [];
+          }
+          return [...new Set(codes)];
         } catch {
           return [];
         }
+      }
+
+      function ensureRoomCodesSeed(persist = true) {
+        const existing = new Set(
+          (JSON.parse(localStorage.getItem(STORAGE_ROOM_CODES) || "[]") || []).map((c) =>
+            normalizeRoomCodeClient(c)
+          )
+        );
+        const last = localStorage.getItem(STORAGE_LAST_CODE);
+        if (last) existing.add(normalizeRoomCodeClient(last));
+        for (const k of Object.keys(getSavedRoomMeta())) {
+          existing.add(normalizeRoomCodeClient(k));
+        }
+        const merged = [...existing].filter((c) => c.length >= 4);
+        if (persist && merged.length) {
+          localStorage.setItem(STORAGE_ROOM_CODES, JSON.stringify(merged.slice(0, 30)));
+        }
+        return merged;
       }
 
       function saveRoomCode(code) {
@@ -2429,31 +2484,75 @@
         if (c.length < 4) return;
         const codes = getSavedRoomCodes().filter((x) => x !== c);
         codes.unshift(c);
-        localStorage.setItem(STORAGE_ROOM_CODES, JSON.stringify(codes.slice(0, 20)));
+        localStorage.setItem(STORAGE_ROOM_CODES, JSON.stringify(codes.slice(0, 30)));
       }
 
-      function pruneSavedRoomCodes(serverRooms) {
-        const valid = new Set(
-          (serverRooms || [])
-            .map((r) => normalizeRoomCodeClient(r.code))
-            .filter((c) => c.length >= 4)
-        );
-        if (currentRoomCode) valid.add(currentRoomCode);
-        const last = localStorage.getItem(STORAGE_LAST_CODE);
-        if (last) valid.add(normalizeRoomCodeClient(last));
+      function persistRoomsFromServer(serverRooms) {
+        const rooms = Array.isArray(serverRooms) ? serverRooms : [];
+        if (!rooms.length) return;
 
-        const kept = getSavedRoomCodes().filter((c) => valid.has(c));
-        const merged = [...new Set([...kept, ...valid])].slice(0, 20);
+        roomsSyncRetried = false;
+        const ordered = rooms
+          .map((r) => normalizeRoomCodeClient(r.code))
+          .filter((c) => c.length >= 4);
+        const prev = getSavedRoomCodes();
+        const rest = prev.filter((c) => !ordered.includes(c));
+        const merged = [...new Set([...ordered, ...rest])].slice(0, 30);
         localStorage.setItem(STORAGE_ROOM_CODES, JSON.stringify(merged));
 
         try {
           const meta = getSavedRoomMeta();
-          const next = {};
-          for (const c of merged) {
-            if (meta[c]) next[c] = meta[c];
+          for (const r of rooms) {
+            const c = normalizeRoomCodeClient(r.code);
+            if (c.length >= 4) {
+              meta[c] = { name: r.name || meta[c]?.name || "Phòng chat", id: r.id ?? meta[c]?.id ?? null };
+            }
           }
-          localStorage.setItem("webchat-room-meta", JSON.stringify(next));
+          localStorage.setItem("webchat-room-meta", JSON.stringify(meta));
         } catch (_) {}
+      }
+
+      function removeSavedRoom(code) {
+        const c = normalizeRoomCodeClient(code);
+        if (c.length < 4) return;
+        const codes = getSavedRoomCodes().filter((x) => x !== c);
+        localStorage.setItem(STORAGE_ROOM_CODES, JSON.stringify(codes));
+        try {
+          const meta = getSavedRoomMeta();
+          delete meta[c];
+          localStorage.setItem("webchat-room-meta", JSON.stringify(meta));
+        } catch (_) {}
+        roomsData = roomsData.filter((r) => normalizeRoomCodeClient(r.code) !== c);
+        if (currentRoomCode === c) {
+          currentRoomId = null;
+          currentRoomCode = null;
+          appShell.classList.remove("show-chat");
+          chat.classList.remove("active");
+          messagesEl.innerHTML = "";
+          messageNodes.clear();
+        }
+        if (localStorage.getItem(STORAGE_LAST_CODE) === c) {
+          localStorage.removeItem(STORAGE_LAST_CODE);
+        }
+        renderRoomList();
+        renderRoomHeader();
+      }
+
+      function clearAllSavedRooms() {
+        if (!confirm("Xóa toàn bộ phòng khỏi danh sách trên máy này?\nPhòng trên server vẫn còn — có thể vào lại bằng mã.")) {
+          return;
+        }
+        localStorage.setItem(STORAGE_ROOM_CODES, "[]");
+        localStorage.setItem("webchat-room-meta", "{}");
+        localStorage.removeItem(STORAGE_LAST_CODE);
+        roomsData = [];
+        currentRoomId = null;
+        currentRoomCode = null;
+        appShell.classList.remove("show-chat");
+        chat.classList.remove("active");
+        renderRoomList();
+        renderRoomHeader();
+        syncMyRooms();
       }
 
       function saveRoomMeta(code, name, roomId) {
@@ -2467,7 +2566,9 @@
       }
 
       function syncMyRooms() {
-        socket.emit("sync_rooms", getSavedRoomCodes());
+        ensureRoomCodesSeed();
+        const codes = getSavedRoomCodes();
+        socket.emit("sync_rooms", codes);
       }
 
       function onJoinError(reason) {
@@ -2513,7 +2614,9 @@
             syncMyRooms();
             enterRoom(currentRoomCode);
           } else {
-            pendingOpenRecentRoom = true;
+            pendingOpenRecentRoom = false;
+            appShell.classList.remove("show-chat");
+            ensureRoomCodesSeed();
             syncMyRooms();
           }
         } catch (err) {
@@ -2610,8 +2713,16 @@
             `<div class="room-top"><div class="room-name">${escapeHtml(room.name)}</div>` +
             `<div class="room-time">${formatRoomTime(room.lastAt)}</div></div>` +
             `<div class="room-preview">${escapeHtml(room.code || "")} · ${escapeHtml(preview)}</div></div>` +
-            (unread ? `<div class="room-unread"></div>` : "");
+            (unread ? `<div class="room-unread"></div>` : "") +
+            `<button type="button" class="room-remove" title="Xóa khỏi danh sách" aria-label="Xóa phòng">×</button>`;
           item.addEventListener("click", () => enterRoom(room.code));
+          item.querySelector(".room-remove").addEventListener("click", (e) => {
+            e.stopPropagation();
+            const label = room.name || room.code;
+            if (confirm(`Xóa "${label}" khỏi danh sách?\n(Mã ${room.code} — không xóa phòng trên server)`)) {
+              removeSavedRoom(room.code);
+            }
+          });
           roomListEl.appendChild(item);
         }
       }
@@ -2716,6 +2827,7 @@
       document.getElementById("settings-close").addEventListener("click", () => closeModal("modal-settings"));
       document.getElementById("settings-cancel").addEventListener("click", () => closeModal("modal-settings"));
       document.getElementById("btn-save-all-profile").addEventListener("click", saveAllProfileSettings);
+      document.getElementById("btn-clear-room-list").addEventListener("click", clearAllSavedRooms);
 
       document.addEventListener("click", (e) => {
         if (!e.target.closest("#profile-popover") && !e.target.closest("#nav-open-profile")) {
@@ -2812,7 +2924,11 @@
 
       socket.on("rooms_list", (rooms) => {
         roomsData = rooms;
-        pruneSavedRoomCodes(rooms);
+        persistRoomsFromServer(rooms);
+        if (!rooms.length && getSavedRoomCodes().length > 0 && !roomsSyncRetried) {
+          roomsSyncRetried = true;
+          setTimeout(() => syncMyRooms(), 2500);
+        }
         renderRoomList();
         renderRoomHeader();
         maybeAutoEnterRecentRoom();
