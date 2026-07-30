@@ -33,6 +33,51 @@
         padding: 0;
       }
 
+      #messages,
+      #room-list,
+      .settings-body,
+      .settings-nav {
+        scrollbar-width: thin;
+        scrollbar-color: transparent transparent;
+      }
+
+      #messages:hover,
+      #room-list:hover,
+      .settings-body:hover,
+      .settings-nav:hover {
+        scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+      }
+
+      #messages::-webkit-scrollbar,
+      #room-list::-webkit-scrollbar,
+      .settings-body::-webkit-scrollbar,
+      .settings-nav::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+
+      #messages::-webkit-scrollbar-track,
+      #room-list::-webkit-scrollbar-track,
+      .settings-body::-webkit-scrollbar-track,
+      .settings-nav::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      #messages::-webkit-scrollbar-thumb,
+      #room-list::-webkit-scrollbar-thumb,
+      .settings-body::-webkit-scrollbar-thumb,
+      .settings-nav::-webkit-scrollbar-thumb {
+        background: transparent;
+        border-radius: 999px;
+      }
+
+      #messages:hover::-webkit-scrollbar-thumb,
+      #room-list:hover::-webkit-scrollbar-thumb,
+      .settings-body:hover::-webkit-scrollbar-thumb,
+      .settings-nav:hover::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.4);
+      }
+
       body {
         font-family: "Be Vietnam Pro", system-ui, sans-serif;
         background: var(--bg);
@@ -1642,8 +1687,8 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v27</span></h1>
-        <p>Nhập tên hiển thị để vào Webchat. Mỗi lần tải lại trang cần đăng nhập lại; <strong>tên không được trùng</strong> người đang online.</p>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v28</span></h1>
+        <p>Nhập tên hiển thị để vào Webchat. <strong>Tên không được trùng</strong> người đang online (kể cả khác hoa thường).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
           <input id="name" autocomplete="nickname" placeholder="Ví dụ: Lan, Minh…" maxlength="32" required />
@@ -1702,7 +1747,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v27</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v28</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -2060,6 +2105,16 @@
 
       let myClientId = getOrCreateClientId();
 
+      const savedNameEarly = localStorage.getItem(STORAGE_NAME);
+      if (savedNameEarly) {
+        nameInput.value = savedNameEarly;
+        const checkEarly = validateDisplayName(savedNameEarly);
+        if (checkEarly.ok) {
+          pendingAutoJoin = savedNameEarly;
+          joinBtn.textContent = "Đang vào lại…";
+        }
+      }
+
       const BG_PRESETS = ["#0f1419", "#1a1a2e", "#162447", "#1b263b", "#2d132c", "#1c3334", "#2c1810", "#eef2ff"];
       const messageNodes = new Map();
       const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"];
@@ -2105,9 +2160,8 @@
       }
 
       function requestJoin(name, isAuto) {
-        void isAuto;
         const emitJoin = () => {
-          socket.timeout(25000).emit("join", { name, rejoin: false, clientId: myClientId }, (err, res) => {
+          socket.timeout(25000).emit("join", { name, rejoin: Boolean(isAuto), clientId: myClientId }, (err, res) => {
             if (err) {
               resetJoinUi();
               joinError.textContent =
@@ -2139,6 +2193,13 @@
           }
           emitJoin();
         });
+      }
+
+      function tryAutoJoinName() {
+        if (!pendingAutoJoin || myName) return;
+        if (!socket.connected) return;
+        startJoinWait();
+        requestJoin(pendingAutoJoin, true);
       }
 
       function rejoinServerSession(then) {
@@ -2413,11 +2474,14 @@
               }
             }
           });
+        } else {
+          tryAutoJoinName();
         }
       });
 
       socket.on("connect_error", () => {
-        if (!myName) {
+        if (!myName && pendingAutoJoin) {
+          clearJoinWait();
           resetJoinUi();
           joinError.textContent = "Mất kết nối server. Thử bấm Tiếp tục lại.";
           joinError.hidden = false;
@@ -3683,6 +3747,8 @@
               }
             }
           });
+        } else {
+          tryAutoJoinName();
         }
       });
 
@@ -3709,6 +3775,8 @@
         }
         onJoinedSession(payload);
       });
+
+      tryAutoJoinName();
 
       document.getElementById("change-name-btn").addEventListener("click", () => openSettingsModal("account"));
 
