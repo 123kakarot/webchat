@@ -1097,7 +1097,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v10</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v11</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Vào phòng khác hoặc tạo phòng mới ở menu bên trái sau khi đăng nhập.</p>
         <form id="join-form">
           <label for="name">Tên của bạn</label>
@@ -1176,7 +1176,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v10</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v11</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -1420,46 +1420,6 @@
       const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"];
       const socket = io({ transports: ["websocket", "polling"], reconnectionAttempts: 20 });
 
-      socket.on("join_error", (reason) => {
-        clearJoinWait();
-        resetJoinUi();
-        pendingAutoJoin = null;
-        localStorage.removeItem(STORAGE_NAME);
-        joinError.textContent = reason;
-        joinError.hidden = false;
-        hideRoomGate();
-        gate.style.display = "";
-      });
-
-      socket.on("joined", ({ name, persistent, rejoin }) => {
-        try {
-          clearJoinWait();
-          myName = name;
-          pendingAutoJoin = null;
-          localStorage.setItem(STORAGE_NAME, name);
-          youLabel.textContent =
-            "Bạn: " + name + (persistent ? " · lưu cloud" : " · chỉ tạm (chưa có DB)");
-          profileSuffix = persistent ? " · lưu cloud" : " · chỉ tạm (chưa có DB)";
-          resetJoinUi();
-          updateAvatarUi();
-          openMainApp();
-          if (rejoin && currentRoomCode) {
-            pendingOpenRecentRoom = false;
-            syncMyRooms();
-            enterRoom(currentRoomCode);
-          } else {
-            pendingOpenRecentRoom = true;
-            syncMyRooms();
-          }
-        } catch (err) {
-          console.error("joined handler", err);
-          resetJoinUi();
-          joinError.textContent = "Lỗi giao diện sau khi đăng nhập — bấm Tiếp tục lại.";
-          joinError.hidden = false;
-          gate.style.display = "";
-        }
-      });
-
       let joinWaitTimer = null;
 
       function resetJoinUi() {
@@ -1483,19 +1443,57 @@
           joinError.textContent =
             "Không vào lại được (mạng chậm hoặc server đang ngủ). Bấm Tiếp tục.";
           joinError.hidden = false;
-        }, 15000);
+        }, 30000);
+      }
+
+      async function wakeServer() {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 15000);
+        try {
+          await fetch("/api/status", { cache: "no-store", signal: ctrl.signal });
+          return true;
+        } catch {
+          return false;
+        } finally {
+          clearTimeout(timer);
+        }
       }
 
       function requestJoin(name, isAuto) {
-        if (!socket.connected) {
-          if (!isAuto) {
-            joinError.textContent = "Chưa kết nối server — đợi vài giây rồi bấm Tiếp tục.";
-            joinError.hidden = false;
-            resetJoinUi();
-          }
+        const emitJoin = () => {
+          socket.timeout(25000).emit("join", { name, rejoin: Boolean(isAuto) }, (err, res) => {
+            if (myName) return;
+            if (err) {
+              resetJoinUi();
+              joinError.textContent =
+                "Server không phản hồi (Render có thể đang khởi động). Bấm Tiếp tục lại.";
+              joinError.hidden = false;
+              return;
+            }
+            if (res?.ok) {
+              onJoinedSession(res);
+              return;
+            }
+            if (res?.reason) onJoinError(res.reason);
+          });
+        };
+
+        if (socket.connected) {
+          emitJoin();
           return;
         }
-        socket.emit("join", { name, rejoin: Boolean(isAuto) });
+
+        wakeServer().finally(() => {
+          if (!socket.connected) {
+            if (!isAuto) {
+              joinError.textContent = "Chưa kết nối server — đợi vài giây rồi bấm Tiếp tục.";
+              joinError.hidden = false;
+              resetJoinUi();
+            }
+            return;
+          }
+          emitJoin();
+        });
       }
 
       function tryAutoJoinName() {
@@ -1684,6 +1682,45 @@
 
       function syncMyRooms() {
         socket.emit("sync_rooms", getSavedRoomCodes());
+      }
+
+      function onJoinError(reason) {
+        clearJoinWait();
+        resetJoinUi();
+        pendingAutoJoin = null;
+        joinError.textContent = reason || "Không đăng nhập được.";
+        joinError.hidden = false;
+        hideRoomGate();
+        gate.style.display = "";
+      }
+
+      function onJoinedSession({ name, persistent, rejoin }) {
+        try {
+          clearJoinWait();
+          myName = name;
+          pendingAutoJoin = null;
+          localStorage.setItem(STORAGE_NAME, name);
+          youLabel.textContent =
+            "Bạn: " + name + (persistent ? " · lưu cloud" : " · chỉ tạm (chưa có DB)");
+          profileSuffix = persistent ? " · lưu cloud" : " · chỉ tạm (chưa có DB)";
+          resetJoinUi();
+          updateAvatarUi();
+          openMainApp();
+          if (rejoin && currentRoomCode) {
+            pendingOpenRecentRoom = false;
+            syncMyRooms();
+            enterRoom(currentRoomCode);
+          } else {
+            pendingOpenRecentRoom = true;
+            syncMyRooms();
+          }
+        } catch (err) {
+          console.error("onJoinedSession", err);
+          resetJoinUi();
+          joinError.textContent = "Lỗi giao diện sau khi đăng nhập — bấm Tiếp tục lại.";
+          joinError.hidden = false;
+          gate.style.display = "";
+        }
       }
 
       function showRoomGate() {
@@ -2406,6 +2443,15 @@
         pendingAutoJoin = null;
         resetJoinUi();
         joinError.hidden = true;
+      });
+
+      socket.on("join_error", (reason) => {
+        localStorage.removeItem(STORAGE_NAME);
+        onJoinError(reason);
+      });
+
+      socket.on("joined", (payload) => {
+        if (payload?.name) onJoinedSession(payload);
       });
 
       tryAutoJoinName();

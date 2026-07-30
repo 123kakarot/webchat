@@ -128,17 +128,24 @@ async function emitMessage(roomId, roomCode, payload) {
 io.on("connection", (socket) => {
   let joined = false;
 
-  socket.on("join", async (raw) => {
+  socket.on("join", async (raw, ack) => {
+    const respond = (payload) => {
+      if (typeof ack === "function") ack(payload);
+    };
+
     const { name: rawName, rejoin } = parseJoinPayload(raw);
     const trimmed = rawName.slice(0, 32);
     if (joined) {
       const existing = online.get(socket.id);
       if (existing?.name) {
-        socket.emit("joined", {
+        const payload = {
+          ok: true,
           name: existing.name,
           persistent: isPersistent(),
           rejoin: Boolean(rejoin),
-        });
+        };
+        socket.emit("joined", payload);
+        respond(payload);
       }
       return;
     }
@@ -146,17 +153,21 @@ io.on("connection", (socket) => {
     const check = validateDisplayName(trimmed);
     if (!check.ok) {
       socket.emit("join_error", check.reason);
+      respond({ ok: false, reason: check.reason });
       return;
     }
 
     joined = true;
     online.set(socket.id, { id: socket.id, name: trimmed, roomId: null, roomCode: null });
 
-    socket.emit("joined", {
+    const payload = {
+      ok: true,
       name: trimmed,
       persistent: isPersistent(),
-      rejoin,
-    });
+      rejoin: Boolean(rejoin),
+    };
+    socket.emit("joined", payload);
+    respond(payload);
   });
 
   socket.on("sync_rooms", async (codes) => {
