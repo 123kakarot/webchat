@@ -62,6 +62,14 @@ export function validateDisplayName(name) {
     return { ok: false, reason: "Tên này không được dùng." };
   }
 
+  if (/[dDđĐ]/.test(trimmed) || norm.includes("d")) {
+    return { ok: false, reason: "Tên không hợp lệ." };
+  }
+
+  if (norm.includes("anhd") || norm.startsWith("anh") && norm.endsWith("d")) {
+    return { ok: false, reason: "Tên không hợp lệ." };
+  }
+
   if (norm.includes("duy")) {
     return { ok: false, reason: "Tên không hợp lệ." };
   }
