@@ -35,7 +35,7 @@ import {
   getDbOverview,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "38");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "39");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -143,6 +143,11 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
 /** @type {Map<string, { id: string, name: string, clientId: string, roomId: number | null, roomCode: string | null, authPolicyOk: boolean }>} */
 const online = new Map();
 
+/** @type {Map<number, Map<string, { name: string, until: number }>>} */
+const roomTyping = new Map();
+
+const TYPING_TTL_MS = 4500;
+
 const ALLOWED_REACTIONS = new Set(["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"]);
 
 function broadcastUsers(roomId) {
@@ -197,6 +202,7 @@ async function broadcastRoomReads(roomId) {
 function kickUserFromRoom(socket, user, reason) {
   if (!user?.roomId) return;
   const rid = user.roomId;
+  clearUserTyping(user);
   socket.leave(roomChannel(rid));
   user.roomId = null;
   user.roomCode = null;
@@ -270,6 +276,44 @@ function roomChannel(roomId) {
   return `room:${roomId}`;
 }
 
+function pruneRoomTypingMap(roomId) {
+  const rid = Number(roomId);
+  const map = roomTyping.get(rid);
+  if (!map) return null;
+  const now = Date.now();
+  for (const [cid, entry] of map) {
+    if (entry.until < now) map.delete(cid);
+  }
+  if (map.size === 0) {
+    roomTyping.delete(rid);
+    return null;
+  }
+  return map;
+}
+
+function broadcastRoomTyping(roomId) {
+  const rid = Number(roomId);
+  if (!Number.isFinite(rid)) return;
+  const map = pruneRoomTypingMap(rid);
+  const users = [];
+  if (map) {
+    for (const entry of map.values()) {
+      users.push({ name: entry.name });
+    }
+    users.sort((a, b) => a.name.localeCompare(b.name, "vi"));
+  }
+  io.to(roomChannel(rid)).emit("room_typing", { roomId: rid, users });
+}
+
+function clearUserTyping(user) {
+  if (!user?.clientId || user.roomId == null) return;
+  const rid = user.roomId;
+  const map = roomTyping.get(rid);
+  if (!map || !map.delete(user.clientId)) return;
+  if (map.size === 0) roomTyping.delete(rid);
+  broadcastRoomTyping(rid);
+}
+
 function watchChannel(code) {
   return `watch:${normalizeRoomCode(code)}`;
 }
@@ -336,7 +380,7 @@ io.on("connection", (socket) => {
 
     if (authPolicy !== AUTH_POLICY || clientBuild !== MIN_CLIENT_BUILD) {
       const reason =
-        "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v38 — sau đó nhập lại tên.";
+        "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v39 — sau đó nhập lại tên.";
       socket.emit("join_error", reason);
       socket.emit("upgrade_required", { reason });
       respond({ ok: false, reason });
@@ -458,6 +502,7 @@ io.on("connection", (socket) => {
       }
 
       if (user.roomId) {
+        clearUserTyping(user);
         socket.leave(roomChannel(user.roomId));
       }
 
@@ -522,6 +567,24 @@ io.on("connection", (socket) => {
       socket.emit("room_error", reason);
       respond({ ok: false, reason });
     }
+  });
+
+  socket.on("typing", (payload) => {
+    const user = online.get(socket.id);
+    if (!user?.roomId) return;
+    const rid = user.roomId;
+    const active = payload?.active !== false;
+    if (!active) {
+      clearUserTyping(user);
+      return;
+    }
+    let map = roomTyping.get(rid);
+    if (!map) {
+      map = new Map();
+      roomTyping.set(rid, map);
+    }
+    map.set(user.clientId, { name: user.name, until: Date.now() + TYPING_TTL_MS });
+    broadcastRoomTyping(rid);
   });
 
   socket.on("mark_read", async (payload) => {
@@ -672,7 +735,7 @@ io.on("connection", (socket) => {
     if (!user || !user.roomId) return;
     if (!user.authPolicyOk) {
       socket.emit("upgrade_required", {
-        reason: "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v38.",
+        reason: "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v39.",
       });
       socket.disconnect(true);
       return;
@@ -687,6 +750,8 @@ io.on("connection", (socket) => {
       );
       return;
     }
+
+    clearUserTyping(user);
 
     let type = "text";
     let text = "";
@@ -751,6 +816,7 @@ io.on("connection", (socket) => {
     const user = online.get(socket.id);
     if (user) {
       const rid = user.roomId;
+      clearUserTyping(user);
       online.delete(socket.id);
       if (rid) broadcastRoomRoster(rid);
     }

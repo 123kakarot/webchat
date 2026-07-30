@@ -1599,6 +1599,88 @@
         position: relative;
       }
 
+      .typing-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.25rem 1rem 0.35rem;
+        min-height: 26px;
+        background: var(--chat-bg, var(--bg));
+        border-top: 1px solid var(--border);
+      }
+
+      .typing-bar[hidden] {
+        display: none !important;
+      }
+
+      .typing-bar-avatars {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      .typing-bar-avatars .msg-seen-avatar {
+        width: 20px;
+        height: 20px;
+        font-size: 0.58rem;
+        border-color: var(--chat-bg, var(--bg));
+      }
+
+      .typing-bar-text {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.72rem;
+        color: var(--muted);
+        min-width: 0;
+        line-height: 1.3;
+      }
+
+      .typing-bar-text .typing-names {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .typing-dots {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        flex-shrink: 0;
+      }
+
+      .typing-dots i {
+        display: block;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--accent);
+        opacity: 0.45;
+        animation: typing-dot 1.1s ease-in-out infinite;
+      }
+
+      .typing-dots i:nth-child(2) {
+        animation-delay: 0.18s;
+      }
+
+      .typing-dots i:nth-child(3) {
+        animation-delay: 0.36s;
+      }
+
+      @keyframes typing-dot {
+        0%,
+        55%,
+        100% {
+          transform: translateY(0);
+          opacity: 0.35;
+        }
+        28% {
+          transform: translateY(-3px);
+          opacity: 1;
+        }
+      }
+
       .composer-reply-bar {
         display: flex;
         align-items: flex-start;
@@ -2188,7 +2270,7 @@
 
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v38</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v39</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -2250,7 +2332,7 @@
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <button type="button" class="room-head-avatar" id="room-head-avatar" title="Ảnh nhóm"><span id="room-head-avatar-letter">?</span></button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v38</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v39</span></div>
           <button type="button" class="room-member-count" id="btn-room-members">0 thành viên</button>
           <div class="you" id="you-label" style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
@@ -2263,6 +2345,14 @@
       </header>
       <div class="online-panel" id="online-panel" hidden></div>
       <div id="messages" role="log"></div>
+
+      <div id="typing-bar" class="typing-bar" hidden>
+        <div class="typing-bar-avatars" id="typing-avatars"></div>
+        <div class="typing-bar-text">
+          <span class="typing-names" id="typing-label"></span>
+          <span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        </div>
+      </div>
 
       <div class="composer-wrap">
         <div class="toolbar">
@@ -2611,6 +2701,9 @@
       messagesEl.addEventListener("scroll", () => scheduleMarkRead(), { passive: true });
       const sendForm = document.getElementById("send-form");
       const messageInput = document.getElementById("message-input");
+      const typingBarEl = document.getElementById("typing-bar");
+      const typingAvatarsEl = document.getElementById("typing-avatars");
+      const typingLabelEl = document.getElementById("typing-label");
       const youLabel = document.getElementById("you-label");
       const onlinePanel = document.getElementById("online-panel");
       const statusDot = document.getElementById("status-dot");
@@ -2658,7 +2751,7 @@
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
-      const CLIENT_BUILD = "38";
+      const CLIENT_BUILD = "39";
 
       function joinPayload(name, rejoin) {
         return {
@@ -3025,6 +3118,7 @@
           for (const item of list) appendMessage(item);
         }
         applyRoomReads(readers);
+        renderTypingBar([]);
         const last = list[list.length - 1];
         if (last) markRoomRead(roomId, last.at);
         scheduleMarkRead(true);
@@ -3133,6 +3227,91 @@
       function messageSupportsSeen(msg) {
         const t = msg?.type || "text";
         return t !== "reaction";
+      }
+
+      let typingRefreshTimer = null;
+      let typingIdleTimer = null;
+      let typingEmitActive = false;
+
+      function formatTypingLabel(names) {
+        if (!names.length) return "";
+        if (names.length === 1) return names[0] + " đang soạn tin";
+        if (names.length === 2) return names[0] + " và " + names[1] + " đang soạn tin";
+        const rest = names.length - 2;
+        return names[0] + ", " + names[1] + " và " + rest + " người khác đang soạn tin";
+      }
+
+      function avatarUrlForTypingName(name) {
+        const st = roomReaders.get(name);
+        if (st?.avatarUrl) return st.avatarUrl;
+        return "";
+      }
+
+      function renderTypingBar(users) {
+        const names = (users || [])
+          .map((u) => u?.name)
+          .filter((n) => n && n !== myName);
+        if (!names.length || currentRoomId == null) {
+          typingBarEl.hidden = true;
+          typingAvatarsEl.innerHTML = "";
+          typingLabelEl.textContent = "";
+          return;
+        }
+        typingBarEl.hidden = false;
+        typingLabelEl.textContent = formatTypingLabel(names);
+        typingAvatarsEl.innerHTML = "";
+        names.slice(0, 5).forEach((name, i) => {
+          const span = document.createElement("span");
+          span.className = "msg-seen-avatar";
+          span.title = name;
+          span.style.zIndex = String(20 - i);
+          const av = avatarUrlForTypingName(name);
+          if (av) {
+            const img = document.createElement("img");
+            img.src = av;
+            img.alt = "";
+            span.appendChild(img);
+          } else {
+            span.textContent = roomInitials(name);
+          }
+          typingAvatarsEl.appendChild(span);
+        });
+        const nearBottom =
+          messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 140;
+        if (nearBottom) messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      function stopTypingEmit() {
+        if (typingRefreshTimer) {
+          clearInterval(typingRefreshTimer);
+          typingRefreshTimer = null;
+        }
+        if (typingIdleTimer) {
+          clearTimeout(typingIdleTimer);
+          typingIdleTimer = null;
+        }
+        if (typingEmitActive) {
+          typingEmitActive = false;
+          if (socket.connected && currentRoomId != null) socket.emit("typing", { active: false });
+        }
+      }
+
+      function refreshTypingEmit() {
+        if (!socket.connected || currentRoomId == null || !myName) return;
+        if (!messageInput.value.trim()) {
+          stopTypingEmit();
+          return;
+        }
+        typingEmitActive = true;
+        socket.emit("typing", { active: true });
+        if (typingIdleTimer) clearTimeout(typingIdleTimer);
+        typingIdleTimer = setTimeout(() => stopTypingEmit(), 2800);
+      }
+
+      function startTypingWatch() {
+        refreshTypingEmit();
+        if (typingRefreshTimer) return;
+        typingRefreshTimer = setInterval(refreshTypingEmit, 2000);
       }
 
       function joinRoomWithAck(code, opts = {}) {
@@ -3298,6 +3477,7 @@
             clearPendingImages();
             messageInput.value = "";
             messageInput.style.height = "auto";
+            stopTypingEmit();
             mentionList.classList.remove("open");
           } catch {
             appendSystem("Không gửi được ảnh (tối đa 10MB/ảnh).");
@@ -4513,6 +4693,8 @@
         messageNodes.clear();
         renderRoomList();
         renderRoomHeader();
+        stopTypingEmit();
+        renderTypingBar([]);
         alert(
           reason +
             "\n\nBấm 「Tên của bạn」 để đổi tên (tên cũ sẽ bị xóa khỏi nhóm), rồi vào lại phòng nếu được phép."
@@ -4927,6 +5109,11 @@
         messageInput.style.height = "auto";
         messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + "px";
         updateMentionList();
+        startTypingWatch();
+      });
+
+      messageInput.addEventListener("blur", () => {
+        stopTypingEmit();
       });
 
       function updateMentionList() {
@@ -5430,6 +5617,11 @@
       socket.on("room_reads", (payload) => {
         if (Number(payload?.roomId) !== Number(currentRoomId)) return;
         applyRoomReads(payload.readers);
+      });
+
+      socket.on("room_typing", (payload) => {
+        if (Number(payload?.roomId) !== Number(currentRoomId)) return;
+        renderTypingBar(payload.users || []);
       });
 
       socket.on("users", (names) => {
