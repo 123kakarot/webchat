@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test:flow": "node scripts/flow-test.mjs"
+    "test:flow": "node scripts/flow-test.mjs",
+    "db:inspect": "node scripts/db-inspect.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",

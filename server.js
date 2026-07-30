@@ -24,12 +24,19 @@ import {
   listRoomMemberNames,
   updateRoomFields,
   deleteRoomById,
+  removeRoomMember,
+  removeRoomReadStateForUser,
+  isNameAllowedInRoom,
+  listRegisteredRoomMemberNames,
   normalizeRoomCode,
   upsertRoomRead,
   getRoomReads,
   messageBelongsToRoom,
   getDbOverview,
 } from "./db.js";
+
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "38");
+const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.join(__dirname, "uploads");
@@ -60,9 +67,6 @@ app.get("/nameFilter.js", (_req, res) => {
   res.sendFile(path.join(__dirname, "nameFilter.js"));
 });
 app.use("/uploads", express.static(uploadsDir));
-
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "37");
-const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 app.get("/api/status", async (_req, res) => {
   try {
@@ -190,6 +194,37 @@ async function broadcastRoomReads(roomId) {
   io.to(`room:${roomId}`).emit("room_reads", { roomId, readers });
 }
 
+function kickUserFromRoom(socket, user, reason) {
+  if (!user?.roomId) return;
+  const rid = user.roomId;
+  socket.leave(roomChannel(rid));
+  user.roomId = null;
+  user.roomCode = null;
+  socket.emit("room_kicked", {
+    reason: reason || "Bạn không còn trong nhóm.",
+    roomId: rid,
+  });
+}
+
+async function enforceRoomMembership(roomId, ownerName = "") {
+  const rid = Number(roomId);
+  if (!Number.isFinite(rid)) return;
+  for (const [sid, u] of online) {
+    if (Number(u.roomId) !== rid) continue;
+    const ok = await isNameAllowedInRoom(rid, u.name, ownerName);
+    if (!ok) {
+      const sock = io.sockets.sockets.get(sid);
+      if (sock) {
+        kickUserFromRoom(
+          sock,
+          u,
+          "Bạn không còn trong nhóm. Đổi tên (Tên của bạn) rồi vào lại nếu được phép."
+        );
+      }
+    }
+  }
+}
+
 function parseJoinPayload(raw) {
   if (typeof raw === "string") {
     return { name: raw.trim(), rejoin: false, clientId: "", authPolicy: "", clientBuild: "" };
@@ -301,7 +336,7 @@ io.on("connection", (socket) => {
 
     if (authPolicy !== AUTH_POLICY || clientBuild !== MIN_CLIENT_BUILD) {
       const reason =
-        "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v37 — sau đó nhập lại tên.";
+        "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v38 — sau đó nhập lại tên.";
       socket.emit("join_error", reason);
       socket.emit("upgrade_required", { reason });
       respond({ ok: false, reason });
@@ -381,6 +416,10 @@ io.on("connection", (socket) => {
       }
 
       const code = normalizeRoomCode(typeof payload === "string" ? payload : payload?.code);
+      const previousName =
+        typeof payload === "object" && payload
+          ? String(payload.previousName ?? "").trim().slice(0, 32)
+          : "";
       if (code.length < 4) {
         const reason = "Mã phòng không hợp lệ";
         socket.emit("room_join_error", reason);
@@ -402,6 +441,20 @@ io.on("connection", (socket) => {
         socket.emit("room_join_error", reason);
         respond({ ok: false, reason });
         return;
+      }
+
+      const allowed = await isNameAllowedInRoom(room.id, user.name, room.ownerName || "");
+      if (!allowed) {
+        const reason =
+          "Bạn không còn trong danh sách thành viên nhóm. Đổi tên khác (Tên của bạn) hoặc liên hệ trưởng nhóm.";
+        socket.emit("room_join_error", reason);
+        respond({ ok: false, reason });
+        return;
+      }
+
+      if (previousName && previousName.toLowerCase() !== user.name.toLowerCase()) {
+        await removeRoomMember(room.id, previousName);
+        await removeRoomReadStateForUser(room.id, previousName);
       }
 
       if (user.roomId) {
@@ -431,6 +484,7 @@ io.on("connection", (socket) => {
       socket.emit("room_joined", data);
       respond(data);
       broadcastRoomRoster(room.id);
+      await enforceRoomMembership(room.id, room.ownerName || "");
     } catch (err) {
       console.error("[join_room]", err);
       const reason = "Lỗi server khi vào phòng.";
@@ -481,7 +535,7 @@ io.on("connection", (socket) => {
     broadcastRoomReads(user.roomId);
   });
 
-  socket.on("update_profile", (payload) => {
+  socket.on("update_profile", async (payload) => {
     const user = online.get(socket.id);
     if (!user || !payload) return;
 
@@ -492,13 +546,32 @@ io.on("connection", (socket) => {
       return;
     }
 
+    const old = user.name;
     if (user.roomId && isDisplayNameTakenInRoom(user.roomId, trimmed, user.clientId)) {
       socket.emit("profile_error", "Trong nhóm này đã có người dùng tên này. Chọn tên khác.");
       return;
     }
 
-    const old = user.name;
     user.name = trimmed;
+    if (user.roomId && old.toLowerCase() !== trimmed.toLowerCase()) {
+      const roomMeta = await getRoomById(user.roomId);
+      const allowed = await isNameAllowedInRoom(
+        user.roomId,
+        trimmed,
+        roomMeta?.ownerName || ""
+      );
+      if (!allowed) {
+        user.name = old;
+        socket.emit(
+          "profile_error",
+          "Tên mới không có trong danh sách thành viên. Liên hệ trưởng nhóm."
+        );
+        return;
+      }
+      await removeRoomMember(user.roomId, old);
+      await removeRoomReadStateForUser(user.roomId, old);
+      await addRoomMember(user.roomId, trimmed);
+    }
     socket.emit("profile_updated", { name: trimmed });
     if (user.roomId) {
       io.to(roomChannel(user.roomId)).emit("system", {
@@ -599,9 +672,19 @@ io.on("connection", (socket) => {
     if (!user || !user.roomId) return;
     if (!user.authPolicyOk) {
       socket.emit("upgrade_required", {
-        reason: "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v37.",
+        reason: "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v38.",
       });
       socket.disconnect(true);
+      return;
+    }
+
+    const roomMeta = await getRoomById(user.roomId);
+    if (!(await isNameAllowedInRoom(user.roomId, user.name, roomMeta?.ownerName || ""))) {
+      kickUserFromRoom(
+        socket,
+        user,
+        "Bạn không còn trong nhóm. Đổi tên (Tên của bạn) rồi vào lại nếu được phép."
+      );
       return;
     }
 
@@ -683,3 +766,17 @@ await hydrateReactionCache([]);
 httpServer.listen(PORT, HOST, () => {
   console.log(`Chat listening on ${HOST}:${PORT} (persistent=${isPersistent()})`);
 });
+
+setInterval(async () => {
+  const roomIds = new Set(
+    [...online.values()].map((u) => u.roomId).filter((id) => id != null)
+  );
+  for (const rid of roomIds) {
+    try {
+      const room = await getRoomById(rid);
+      await enforceRoomMembership(rid, room?.ownerName || "");
+    } catch (err) {
+      console.error("[enforceRoomMembership]", rid, err);
+    }
+  }
+}, 30000);

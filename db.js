@@ -337,6 +337,64 @@ export async function getRoomReads(roomId) {
   }));
 }
 
+export async function listRegisteredRoomMemberNames(roomId) {
+  const rid = Number(roomId);
+  if (!Number.isFinite(rid)) return [];
+
+  if (useMemory) {
+    const set = memoryRoomMembers.get(rid);
+    return set ? [...set].filter(Boolean).sort((a, b) => a.localeCompare(b, "vi")) : [];
+  }
+
+  const { rows } = await pool.query(
+    `SELECT user_name FROM room_members WHERE room_id = $1 ORDER BY user_name ASC`,
+    [rid]
+  );
+  return rows.map((r) => r.user_name).filter(Boolean);
+}
+
+/** null = open room (no whitelist rows); else only these names (+ owner) may enter */
+export async function getRoomMemberWhitelist(roomId) {
+  const registered = await listRegisteredRoomMemberNames(roomId);
+  if (!registered.length) return null;
+  return registered;
+}
+
+export async function isNameAllowedInRoom(roomId, userName, ownerName = "") {
+  const whitelist = await getRoomMemberWhitelist(roomId);
+  if (whitelist === null) return true;
+  const key = String(userName ?? "").trim().toLowerCase();
+  if (!key) return false;
+  const owner = String(ownerName ?? "").trim().toLowerCase();
+  if (owner && key === owner) return true;
+  return whitelist.some((n) => n.toLowerCase() === key);
+}
+
+export async function removeRoomMember(roomId, userName) {
+  const rid = Number(roomId);
+  const name = String(userName ?? "").trim().slice(0, 32);
+  if (!Number.isFinite(rid) || !name) return;
+
+  if (useMemory) {
+    memoryRoomMembers.get(rid)?.delete(name);
+    return;
+  }
+
+  await pool.query(`DELETE FROM room_members WHERE room_id = $1 AND user_name = $2`, [rid, name]);
+}
+
+export async function removeRoomReadStateForUser(roomId, userName) {
+  const rid = Number(roomId);
+  const name = String(userName ?? "").trim().slice(0, 32);
+  if (!Number.isFinite(rid) || !name) return;
+
+  if (useMemory) {
+    return;
+  }
+
+  await pool.query(`DELETE FROM room_read_state WHERE room_id = $1 AND user_name = $2`, [rid, name]);
+}
+
 export async function addRoomMember(roomId, userName) {
   const rid = Number(roomId);
   const name = String(userName ?? "").trim().slice(0, 32);

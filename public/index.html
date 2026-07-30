@@ -2188,7 +2188,7 @@
 
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v37</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v38</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -2250,7 +2250,7 @@
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <button type="button" class="room-head-avatar" id="room-head-avatar" title="Ảnh nhóm"><span id="room-head-avatar-letter">?</span></button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v37</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v38</span></div>
           <button type="button" class="room-member-count" id="btn-room-members">0 thành viên</button>
           <div class="you" id="you-label" style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
@@ -2658,7 +2658,7 @@
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
-      const CLIENT_BUILD = "37";
+      const CLIENT_BUILD = "38";
 
       function joinPayload(name, rejoin) {
         return {
@@ -3147,12 +3147,16 @@
           return;
         }
         ensureSession(() => {
-          socket.timeout(25000).emit("join_room", { code: c }, (err, res) => {
+          const prevName = localStorage.getItem("webchat-last-display-name") || "";
+          const previousName =
+            prevName && prevName.toLowerCase() !== (myName || "").toLowerCase() ? prevName : "";
+          socket.timeout(25000).emit("join_room", { code: c, previousName }, (err, res) => {
             if (err) {
               alert("Không vào được phòng (server không phản hồi).");
               return;
             }
             if (res?.ok) {
+              if (myName) localStorage.setItem("webchat-last-display-name", myName);
               applyRoomJoined(res);
               if (typeof onDone === "function") onDone();
               return;
@@ -4495,6 +4499,24 @@
         currentRoomCode = null;
         renderRoomList();
         renderRoomHeader();
+      });
+
+      socket.on("room_kicked", (payload) => {
+        const reason = payload?.reason || "Bạn không còn trong nhóm.";
+        currentRoomId = null;
+        currentRoomCode = null;
+        roomRoster = null;
+        toggleMembersPanel(false);
+        appShell.classList.remove("show-chat");
+        chat.classList.remove("active");
+        messagesEl.innerHTML = "";
+        messageNodes.clear();
+        renderRoomList();
+        renderRoomHeader();
+        alert(
+          reason +
+            "\n\nBấm 「Tên của bạn」 để đổi tên (tên cũ sẽ bị xóa khỏi nhóm), rồi vào lại phòng nếu được phép."
+        );
       });
 
       socket.on("room_joined", (payload) => {
