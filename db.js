@@ -55,6 +55,18 @@ export async function initDb() {
   console.log("[db] PostgreSQL ready — chat history persisted");
 }
 
+function normalizeAt(row) {
+  if (row.at != null && row.at !== "") {
+    const n = Number(row.at);
+    if (Number.isFinite(n) && n > 0) return Math.round(n);
+  }
+  if (row.created_at) {
+    const t = new Date(row.created_at).getTime();
+    if (Number.isFinite(t)) return t;
+  }
+  return Date.now();
+}
+
 function rowToMessage(row) {
   return {
     id: row.id,
@@ -65,7 +77,7 @@ function rowToMessage(row) {
     fileName: row.file_name ?? row.fileName ?? "",
     sticker: row.sticker ?? "",
     meta: typeof row.meta === "object" && row.meta ? row.meta : {},
-    at: row.at ?? new Date(row.created_at).getTime(),
+    at: normalizeAt(row),
     reactions: row.reactions ?? {},
   };
 }
@@ -111,8 +123,8 @@ export async function loadRecentMessages(limit = 250) {
   }
 
   const { rows } = await pool.query(
-    `SELECT id, name, type, text, url, file_name, sticker, meta,
-            (EXTRACT(EPOCH FROM created_at) * 1000)::bigint AS at
+    `SELECT id, name, type, text, url, file_name, sticker, meta, created_at,
+            (EXTRACT(EPOCH FROM created_at) * 1000) AS at
      FROM messages
      ORDER BY id DESC
      LIMIT $1`,
@@ -151,8 +163,8 @@ export async function saveMessage(payload) {
   const { rows } = await pool.query(
     `INSERT INTO messages (name, type, text, url, file_name, sticker, meta)
      VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
-     RETURNING id, name, type, text, url, file_name, sticker, meta,
-               (EXTRACT(EPOCH FROM created_at) * 1000)::bigint AS at`,
+     RETURNING id, name, type, text, url, file_name, sticker, meta, created_at,
+               (EXTRACT(EPOCH FROM created_at) * 1000) AS at`,
     [
       name,
       type,

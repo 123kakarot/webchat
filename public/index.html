@@ -1460,8 +1460,11 @@
       }
 
       function formatMessageTime(at) {
-        if (!at) return "";
-        const d = new Date(at);
+        if (at == null || at === "") return "";
+        const n = Number(at);
+        if (!Number.isFinite(n)) return "";
+        const d = new Date(n);
+        if (Number.isNaN(d.getTime())) return "";
         return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
       }
 
