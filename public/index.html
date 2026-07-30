@@ -113,14 +113,178 @@
         display: none;
         flex: 1;
         flex-direction: column;
-        max-width: 720px;
+        min-width: 0;
+        height: 100dvh;
+      }
+
+      .app-shell {
+        display: none;
+        flex: 1;
         width: 100%;
+        max-width: 1100px;
         margin: 0 auto;
         height: 100dvh;
       }
 
+      .app-shell.active {
+        display: flex;
+      }
+
+      .sidebar {
+        width: min(340px, 42vw);
+        border-right: 1px solid var(--border);
+        background: var(--surface2);
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+      }
+
+      .sidebar-head {
+        padding: 0.65rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .sidebar-search {
+        display: flex;
+        gap: 0.35rem;
+        align-items: center;
+      }
+
+      .sidebar-search input {
+        flex: 1;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        border-radius: 20px;
+        padding: 0.45rem 0.75rem;
+        font: inherit;
+        font-size: 0.85rem;
+      }
+
+      .sidebar-icon-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--muted);
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+
+      .sidebar-tabs {
+        display: flex;
+        gap: 1rem;
+        padding: 0.5rem 0.75rem 0;
+        font-size: 0.85rem;
+      }
+
+      .sidebar-tabs button {
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        padding: 0.35rem 0;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+      }
+
+      .sidebar-tabs button.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+
+      #room-list {
+        flex: 1;
+        overflow-y: auto;
+      }
+
+      .room-item {
+        display: flex;
+        gap: 0.65rem;
+        padding: 0.65rem 0.75rem;
+        cursor: pointer;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      .room-item:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .room-item.active {
+        background: rgba(59, 130, 246, 0.15);
+      }
+
+      .room-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+
+      .room-meta {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .room-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.35rem;
+      }
+
+      .room-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .room-time {
+        font-size: 0.7rem;
+        color: var(--muted);
+        flex-shrink: 0;
+      }
+
+      .room-preview {
+        font-size: 0.78rem;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 0.15rem;
+      }
+
+      .room-unread {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #ef4444;
+        flex-shrink: 0;
+        align-self: center;
+      }
+
       .chat.active {
         display: flex;
+      }
+
+      .btn-back-rooms {
+        display: none;
+      }
+
+      @media (max-width: 768px) {
+        .app-shell.show-chat .sidebar {
+          display: none;
+        }
+        .btn-back-rooms {
+          display: inline-flex;
+        }
       }
 
       header {
@@ -800,11 +964,29 @@
       </div>
     </section>
 
+    <div class="app-shell" id="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-head">
+          <div class="sidebar-search">
+            <input id="room-search" type="search" placeholder="Tìm kiếm" autocomplete="off" />
+            <button type="button" class="sidebar-icon-btn" id="btn-new-group" title="Tạo nhóm">+</button>
+          </div>
+          <div class="sidebar-tabs">
+            <button type="button" class="active" data-tab="all">Tất cả</button>
+            <button type="button" data-tab="unread">Chưa đọc</button>
+          </div>
+        </div>
+        <div id="room-list"></div>
+      </aside>
+
     <main class="chat" id="chat">
       <header>
-        <div>
-          <div class="title"><span class="status-dot" id="status-dot"></span>Phòng chat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v3</span></div>
+        <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
+          <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
+          <div style="min-width:0">
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v4</span></div>
           <div class="you" id="you-label"></div>
+          </div>
         </div>
         <div style="display:flex;gap:0.35rem;align-items:center">
           <button type="button" class="online-toggle" id="change-name-btn" title="Đổi tên">Đổi tên</button>
@@ -892,6 +1074,7 @@
       <input type="file" id="file-image" accept="image/jpeg,image/png,image/gif,image/webp" />
       <input type="file" id="file-attach" />
     </main>
+    </div>
 
     <div class="modal-backdrop" id="modal-contact">
       <div class="modal">
@@ -967,7 +1150,11 @@
       const STICKERS = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🦄", "🐲", "👻", "🤖", "👽", "🎃", "⭐", "💯"];
 
       const gate = document.getElementById("gate");
+      const appShell = document.getElementById("app-shell");
       const chat = document.getElementById("chat");
+      const roomListEl = document.getElementById("room-list");
+      const roomSearch = document.getElementById("room-search");
+      const roomTitleEl = document.getElementById("room-title");
       const joinForm = document.getElementById("join-form");
       const nameInput = document.getElementById("name");
       const joinBtn = document.getElementById("join-btn");
@@ -1001,6 +1188,9 @@
       let myName = "";
       let onlineNames = [];
       let pendingAutoJoin = null;
+      let currentRoomId = null;
+      let roomsData = [];
+      let sidebarTab = "all";
       const STORAGE_NAME = "webchat-name";
       const messageNodes = new Map();
       const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"];
@@ -1016,6 +1206,115 @@
           joinBtn.disabled = true;
         }
       }
+
+      function readCursor(roomId) {
+        return Number(localStorage.getItem(`webchat-read-at-${roomId}`) || 0);
+      }
+
+      function markRoomRead(roomId, at) {
+        if (!roomId || !at) return;
+        const prev = readCursor(roomId);
+        if (at > prev) localStorage.setItem(`webchat-read-at-${roomId}`, String(at));
+        renderRoomList();
+      }
+
+      function formatRoomTime(at) {
+        if (!at) return "";
+        const diff = Date.now() - at;
+        if (diff < 60000) return "Vài giây";
+        if (diff < 3600000) return Math.floor(diff / 60000) + " phút";
+        if (diff < 86400000) return Math.floor(diff / 3600000) + " giờ";
+        return new Date(at).toLocaleDateString("vi-VN");
+      }
+
+      function roomInitials(name) {
+        return (name || "?").trim().slice(0, 1).toUpperCase();
+      }
+
+      function renderRoomList() {
+        const q = roomSearch.value.trim().toLowerCase();
+        roomListEl.innerHTML = "";
+        let list = roomsData.slice();
+        if (q) list = list.filter((r) => r.name.toLowerCase().includes(q));
+        if (sidebarTab === "unread") {
+          list = list.filter((r) => r.lastAt && r.lastAt > readCursor(r.id) && r.id !== currentRoomId);
+        }
+        list.sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
+
+        for (const room of list) {
+          const item = document.createElement("div");
+          item.className = "room-item" + (room.id === currentRoomId ? " active" : "");
+          const unread = room.lastAt > readCursor(room.id) && room.id !== currentRoomId;
+          const preview =
+            room.lastName && room.preview
+              ? room.lastName + ": " + room.preview
+              : room.preview || "Chưa có tin nhắn";
+          item.innerHTML =
+            `<div class="room-avatar">${roomInitials(room.name)}</div>` +
+            `<div class="room-meta">` +
+            `<div class="room-top"><div class="room-name">${escapeHtml(room.name)}</div>` +
+            `<div class="room-time">${formatRoomTime(room.lastAt)}</div></div>` +
+            `<div class="room-preview">${escapeHtml(preview)}</div></div>` +
+            (unread ? `<div class="room-unread"></div>` : "");
+          item.addEventListener("click", () => selectRoom(room.id));
+          roomListEl.appendChild(item);
+        }
+      }
+
+      function selectRoom(roomId) {
+        if (!myName) return;
+        socket.emit("join_room", roomId);
+        appShell.classList.add("show-chat");
+      }
+
+      function renderRoomHeader() {
+        const room = roomsData.find((r) => r.id === currentRoomId);
+        roomTitleEl.textContent = room?.name || "Phòng chat";
+      }
+
+      document.querySelectorAll(".sidebar-tabs button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".sidebar-tabs button").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          sidebarTab = btn.dataset.tab;
+          renderRoomList();
+        });
+      });
+
+      roomSearch.addEventListener("input", () => renderRoomList());
+
+      document.getElementById("btn-new-group").addEventListener("click", () => {
+        const name = prompt("Tên nhóm mới:");
+        if (name?.trim()) socket.emit("create_room", name.trim());
+      });
+
+      document.getElementById("btn-back-rooms").addEventListener("click", () => {
+        appShell.classList.remove("show-chat");
+      });
+
+      socket.on("rooms_list", (rooms) => {
+        roomsData = rooms;
+        renderRoomList();
+        renderRoomHeader();
+      });
+
+      socket.on("room_joined", ({ roomId, history }) => {
+        currentRoomId = roomId;
+        localStorage.setItem("webchat-room", String(roomId));
+        appShell.classList.add("show-chat");
+        renderRoomHeader();
+        renderRoomList();
+        messagesEl.innerHTML = "";
+        messageNodes.clear();
+        for (const item of history) appendMessage(item);
+        const last = history[history.length - 1];
+        if (last) markRoomRead(roomId, last.at);
+        messageInput.focus();
+      });
+
+      socket.on("room_created", (room) => {
+        selectRoom(room.id);
+      });
 
       function requestJoin(name, rejoin = false) {
         socket.emit("join", { name, rejoin });
@@ -1430,20 +1729,14 @@
         pendingAutoJoin = null;
         localStorage.setItem(STORAGE_NAME, name);
         gate.style.display = "none";
+        appShell.classList.add("active");
         chat.classList.add("active");
         youLabel.textContent =
           "Bạn: " + name + (persistent ? " · lưu cloud" : " · chỉ tạm (chưa có DB)");
         joinBtn.textContent = "Vào phòng";
         joinBtn.disabled = false;
-        messageInput.focus();
-      });
-
-      socket.on("history", (items) => {
-        messagesEl.innerHTML = "";
-        messageNodes.clear();
-        for (const item of items) {
-          appendMessage(item);
-        }
+        const lastRoom = Number(localStorage.getItem("webchat-room")) || 1;
+        socket.emit("join_room", lastRoom);
       });
 
       document.getElementById("change-name-btn").addEventListener("click", () => {
@@ -1451,7 +1744,11 @@
         location.reload();
       });
 
-      function appendSystem(text) {
+      function appendSystem(payload) {
+        const text = typeof payload === "string" ? payload : payload?.text;
+        const roomId = typeof payload === "object" ? payload?.roomId : currentRoomId;
+        if (roomId != null && roomId !== currentRoomId) return;
+        if (!text) return;
         const el = document.createElement("div");
         el.className = "msg-system";
         el.textContent = text;
@@ -1700,7 +1997,14 @@
       document.addEventListener("click", () => closeAllReactionPickers());
 
       socket.on("system", appendSystem);
-      socket.on("message", appendMessage);
+      socket.on("message", (msg) => {
+        if (msg.roomId !== currentRoomId) {
+          renderRoomList();
+          return;
+        }
+        appendMessage(msg);
+        markRoomRead(currentRoomId, msg.at);
+      });
       socket.on("message_reactions", ({ messageId, reactions }) => {
         updateMessageReactions(messageId, reactions);
       });

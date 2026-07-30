@@ -12,8 +12,22 @@ const memoryReactions = new Map();
 const memoryMessages = [];
 let memoryNextId = 1;
 
+/** @type {Array<{ id: number, name: string, kind: string }>} */
+const memoryRooms = [{ id: 1, name: "Phòng chung", kind: "group" }];
+let memoryNextRoomId = 2;
+
 export function isPersistent() {
   return !useMemory;
+}
+
+async function ensureDefaultRoomPg() {
+  const { rows } = await pool.query(`SELECT id FROM rooms ORDER BY id LIMIT 1`);
+  if (rows.length) return rows[0].id;
+
+  const ins = await pool.query(
+    `INSERT INTO rooms (name, kind) VALUES ('Phòng chung', 'group') RETURNING id`
+  );
+  return ins.rows[0].id;
 }
 
 export async function initDb() {
@@ -30,8 +44,16 @@ export async function initDb() {
   });
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS rooms (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(64) NOT NULL,
+      kind VARCHAR(16) NOT NULL DEFAULT 'group',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
+      room_id INTEGER REFERENCES rooms(id) ON DELETE CASCADE,
       name VARCHAR(32) NOT NULL,
       type VARCHAR(20) NOT NULL DEFAULT 'text',
       text TEXT,
@@ -41,7 +63,10 @@ export async function initDb() {
       meta JSONB NOT NULL DEFAULT '{}',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-    CREATE INDEX IF NOT EXISTS messages_created_at_idx ON messages (created_at);
+
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS room_id INTEGER REFERENCES rooms(id) ON DELETE CASCADE;
+
+    CREATE INDEX IF NOT EXISTS messages_room_created_idx ON messages (room_id, id DESC);
 
     CREATE TABLE IF NOT EXISTS reactions (
       message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
@@ -50,6 +75,9 @@ export async function initDb() {
       PRIMARY KEY (message_id, user_name)
     );
   `);
+
+  const defaultId = await ensureDefaultRoomPg();
+  await pool.query(`UPDATE messages SET room_id = $1 WHERE room_id IS NULL`, [defaultId]);
 
   useMemory = false;
   console.log("[db] PostgreSQL ready — chat history persisted");
@@ -70,6 +98,7 @@ function normalizeAt(row) {
 function rowToMessage(row) {
   return {
     id: row.id,
+    roomId: row.room_id ?? row.roomId ?? 1,
     name: row.name,
     type: row.type,
     text: row.text ?? "",
@@ -116,19 +145,123 @@ async function attachReactions(messages) {
   return messages.map((m) => ({ ...m, reactions: byMsg[m.id] ?? {} }));
 }
 
-export async function loadRecentMessages(limit = 250) {
+function previewFromMessage(m) {
+  if (!m) return { preview: "Chưa có tin nhắn", lastAt: 0, lastName: "" };
+  const type = m.type || "text";
+  let preview = m.text || "";
+  if (type === "sticker") preview = "Sticker " + (m.sticker || "");
+  else if (type === "image") preview = "Hình ảnh";
+  else if (type === "file") preview = "📎 " + (m.fileName || "Tệp");
+  else if (type === "contact") preview = "Danh thiếp";
+  else if (type === "payment") preview = "Thông tin chuyển khoản";
+  else if (type === "reaction") preview = m.text || "👍";
+  return {
+    preview: preview.slice(0, 80),
+    lastAt: m.at || 0,
+    lastName: m.name || "",
+  };
+}
+
+export async function listRooms() {
   if (useMemory) {
-    const slice = memoryMessages.slice(-limit);
+    return memoryRooms.map((r) => {
+      const roomMsgs = memoryMessages.filter((m) => m.roomId === r.id);
+      const last = roomMsgs[roomMsgs.length - 1];
+      const p = previewFromMessage(last);
+      return { id: r.id, name: r.name, kind: r.kind, ...p };
+    });
+  }
+
+  const { rows } = await pool.query(`
+    SELECT r.id, r.name, r.kind,
+           lm.name AS last_name,
+           lm.type AS last_type,
+           lm.text AS last_text,
+           lm.sticker,
+           lm.file_name,
+           lm.created_at AS last_created,
+           (EXTRACT(EPOCH FROM lm.created_at) * 1000) AS last_at
+    FROM rooms r
+    LEFT JOIN LATERAL (
+      SELECT * FROM messages m WHERE m.room_id = r.id ORDER BY m.id DESC LIMIT 1
+    ) lm ON TRUE
+    ORDER BY lm.created_at DESC NULLS LAST, r.id ASC
+  `);
+
+  return rows.map((row) => {
+    let preview = row.last_text || "";
+    const type = row.last_type || "text";
+    if (!row.last_name) preview = "Chưa có tin nhắn";
+    else if (type === "sticker") preview = "Sticker " + (row.sticker || "");
+    else if (type === "image") preview = "Hình ảnh";
+    else if (type === "file") preview = "📎 " + (row.file_name || "Tệp");
+    else if (type === "contact") preview = "Danh thiếp";
+    else if (type === "payment") preview = "Chuyển khoản";
+    return {
+      id: row.id,
+      name: row.name,
+      kind: row.kind,
+      preview: String(preview).slice(0, 80),
+      lastAt: row.last_at ? Math.round(Number(row.last_at)) : 0,
+      lastName: row.last_name || "",
+    };
+  });
+}
+
+export async function createRoom(name) {
+  const trimmed = String(name ?? "").trim().slice(0, 64);
+  if (!trimmed) throw new Error("empty name");
+
+  if (useMemory) {
+    const room = { id: memoryNextRoomId++, name: trimmed, kind: "group" };
+    memoryRooms.push(room);
+    return {
+      id: room.id,
+      name: room.name,
+      kind: room.kind,
+      preview: "Chưa có tin nhắn",
+      lastAt: 0,
+      lastName: "",
+    };
+  }
+
+  const { rows } = await pool.query(
+    `INSERT INTO rooms (name, kind) VALUES ($1, 'group') RETURNING id, name, kind`,
+    [trimmed]
+  );
+  const r = rows[0];
+  return {
+    id: r.id,
+    name: r.name,
+    kind: r.kind,
+    preview: "Chưa có tin nhắn",
+    lastAt: 0,
+    lastName: "",
+  };
+}
+
+export async function roomExists(roomId) {
+  if (useMemory) return memoryRooms.some((r) => r.id === roomId);
+  const { rows } = await pool.query(`SELECT 1 FROM rooms WHERE id = $1`, [roomId]);
+  return rows.length > 0;
+}
+
+export async function loadRecentMessages(roomId, limit = 250) {
+  const rid = Number(roomId) || 1;
+
+  if (useMemory) {
+    const slice = memoryMessages.filter((m) => m.roomId === rid).slice(-limit);
     return attachReactions(slice.map((m) => ({ ...m })));
   }
 
   const { rows } = await pool.query(
-    `SELECT id, name, type, text, url, file_name, sticker, meta, created_at,
+    `SELECT id, room_id, name, type, text, url, file_name, sticker, meta, created_at,
             (EXTRACT(EPOCH FROM created_at) * 1000) AS at
      FROM messages
+     WHERE room_id = $1
      ORDER BY id DESC
-     LIMIT $1`,
-    [limit]
+     LIMIT $2`,
+    [rid, limit]
   );
   rows.reverse();
   const messages = rows.map(rowToMessage);
@@ -136,12 +269,14 @@ export async function loadRecentMessages(limit = 250) {
 }
 
 export async function saveMessage(payload) {
-  const { name, type, text, url, fileName, sticker, meta } = payload;
+  const { roomId = 1, name, type, text, url, fileName, sticker, meta } = payload;
+  const rid = Number(roomId) || 1;
 
   if (useMemory) {
     const id = memoryNextId++;
     const msg = {
       id,
+      roomId: rid,
       name,
       type,
       text: text ?? "",
@@ -153,7 +288,7 @@ export async function saveMessage(payload) {
     };
     memoryMessages.push(msg);
     memoryReactions.set(id, new Map());
-    if (memoryMessages.length > 500) {
+    if (memoryMessages.length > 2000) {
       const removed = memoryMessages.shift();
       if (removed) memoryReactions.delete(removed.id);
     }
@@ -161,11 +296,12 @@ export async function saveMessage(payload) {
   }
 
   const { rows } = await pool.query(
-    `INSERT INTO messages (name, type, text, url, file_name, sticker, meta)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
-     RETURNING id, name, type, text, url, file_name, sticker, meta, created_at,
+    `INSERT INTO messages (room_id, name, type, text, url, file_name, sticker, meta)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+     RETURNING id, room_id, name, type, text, url, file_name, sticker, meta, created_at,
                (EXTRACT(EPOCH FROM created_at) * 1000) AS at`,
     [
+      rid,
       name,
       type,
       text || null,
@@ -249,7 +385,7 @@ export async function hydrateReactionCache(messages) {
   }
   for (const m of messages) {
     if (!memoryMessages.some((x) => x.id === m.id)) {
-      memoryMessages.push({ ...m });
+      memoryMessages.push({ ...m, roomId: m.roomId ?? 1 });
     }
   }
   memoryMessages.sort((a, b) => a.id - b.id);

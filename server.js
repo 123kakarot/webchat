@@ -15,6 +15,9 @@ import {
   messageExists,
   toggleReaction,
   hydrateReactionCache,
+  listRooms,
+  createRoom,
+  roomExists,
 } from "./db.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -64,13 +67,21 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
   });
 });
 
-/** @type {Map<string, { id: string, name: string }>} */
+/** @type {Map<string, { id: string, name: string, roomId: number | null }>} */
 const online = new Map();
 
 const ALLOWED_REACTIONS = new Set(["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"]);
 
-function broadcastUsers() {
-  io.emit("users", [...online.values()].map((u) => u.name));
+function broadcastUsers(roomId) {
+  const names = [...online.values()]
+    .filter((u) => u.roomId === roomId)
+    .map((u) => u.name);
+  io.to(`room:${roomId}`).emit("users", names);
+}
+
+async function broadcastRoomsList() {
+  const rooms = await listRooms();
+  io.emit("rooms_list", rooms);
 }
 
 function parseJoinPayload(raw) {
@@ -86,9 +97,15 @@ function parseJoinPayload(raw) {
   return { name: "", rejoin: false };
 }
 
-async function emitMessage(payload) {
-  const saved = await saveMessage(payload);
-  io.emit("message", saved);
+function roomChannel(roomId) {
+  return `room:${roomId}`;
+}
+
+async function emitMessage(roomId, payload) {
+  const saved = await saveMessage({ roomId, ...payload });
+  io.to(roomChannel(roomId)).emit("message", saved);
+  await broadcastRoomsList();
+  return saved;
 }
 
 io.on("connection", (socket) => {
@@ -106,25 +123,56 @@ io.on("connection", (socket) => {
     }
 
     joined = true;
-    online.set(socket.id, { id: socket.id, name: trimmed });
+    online.set(socket.id, { id: socket.id, name: trimmed, roomId: null });
 
-    const history = await loadRecentMessages(250);
+    const rooms = await listRooms();
     socket.emit("joined", {
       name: trimmed,
       persistent: isPersistent(),
       rejoin,
     });
-    socket.emit("history", history);
+    socket.emit("rooms_list", rooms);
 
     if (!rejoin) {
-      io.emit("system", `${trimmed} đã vào phòng`);
+      io.emit("system", { text: `${trimmed} đã online`, roomId: null });
     }
-    broadcastUsers();
+  });
+
+  socket.on("join_room", async (roomIdRaw) => {
+    const user = online.get(socket.id);
+    if (!user) return;
+
+    const roomId = Number(roomIdRaw);
+    if (!Number.isInteger(roomId) || !(await roomExists(roomId))) return;
+
+    if (user.roomId) {
+      socket.leave(roomChannel(user.roomId));
+    }
+
+    user.roomId = roomId;
+    socket.join(roomChannel(roomId));
+
+    const history = await loadRecentMessages(roomId, 250);
+    socket.emit("room_joined", { roomId, history });
+    broadcastUsers(roomId);
+  });
+
+  socket.on("create_room", async (nameRaw) => {
+    const user = online.get(socket.id);
+    if (!user) return;
+
+    try {
+      const room = await createRoom(nameRaw);
+      await broadcastRoomsList();
+      socket.emit("room_created", room);
+    } catch {
+      socket.emit("room_error", "Không tạo được nhóm");
+    }
   });
 
   socket.on("message", async (payload) => {
     const user = online.get(socket.id);
-    if (!user) return;
+    if (!user || !user.roomId) return;
 
     let type = "text";
     let text = "";
@@ -156,7 +204,7 @@ io.on("connection", (socket) => {
     if (type === "contact" && !meta.phone && !meta.displayName) return;
     if (type === "payment" && !meta.account) return;
 
-    await emitMessage({
+    await emitMessage(user.roomId, {
       name: user.name,
       type,
       text,
@@ -186,9 +234,15 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     const user = online.get(socket.id);
     if (user) {
+      const rid = user.roomId;
       online.delete(socket.id);
-      io.emit("system", `${user.name} đã rời phòng`);
-      broadcastUsers();
+      if (rid) {
+        io.to(roomChannel(rid)).emit("system", {
+          text: `${user.name} đã rời phòng`,
+          roomId: rid,
+        });
+        broadcastUsers(rid);
+      }
     }
   });
 });
@@ -197,7 +251,7 @@ const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || "0.0.0.0";
 
 await initDb();
-const bootHistory = await loadRecentMessages(250);
+const bootHistory = await loadRecentMessages(1, 250);
 await hydrateReactionCache(bootHistory);
 
 httpServer.listen(PORT, HOST, () => {
