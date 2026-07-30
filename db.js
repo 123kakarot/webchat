@@ -353,21 +353,46 @@ export async function listRegisteredRoomMemberNames(roomId) {
   return rows.map((r) => r.user_name).filter(Boolean);
 }
 
-/** null = open room (no whitelist rows); else only these names (+ owner) may enter */
+/** null = open room (no whitelist rows); else restricted membership applies */
 export async function getRoomMemberWhitelist(roomId) {
   const registered = await listRegisteredRoomMemberNames(roomId);
   if (!registered.length) return null;
   return registered;
 }
 
+function normalizeMemberKey(userName) {
+  return String(userName ?? "").trim().toLowerCase();
+}
+
+export async function roomHasMessageAuthorName(roomId, userName) {
+  const rid = Number(roomId);
+  const key = normalizeMemberKey(userName);
+  if (!Number.isFinite(rid) || !key) return false;
+
+  if (useMemory) {
+    return memoryMessages.some(
+      (m) => m.roomId === rid && normalizeMemberKey(m.name) === key
+    );
+  }
+
+  const { rows } = await pool.query(
+    `SELECT 1 FROM messages WHERE room_id = $1 AND lower(trim(name)) = $2 LIMIT 1`,
+    [rid, key]
+  );
+  return rows.length > 0;
+}
+
+/** Whitelist + owner; trimmed former members must use a new display name to rejoin */
 export async function isNameAllowedInRoom(roomId, userName, ownerName = "") {
   const whitelist = await getRoomMemberWhitelist(roomId);
   if (whitelist === null) return true;
-  const key = String(userName ?? "").trim().toLowerCase();
+  const key = normalizeMemberKey(userName);
   if (!key) return false;
-  const owner = String(ownerName ?? "").trim().toLowerCase();
+  const owner = normalizeMemberKey(ownerName);
   if (owner && key === owner) return true;
-  return whitelist.some((n) => n.toLowerCase() === key);
+  if (whitelist.some((n) => normalizeMemberKey(n) === key)) return true;
+  if (await roomHasMessageAuthorName(roomId, userName)) return false;
+  return true;
 }
 
 export async function removeRoomMember(roomId, userName) {

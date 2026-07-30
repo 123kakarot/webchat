@@ -227,7 +227,7 @@ async function enforceRoomMembership(roomId, ownerName = "") {
         kickUserFromRoom(
           sock,
           u,
-          "Bạn không còn trong nhóm. Đổi tên (Tên của bạn) rồi vào lại nếu được phép."
+          "Tên này đã bị gỡ khỏi nhóm. Bấm 「Tên của bạn」 đặt tên mới rồi vào lại."
         );
       }
     }
@@ -493,7 +493,7 @@ io.on("connection", (socket) => {
       const allowed = await isNameAllowedInRoom(room.id, user.name, room.ownerName || "");
       if (!allowed) {
         const reason =
-          "Bạn không còn trong danh sách thành viên nhóm. Đổi tên khác (Tên của bạn) hoặc liên hệ trưởng nhóm.";
+          "Tên này đã bị gỡ khỏi nhóm (hoặc không còn trong danh sách). Bấm 「Tên của bạn」 đặt tên mới — khác tên cũ — rồi vào lại. Muốn giữ tên cũ: nhờ trưởng nhóm thêm lại.";
         socket.emit("room_join_error", reason);
         respond({ ok: false, reason });
         return;
@@ -749,7 +749,7 @@ io.on("connection", (socket) => {
       kickUserFromRoom(
         socket,
         user,
-        "Bạn không còn trong nhóm. Đổi tên (Tên của bạn) rồi vào lại nếu được phép."
+        "Tên này đã bị gỡ khỏi nhóm. Bấm 「Tên của bạn」 đặt tên mới rồi vào lại."
       );
       return;
     }
