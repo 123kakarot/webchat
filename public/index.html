@@ -1624,16 +1624,59 @@
         return res.json();
       }
 
-      fileImage.addEventListener("change", async () => {
-        const file = fileImage.files?.[0];
-        fileImage.value = "";
-        if (!file) return;
+      async function sendImageFile(file) {
+        if (!file?.type?.startsWith("image/")) return;
+        if (!currentRoomId) {
+          appendSystem("Hãy chọn một nhóm chat trước khi gửi ảnh.");
+          return;
+        }
         try {
           const { url } = await uploadFile(file);
           socket.emit("message", { type: "image", url });
         } catch {
           appendSystem("Không gửi được ảnh (tối đa 10MB).");
         }
+      }
+
+      function handlePasteImage(e) {
+        if (!chat.classList.contains("active") || !currentRoomId) return;
+        const cd = e.clipboardData;
+        if (!cd) return;
+
+        if (cd.items) {
+          for (const item of cd.items) {
+            if (item.kind === "file" && item.type.startsWith("image/")) {
+              e.preventDefault();
+              const file = item.getAsFile();
+              if (file) sendImageFile(file);
+              return;
+            }
+          }
+        }
+
+        if (cd.files?.length) {
+          for (const file of cd.files) {
+            if (file.type.startsWith("image/")) {
+              e.preventDefault();
+              sendImageFile(file);
+              return;
+            }
+          }
+        }
+      }
+
+      messageInput.addEventListener("paste", handlePasteImage);
+      document.addEventListener("paste", (e) => {
+        if (e.target === messageInput) return;
+        if (!e.target.closest("#chat")) return;
+        handlePasteImage(e);
+      });
+
+      fileImage.addEventListener("change", async () => {
+        const file = fileImage.files?.[0];
+        fileImage.value = "";
+        if (!file) return;
+        await sendImageFile(file);
       });
 
       fileAttach.addEventListener("change", async () => {
