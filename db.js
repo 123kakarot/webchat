@@ -1,4 +1,5 @@
 import pg from "pg";
+import crypto from "crypto";
 
 const { Pool } = pg;
 
@@ -12,22 +13,53 @@ const memoryReactions = new Map();
 const memoryMessages = [];
 let memoryNextId = 1;
 
-/** @type {Array<{ id: number, name: string, kind: string }>} */
-const memoryRooms = [{ id: 1, name: "Phòng chung", kind: "group" }];
-let memoryNextRoomId = 2;
+/** @type {Array<{ id: number, name: string, kind: string, code: string }>} */
+const memoryRooms = [];
+let memoryNextRoomId = 1;
+
+export function generateRoomCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  const bytes = crypto.randomBytes(6);
+  for (let i = 0; i < 6; i++) code += chars[bytes[i] % chars.length];
+  return code;
+}
+
+export function normalizeRoomCode(raw) {
+  return String(raw ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 8);
+}
+
+async function uniqueRoomCodePg() {
+  for (let i = 0; i < 12; i++) {
+    const code = generateRoomCode();
+    const { rows } = await pool.query(`SELECT 1 FROM rooms WHERE code = $1`, [code]);
+    if (!rows.length) return code;
+  }
+  throw new Error("code generation failed");
+}
+
+function uniqueRoomCodeMemory() {
+  for (let i = 0; i < 12; i++) {
+    const code = generateRoomCode();
+    if (!memoryRooms.some((r) => r.code === code)) return code;
+  }
+  throw new Error("code generation failed");
+}
 
 export function isPersistent() {
   return !useMemory;
 }
 
-async function ensureDefaultRoomPg() {
-  const { rows } = await pool.query(`SELECT id FROM rooms ORDER BY id LIMIT 1`);
-  if (rows.length) return rows[0].id;
-
-  const ins = await pool.query(
-    `INSERT INTO rooms (name, kind) VALUES ('Phòng chung', 'group') RETURNING id`
-  );
-  return ins.rows[0].id;
+async function backfillRoomCodesPg() {
+  const { rows } = await pool.query(`SELECT id FROM rooms WHERE code IS NULL OR code = ''`);
+  for (const row of rows) {
+    const code = await uniqueRoomCodePg();
+    await pool.query(`UPDATE rooms SET code = $1 WHERE id = $2`, [code, row.id]);
+  }
 }
 
 export async function initDb() {
@@ -48,8 +80,12 @@ export async function initDb() {
       id SERIAL PRIMARY KEY,
       name VARCHAR(64) NOT NULL,
       kind VARCHAR(16) NOT NULL DEFAULT 'group',
+      code VARCHAR(8),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS code VARCHAR(8);
+    CREATE UNIQUE INDEX IF NOT EXISTS rooms_code_unique ON rooms (code);
 
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
@@ -76,8 +112,10 @@ export async function initDb() {
     );
   `);
 
-  const defaultId = await ensureDefaultRoomPg();
-  await pool.query(`UPDATE messages SET room_id = $1 WHERE room_id IS NULL`, [defaultId]);
+  await backfillRoomCodesPg();
+  await pool.query(
+    `UPDATE messages SET room_id = NULL WHERE room_id IS NOT NULL AND room_id NOT IN (SELECT id FROM rooms)`
+  );
 
   useMemory = false;
   console.log("[db] PostgreSQL ready — chat history persisted");
@@ -162,31 +200,39 @@ function previewFromMessage(m) {
   };
 }
 
-export async function listRooms() {
+export async function listRoomsByCodes(codes) {
+  const normalized = [...new Set(codes.map(normalizeRoomCode).filter(Boolean))];
+  if (!normalized.length) return [];
+
   if (useMemory) {
-    return memoryRooms.map((r) => {
-      const roomMsgs = memoryMessages.filter((m) => m.roomId === r.id);
-      const last = roomMsgs[roomMsgs.length - 1];
-      const p = previewFromMessage(last);
-      return { id: r.id, name: r.name, kind: r.kind, ...p };
-    });
+    return memoryRooms
+      .filter((r) => normalized.includes(r.code))
+      .map((r) => {
+        const roomMsgs = memoryMessages.filter((m) => m.roomId === r.id);
+        const last = roomMsgs[roomMsgs.length - 1];
+        const p = previewFromMessage(last);
+        return { id: r.id, name: r.name, kind: r.kind, code: r.code, ...p };
+      });
   }
 
-  const { rows } = await pool.query(`
-    SELECT r.id, r.name, r.kind,
+  const { rows } = await pool.query(
+    `
+    SELECT r.id, r.name, r.kind, r.code,
            lm.name AS last_name,
            lm.type AS last_type,
            lm.text AS last_text,
            lm.sticker,
            lm.file_name,
-           lm.created_at AS last_created,
            (EXTRACT(EPOCH FROM lm.created_at) * 1000) AS last_at
     FROM rooms r
     LEFT JOIN LATERAL (
       SELECT * FROM messages m WHERE m.room_id = r.id ORDER BY m.id DESC LIMIT 1
     ) lm ON TRUE
+    WHERE r.code = ANY($1::text[])
     ORDER BY lm.created_at DESC NULLS LAST, r.id ASC
-  `);
+    `,
+    [normalized]
+  );
 
   return rows.map((row) => {
     let preview = row.last_text || "";
@@ -201,6 +247,7 @@ export async function listRooms() {
       id: row.id,
       name: row.name,
       kind: row.kind,
+      code: row.code,
       preview: String(preview).slice(0, 80),
       lastAt: row.last_at ? Math.round(Number(row.last_at)) : 0,
       lastName: row.last_name || "",
@@ -208,32 +255,60 @@ export async function listRooms() {
   });
 }
 
+/** @deprecated use listRoomsByCodes */
+export async function listRooms() {
+  if (useMemory) return listRoomsByCodes(memoryRooms.map((r) => r.code));
+  const { rows } = await pool.query(`SELECT code FROM rooms WHERE code IS NOT NULL`);
+  return listRoomsByCodes(rows.map((r) => r.code));
+}
+
+export async function getRoomByCode(rawCode) {
+  const code = normalizeRoomCode(rawCode);
+  if (code.length < 4) return null;
+
+  if (useMemory) {
+    const room = memoryRooms.find((r) => r.code === code);
+    if (!room) return null;
+    return { id: room.id, name: room.name, kind: room.kind, code: room.code };
+  }
+
+  const { rows } = await pool.query(
+    `SELECT id, name, kind, code FROM rooms WHERE code = $1`,
+    [code]
+  );
+  return rows[0] ?? null;
+}
+
 export async function createRoom(name) {
   const trimmed = String(name ?? "").trim().slice(0, 64);
   if (!trimmed) throw new Error("empty name");
 
   if (useMemory) {
-    const room = { id: memoryNextRoomId++, name: trimmed, kind: "group" };
+    const code = uniqueRoomCodeMemory();
+    const room = { id: memoryNextRoomId++, name: trimmed, kind: "group", code };
     memoryRooms.push(room);
     return {
       id: room.id,
       name: room.name,
       kind: room.kind,
+      code: room.code,
       preview: "Chưa có tin nhắn",
       lastAt: 0,
       lastName: "",
     };
   }
 
+  const code = await uniqueRoomCodePg();
   const { rows } = await pool.query(
-    `INSERT INTO rooms (name, kind) VALUES ($1, 'group') RETURNING id, name, kind`,
-    [trimmed]
+    `INSERT INTO rooms (name, kind, code) VALUES ($1, 'group', $2) RETURNING id, name, kind, code`,
+    [trimmed, code]
   );
   const r = rows[0];
   return {
     id: r.id,
     name: r.name,
     kind: r.kind,
+    code: r.code,
     preview: "Chưa có tin nhắn",
     lastAt: 0,
     lastName: "",

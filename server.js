@@ -15,9 +15,10 @@ import {
   messageExists,
   toggleReaction,
   hydrateReactionCache,
-  listRooms,
+  listRoomsByCodes,
   createRoom,
-  roomExists,
+  getRoomByCode,
+  normalizeRoomCode,
 } from "./db.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -67,7 +68,7 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
   });
 });
 
-/** @type {Map<string, { id: string, name: string, roomId: number | null }>} */
+/** @type {Map<string, { id: string, name: string, roomId: number | null, roomCode: string | null }>} */
 const online = new Map();
 
 const ALLOWED_REACTIONS = new Set(["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"]);
@@ -77,11 +78,6 @@ function broadcastUsers(roomId) {
     .filter((u) => u.roomId === roomId)
     .map((u) => u.name);
   io.to(`room:${roomId}`).emit("users", names);
-}
-
-async function broadcastRoomsList() {
-  const rooms = await listRooms();
-  io.emit("rooms_list", rooms);
 }
 
 function parseJoinPayload(raw) {
@@ -101,10 +97,27 @@ function roomChannel(roomId) {
   return `room:${roomId}`;
 }
 
-async function emitMessage(roomId, payload) {
+function previewText(msg) {
+  const type = msg.type || "text";
+  if (type === "sticker") return "Sticker " + (msg.sticker || "");
+  if (type === "image") return "Hình ảnh";
+  if (type === "file") return "📎 " + (msg.fileName || "Tệp");
+  if (type === "contact") return "Danh thiếp";
+  if (type === "payment") return "Chuyển khoản";
+  return String(msg.text || "").slice(0, 80);
+}
+
+async function emitMessage(roomId, roomCode, payload) {
   const saved = await saveMessage({ roomId, ...payload });
   io.to(roomChannel(roomId)).emit("message", saved);
-  await broadcastRoomsList();
+  if (roomCode) {
+    io.to(roomChannel(roomId)).emit("room_preview", {
+      code: roomCode,
+      preview: previewText(saved),
+      lastAt: saved.at,
+      lastName: saved.name,
+    });
+  }
   return saved;
 }
 
@@ -123,50 +136,66 @@ io.on("connection", (socket) => {
     }
 
     joined = true;
-    online.set(socket.id, { id: socket.id, name: trimmed, roomId: null });
+    online.set(socket.id, { id: socket.id, name: trimmed, roomId: null, roomCode: null });
 
-    const rooms = await listRooms();
     socket.emit("joined", {
       name: trimmed,
       persistent: isPersistent(),
       rejoin,
     });
-    socket.emit("rooms_list", rooms);
-
-    if (!rejoin) {
-      io.emit("system", { text: `${trimmed} đã online`, roomId: null });
-    }
   });
 
-  socket.on("join_room", async (roomIdRaw) => {
+  socket.on("sync_rooms", async (codes) => {
+    const list = Array.isArray(codes) ? codes : [];
+    const rooms = await listRoomsByCodes(list);
+    socket.emit("rooms_list", rooms);
+  });
+
+  socket.on("join_room", async (payload) => {
     const user = online.get(socket.id);
     if (!user) return;
 
-    const roomId = Number(roomIdRaw);
-    if (!Number.isInteger(roomId) || !(await roomExists(roomId))) return;
+    const code = normalizeRoomCode(typeof payload === "string" ? payload : payload?.code);
+    if (code.length < 4) {
+      socket.emit("room_join_error", "Mã phòng không hợp lệ");
+      return;
+    }
+
+    const room = await getRoomByCode(code);
+    if (!room) {
+      socket.emit("room_join_error", "Mã phòng không đúng");
+      return;
+    }
 
     if (user.roomId) {
       socket.leave(roomChannel(user.roomId));
     }
 
-    user.roomId = roomId;
-    socket.join(roomChannel(roomId));
+    user.roomId = room.id;
+    user.roomCode = room.code;
+    socket.join(roomChannel(room.id));
 
-    const history = await loadRecentMessages(roomId, 250);
-    socket.emit("room_joined", { roomId, history });
-    broadcastUsers(roomId);
+    const history = await loadRecentMessages(room.id, 250);
+    socket.emit("room_joined", {
+      roomId: room.id,
+      code: room.code,
+      name: room.name,
+      history,
+    });
+    broadcastUsers(room.id);
   });
 
   socket.on("create_room", async (nameRaw) => {
     const user = online.get(socket.id);
     if (!user) return;
 
+    const name = typeof nameRaw === "string" ? nameRaw : String(nameRaw?.name ?? "Nhóm mới");
+
     try {
-      const room = await createRoom(nameRaw);
-      await broadcastRoomsList();
+      const room = await createRoom(name);
       socket.emit("room_created", room);
     } catch {
-      socket.emit("room_error", "Không tạo được nhóm");
+      socket.emit("room_error", "Không tạo được phòng");
     }
   });
 
@@ -204,7 +233,7 @@ io.on("connection", (socket) => {
     if (type === "contact" && !meta.phone && !meta.displayName) return;
     if (type === "payment" && !meta.account) return;
 
-    await emitMessage(user.roomId, {
+    await emitMessage(user.roomId, user.roomCode, {
       name: user.name,
       type,
       text,
@@ -251,8 +280,7 @@ const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || "0.0.0.0";
 
 await initDb();
-const bootHistory = await loadRecentMessages(1, 250);
-await hydrateReactionCache(bootHistory);
+await hydrateReactionCache([]);
 
 httpServer.listen(PORT, HOST, () => {
   console.log(`Chat listening on ${HOST}:${PORT} (persistent=${isPersistent()})`);

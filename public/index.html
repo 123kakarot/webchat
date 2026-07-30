@@ -97,7 +97,8 @@
         outline: 2px solid var(--accent);
       }
 
-      .gate-card button[type="submit"] {
+      .gate-card button[type="submit"],
+      .gate-card .gate-btn {
         width: 100%;
         padding: 0.85rem;
         border: none;
@@ -107,6 +108,24 @@
         font: inherit;
         font-weight: 600;
         cursor: pointer;
+        margin-top: 0.35rem;
+      }
+
+      .gate-card .gate-btn.secondary {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+
+      .room-code-display {
+        font-family: ui-monospace, monospace;
+        letter-spacing: 0.15em;
+        font-size: 1.1rem;
+        padding: 0.65rem;
+        background: var(--bg);
+        border-radius: 8px;
+        text-align: center;
+        margin: 0.75rem 0;
       }
 
       .chat {
@@ -953,13 +972,27 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Phòng chat chung</h1>
-        <p>Gửi link qua Zalo, Messenger… Nhập tên và chat realtime.</p>
+        <h1>Webchat</h1>
+        <p>Nhập tên hiển thị trước khi vào phòng có mã.</p>
         <form id="join-form">
           <label for="name">Tên của bạn</label>
           <input id="name" autocomplete="nickname" placeholder="Ví dụ: Lan, Minh…" maxlength="32" required />
           <p id="join-error" hidden style="color:#f87171;font-size:0.85rem;margin-bottom:0.75rem"></p>
-          <button type="submit" id="join-btn">Vào phòng</button>
+          <button type="submit" id="join-btn">Tiếp tục</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="gate" id="gate-room" hidden>
+      <div class="gate-card">
+        <h1>Mã phòng</h1>
+        <p>Chỉ ai có đúng mã mới xem và chat được. Tạo phòng mới sẽ có mã riêng.</p>
+        <form id="room-code-form">
+          <label for="room-code">Nhập mã phòng</label>
+          <input id="room-code" autocomplete="off" placeholder="VD: A3K9M2" maxlength="8" required />
+          <p id="room-code-error" hidden style="color:#f87171;font-size:0.85rem;margin-bottom:0.75rem"></p>
+          <button type="submit">Vào phòng</button>
+          <button type="button" class="gate-btn secondary" id="btn-create-room-gate">Tạo phòng mới</button>
         </form>
       </div>
     </section>
@@ -984,8 +1017,9 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v4</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v5</span></div>
           <div class="you" id="you-label"></div>
+          <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
         </div>
         <div style="display:flex;gap:0.35rem;align-items:center">
@@ -1150,6 +1184,10 @@
       const STICKERS = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🦄", "🐲", "👻", "🤖", "👽", "🎃", "⭐", "💯"];
 
       const gate = document.getElementById("gate");
+      const gateRoom = document.getElementById("gate-room");
+      const roomCodeForm = document.getElementById("room-code-form");
+      const roomCodeInput = document.getElementById("room-code");
+      const roomCodeError = document.getElementById("room-code-error");
       const appShell = document.getElementById("app-shell");
       const chat = document.getElementById("chat");
       const roomListEl = document.getElementById("room-list");
@@ -1189,9 +1227,12 @@
       let onlineNames = [];
       let pendingAutoJoin = null;
       let currentRoomId = null;
+      let currentRoomCode = null;
       let roomsData = [];
       let sidebarTab = "all";
       const STORAGE_NAME = "webchat-name";
+      const STORAGE_ROOM_CODES = "webchat-room-codes";
+      const STORAGE_LAST_CODE = "webchat-last-code";
       const messageNodes = new Map();
       const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"];
       const socket = io();
@@ -1205,6 +1246,41 @@
           joinBtn.textContent = "Đang vào lại…";
           joinBtn.disabled = true;
         }
+      }
+
+      function getSavedRoomCodes() {
+        try {
+          const arr = JSON.parse(localStorage.getItem(STORAGE_ROOM_CODES) || "[]");
+          return Array.isArray(arr) ? arr.map((c) => String(c).toUpperCase()) : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveRoomCode(code) {
+        const c = String(code || "").toUpperCase();
+        if (!c) return;
+        const set = new Set(getSavedRoomCodes());
+        set.add(c);
+        localStorage.setItem(STORAGE_ROOM_CODES, JSON.stringify([...set]));
+      }
+
+      function syncMyRooms() {
+        socket.emit("sync_rooms", getSavedRoomCodes());
+      }
+
+      function showRoomGate() {
+        gateRoom.hidden = false;
+        roomCodeInput.focus();
+      }
+
+      function hideRoomGate() {
+        gateRoom.hidden = true;
+      }
+
+      function enterRoom(code) {
+        roomCodeError.hidden = true;
+        socket.emit("join_room", { code: String(code || "").trim() });
       }
 
       function readCursor(roomId) {
@@ -1254,22 +1330,22 @@
             `<div class="room-meta">` +
             `<div class="room-top"><div class="room-name">${escapeHtml(room.name)}</div>` +
             `<div class="room-time">${formatRoomTime(room.lastAt)}</div></div>` +
-            `<div class="room-preview">${escapeHtml(preview)}</div></div>` +
+            `<div class="room-preview">${escapeHtml(room.code || "")} · ${escapeHtml(preview)}</div></div>` +
             (unread ? `<div class="room-unread"></div>` : "");
-          item.addEventListener("click", () => selectRoom(room.id));
+          item.addEventListener("click", () => enterRoom(room.code));
           roomListEl.appendChild(item);
         }
       }
 
       function selectRoom(roomId) {
-        if (!myName) return;
-        socket.emit("join_room", roomId);
-        appShell.classList.add("show-chat");
+        const room = roomsData.find((r) => r.id === roomId);
+        if (room?.code) enterRoom(room.code);
       }
 
       function renderRoomHeader() {
         const room = roomsData.find((r) => r.id === currentRoomId);
         roomTitleEl.textContent = room?.name || "Phòng chat";
+        document.getElementById("room-code-label").textContent = currentRoomCode || room?.code || "—";
       }
 
       document.querySelectorAll(".sidebar-tabs button").forEach((btn) => {
@@ -1284,8 +1360,23 @@
       roomSearch.addEventListener("input", () => renderRoomList());
 
       document.getElementById("btn-new-group").addEventListener("click", () => {
-        const name = prompt("Tên nhóm mới:");
+        const code = prompt("Nhập mã phòng để thêm vào danh sách:");
+        if (code?.trim()) enterRoom(code.trim());
+      });
+
+      document.getElementById("btn-create-room-gate").addEventListener("click", () => {
+        const name = prompt("Tên phòng / nhóm mới:", "Nhóm của tôi");
         if (name?.trim()) socket.emit("create_room", name.trim());
+      });
+
+      roomCodeForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        enterRoom(roomCodeInput.value);
+      });
+
+      document.getElementById("copy-room-code").addEventListener("click", () => {
+        const code = currentRoomCode || document.getElementById("room-code-label").textContent;
+        if (code && code !== "—") navigator.clipboard?.writeText(code);
       });
 
       document.getElementById("btn-back-rooms").addEventListener("click", () => {
@@ -1298,10 +1389,23 @@
         renderRoomHeader();
       });
 
-      socket.on("room_joined", ({ roomId, history }) => {
+      socket.on("room_join_error", (msg) => {
+        roomCodeError.textContent = msg;
+        roomCodeError.hidden = false;
+        showRoomGate();
+        appShell.classList.remove("active", "show-chat");
+        chat.classList.remove("active");
+      });
+
+      socket.on("room_joined", ({ roomId, code, name, history }) => {
         currentRoomId = roomId;
-        localStorage.setItem("webchat-room", String(roomId));
-        appShell.classList.add("show-chat");
+        currentRoomCode = code;
+        saveRoomCode(code);
+        localStorage.setItem(STORAGE_LAST_CODE, code);
+        hideRoomGate();
+        appShell.classList.add("active", "show-chat");
+        chat.classList.add("active");
+        syncMyRooms();
         renderRoomHeader();
         renderRoomList();
         messagesEl.innerHTML = "";
@@ -1313,7 +1417,17 @@
       });
 
       socket.on("room_created", (room) => {
-        selectRoom(room.id);
+        saveRoomCode(room.code);
+        alert("Phòng đã tạo!\n\nMã phòng: " + room.code + "\n\nGửi mã này cho mọi người cần vào.");
+        enterRoom(room.code);
+      });
+
+      socket.on("room_preview", (patch) => {
+        const i = roomsData.findIndex((r) => r.code === patch.code);
+        if (i >= 0) {
+          roomsData[i] = { ...roomsData[i], ...patch };
+          renderRoomList();
+        }
       });
 
       function requestJoin(name, rejoin = false) {
@@ -1772,14 +1886,17 @@
         pendingAutoJoin = null;
         localStorage.setItem(STORAGE_NAME, name);
         gate.style.display = "none";
-        appShell.classList.add("active");
-        chat.classList.add("active");
         youLabel.textContent =
           "Bạn: " + name + (persistent ? " · lưu cloud" : " · chỉ tạm (chưa có DB)");
-        joinBtn.textContent = "Vào phòng";
+        joinBtn.textContent = "Tiếp tục";
         joinBtn.disabled = false;
-        const lastRoom = Number(localStorage.getItem("webchat-room")) || 1;
-        socket.emit("join_room", lastRoom);
+        syncMyRooms();
+        const lastCode = localStorage.getItem(STORAGE_LAST_CODE);
+        if (rejoin && lastCode) {
+          enterRoom(lastCode);
+        } else {
+          showRoomGate();
+        }
       });
 
       document.getElementById("change-name-btn").addEventListener("click", () => {
@@ -2042,7 +2159,7 @@
       socket.on("system", appendSystem);
       socket.on("message", (msg) => {
         if (msg.roomId !== currentRoomId) {
-          renderRoomList();
+          syncMyRooms();
           return;
         }
         appendMessage(msg);
