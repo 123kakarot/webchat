@@ -58,8 +58,32 @@ function broadcastUsers() {
   io.emit("users", [...online.values()].map((u) => u.name));
 }
 
+let nextMessageId = 1;
+
+/** @type {Map<number, Map<string, Set<string>>>} */
+const messageReactions = new Map();
+
+const ALLOWED_REACTIONS = new Set(["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"]);
+
+function reactionsToObject(id) {
+  const map = messageReactions.get(id);
+  if (!map) return {};
+  const out = {};
+  for (const [emoji, users] of map) {
+    if (users.size) out[emoji] = [...users];
+  }
+  return out;
+}
+
 function emitMessage(payload) {
-  io.emit("message", { ...payload, at: Date.now() });
+  const id = nextMessageId++;
+  messageReactions.set(id, new Map());
+  io.emit("message", {
+    id,
+    ...payload,
+    at: Date.now(),
+    reactions: {},
+  });
 }
 
 io.on("connection", (socket) => {
@@ -124,6 +148,40 @@ io.on("connection", (socket) => {
       fileName,
       sticker,
       meta,
+    });
+  });
+
+  socket.on("react", (payload) => {
+    const user = online.get(socket.id);
+    if (!user || !payload) return;
+
+    const messageId = Number(payload.messageId);
+    const emoji = String(payload.emoji ?? "").slice(0, 8);
+    if (!Number.isInteger(messageId) || messageId < 1) return;
+    if (!ALLOWED_REACTIONS.has(emoji)) return;
+
+    const map = messageReactions.get(messageId);
+    if (!map) return;
+
+    let users = map.get(emoji);
+    if (users?.has(user.name)) {
+      users.delete(user.name);
+      if (!users.size) map.delete(emoji);
+    } else {
+      for (const set of map.values()) {
+        set.delete(user.name);
+      }
+      for (const [e, set] of [...map.entries()]) {
+        if (!set.size) map.delete(e);
+      }
+      users = map.get(emoji) ?? new Set();
+      users.add(user.name);
+      map.set(emoji, users);
+    }
+
+    io.emit("message_reactions", {
+      messageId,
+      reactions: reactionsToObject(messageId),
     });
   });
 
