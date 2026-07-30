@@ -271,6 +271,273 @@
         border-color: #fff;
       }
 
+      .app-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        padding: 0.55rem 0.85rem;
+        border: none;
+        border-radius: 8px;
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+      }
+
+      .app-btn.secondary {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+
+      .app-btn.block {
+        width: 100%;
+      }
+
+      .app-btn.danger {
+        background: transparent;
+        color: #f87171;
+        border: none;
+      }
+
+      .profile-popover,
+      .settings-flyout {
+        display: none;
+        position: fixed;
+        z-index: 120;
+        min-width: 220px;
+        background: #1e2633;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+        padding: 0.35rem 0;
+      }
+
+      .profile-popover.open,
+      .settings-flyout.open {
+        display: block;
+      }
+
+      .profile-popover-name {
+        padding: 0.65rem 1rem 0.5rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 0.25rem;
+      }
+
+      .profile-popover button,
+      .settings-flyout button {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        text-align: left;
+        padding: 0.55rem 1rem;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        font-size: 0.88rem;
+        cursor: pointer;
+      }
+
+      .profile-popover button:hover,
+      .settings-flyout button:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .profile-popover hr,
+      .settings-flyout .flyout-divider {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 0.25rem 0;
+      }
+
+      .settings-flyout button.danger,
+      .profile-popover button.danger {
+        color: #f87171;
+      }
+
+      .settings-flyout button .chev {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 0.75rem;
+      }
+
+      .settings-shell {
+        display: flex;
+        width: min(920px, 96vw);
+        height: min(560px, 88vh);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .settings-close {
+        position: absolute;
+        top: 0.65rem;
+        right: 0.65rem;
+        z-index: 2;
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--muted);
+        font-size: 1.25rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .settings-close:hover {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .settings-nav {
+        width: 240px;
+        flex-shrink: 0;
+        background: #121820;
+        border-right: 1px solid var(--border);
+        padding: 1rem 0.65rem;
+        overflow-y: auto;
+      }
+
+      .settings-nav h2 {
+        font-size: 1.05rem;
+        font-weight: 600;
+        padding: 0 0.5rem 0.75rem;
+        margin-bottom: 0.35rem;
+      }
+
+      .settings-nav button {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        text-align: left;
+        padding: 0.6rem 0.65rem;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.85rem;
+        cursor: pointer;
+        margin-bottom: 0.15rem;
+      }
+
+      .settings-nav button.active {
+        background: rgba(59, 130, 246, 0.18);
+        color: var(--text);
+      }
+
+      .settings-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .settings-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.25rem 1.5rem 1rem;
+      }
+
+      .settings-body h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+
+      .settings-row {
+        margin-bottom: 1.25rem;
+      }
+
+      .settings-row label {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+      }
+
+      .settings-row input[type="text"] {
+        width: 100%;
+        max-width: 360px;
+        padding: 0.55rem 0.65rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+      }
+
+      .settings-footer {
+        padding: 0.75rem 1.5rem;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        background: var(--surface2);
+      }
+
+      .profile-toast {
+        position: fixed;
+        bottom: 1.25rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(120%);
+        z-index: 200;
+        background: #1e293b;
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 0.55rem 1rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        transition: transform 0.25s ease;
+        pointer-events: none;
+      }
+
+      .profile-toast.show {
+        transform: translateX(-50%) translateY(0);
+      }
+
+      #modal-settings.modal-backdrop.open {
+        align-items: center;
+      }
+
+      @media (max-width: 768px) {
+        .settings-shell {
+          flex-direction: column;
+          height: min(92vh, 640px);
+        }
+
+        .settings-nav {
+          width: 100%;
+          display: flex;
+          gap: 0.25rem;
+          overflow-x: auto;
+          padding: 0.65rem;
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .settings-nav h2 {
+          display: none;
+        }
+
+        .settings-nav button {
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+      }
+
       .sidebar {
         width: min(340px, 42vw);
         border-right: 1px solid var(--border);
@@ -505,6 +772,12 @@
 
         #panel-profile.profile-panel-inner {
           padding-bottom: 1rem;
+        }
+      }
+
+      @media (min-width: 769px) {
+        .nav-item svg {
+          display: block;
         }
       }
 
@@ -1178,7 +1451,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v17</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v19</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Vào phòng khác hoặc tạo phòng mới ở menu bên trái sau khi đăng nhập.</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -1208,7 +1481,9 @@
         <button type="button" class="nav-avatar" id="nav-open-profile" title="Hồ sơ"><span id="nav-avatar-text">?</span></button>
         <button type="button" class="nav-item active" id="nav-chats" title="Danh sách chat">💬</button>
         <div class="spacer"></div>
-        <button type="button" class="nav-item" id="nav-settings" title="Giao diện">🎨</button>
+        <button type="button" class="nav-item" id="nav-settings" title="Cài đặt" aria-label="Cài đặt">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </button>
       </nav>
 
       <aside class="sidebar" id="sidebar">
@@ -1229,27 +1504,6 @@
         </div>
         <div id="room-list"></div>
         </div>
-
-        <div id="panel-profile" hidden class="profile-panel-inner">
-          <h2 style="font-size:1rem;margin-bottom:0.75rem">Hồ sơ & giao diện</h2>
-          <div class="profile-avatar-lg" id="profile-avatar-preview"><span id="profile-avatar-letter">?</span></div>
-          <button type="button" class="gate-btn secondary" id="btn-upload-avatar" style="width:100%;margin-bottom:1rem">Đổi ảnh đại diện</button>
-          <input type="file" id="file-avatar" accept="image/*" hidden />
-
-          <label style="font-size:0.8rem;color:var(--muted)">Tên hiển thị</label>
-          <input id="profile-name" maxlength="32" style="width:100%;margin:0.35rem 0 0.75rem;padding:0.55rem;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font:inherit" />
-          <p id="profile-error" hidden style="color:#f87171;font-size:0.8rem;margin-bottom:0.5rem"></p>
-          <button type="button" class="gate-btn" id="btn-save-profile" style="width:100%;margin-bottom:1.25rem">Lưu tên</button>
-
-          <label style="font-size:0.8rem;color:var(--muted)">Màu nền khung chat</label>
-          <div class="color-swatches" id="bg-colors"></div>
-          <input type="color" id="bg-color-custom" style="margin-top:0.5rem;width:100%;height:36px;border:none;background:transparent" />
-
-          <label style="font-size:0.8rem;color:var(--muted);display:block;margin-top:1rem">Ảnh nền (tùy chọn)</label>
-          <button type="button" class="gate-btn secondary" id="btn-upload-bg" style="width:100%;margin-top:0.35rem">Tải ảnh nền</button>
-          <button type="button" class="gate-btn secondary" id="btn-clear-bg" style="width:100%;margin-top:0.35rem">Xóa ảnh nền</button>
-          <button type="button" class="gate-btn secondary" id="btn-logout-profile" style="width:100%;margin-top:1.5rem">Thoát & đăng nhập lại</button>
-        </div>
       </aside>
 
     <main class="chat" id="chat">
@@ -1257,7 +1511,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v17</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v19</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -1437,6 +1691,85 @@
         </div>
       </div>
     </div>
+
+    <div id="profile-popover" class="profile-popover" role="menu" aria-label="Tài khoản">
+      <div class="profile-popover-name" id="popover-display-name">—</div>
+      <button type="button" data-profile-action="account">Hồ sơ của bạn</button>
+      <hr />
+      <button type="button" data-profile-action="settings">Cài đặt</button>
+      <hr />
+      <button type="button" class="danger" data-profile-action="logout">Đăng xuất</button>
+    </div>
+
+    <div id="settings-flyout" class="settings-flyout" role="menu" aria-label="Menu cài đặt">
+      <button type="button" data-flyout="account">Thông tin tài khoản</button>
+      <button type="button" data-flyout="settings">Cài đặt</button>
+      <button type="button" data-flyout="appearance">Giao diện <span class="chev">›</span></button>
+      <div class="flyout-divider"></div>
+      <button type="button" class="danger" data-flyout="logout">Đăng xuất</button>
+      <button type="button" data-flyout="exit">Thoát</button>
+    </div>
+
+    <div class="modal-backdrop" id="modal-settings">
+      <div class="settings-shell">
+        <button type="button" class="settings-close" id="settings-close" title="Đóng">×</button>
+        <aside class="settings-nav" aria-label="Mục cài đặt">
+          <h2>Cài đặt</h2>
+          <button type="button" class="active" data-settings-tab="general">⚙ Cài đặt chung</button>
+          <button type="button" data-settings-tab="appearance">🎨 Giao diện</button>
+          <button type="button" data-settings-tab="account">👤 Tài khoản</button>
+        </aside>
+        <div class="settings-main">
+          <div class="settings-body">
+            <div class="settings-tab-panel" id="settings-panel-general">
+              <h3>Cài đặt chung</h3>
+              <div class="settings-row">
+                <label>Ghi nhớ tài khoản trên trình duyệt này</label>
+                <p style="font-size:0.85rem;color:var(--muted);line-height:1.5">Tên và danh sách phòng được lưu cục bộ. Ảnh đại diện & giao diện lưu sau khi bấm <strong>Lưu thay đổi</strong>.</p>
+              </div>
+            </div>
+            <div class="settings-tab-panel" id="settings-panel-appearance" hidden>
+              <h3>Giao diện</h3>
+              <div class="settings-row" style="text-align:center">
+                <div class="profile-avatar-lg" id="profile-avatar-preview"><span id="profile-avatar-letter">?</span></div>
+                <button type="button" class="app-btn secondary block" id="btn-upload-avatar" style="max-width:280px;margin:0 auto">Đổi ảnh đại diện</button>
+              </div>
+              <div class="settings-row">
+                <label>Màu nền khung chat</label>
+                <div class="color-swatches" id="bg-colors"></div>
+                <input type="color" id="bg-color-custom" style="margin-top:0.5rem;width:100%;max-width:280px;height:36px;border:none;background:transparent;cursor:pointer" />
+              </div>
+              <div class="settings-row">
+                <label>Ảnh nền chat (tùy chọn)</label>
+                <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
+                  <button type="button" class="app-btn secondary" id="btn-upload-bg">Tải ảnh nền</button>
+                  <button type="button" class="app-btn secondary" id="btn-clear-bg">Xóa ảnh nền</button>
+                </div>
+              </div>
+            </div>
+            <div class="settings-tab-panel" id="settings-panel-account" hidden>
+              <h3>Tài khoản</h3>
+              <div class="settings-row">
+                <label for="profile-name">Tên hiển thị trong phòng chat</label>
+                <input id="profile-name" type="text" maxlength="32" autocomplete="nickname" />
+                <p id="profile-error" hidden style="color:#f87171;font-size:0.8rem;margin-top:0.5rem"></p>
+              </div>
+              <div class="settings-row">
+                <button type="button" class="app-btn danger" id="btn-logout-profile">Đăng xuất & đăng nhập lại</button>
+              </div>
+            </div>
+          </div>
+          <div class="settings-footer">
+            <button type="button" class="app-btn secondary" id="settings-cancel">Hủy</button>
+            <button type="button" class="app-btn" id="btn-save-all-profile">Lưu thay đổi</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <input type="file" id="file-avatar" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
+    <input type="file" id="file-bg" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
+    <div id="profile-toast" class="profile-toast" role="status" aria-live="polite"></div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script type="module">
@@ -1644,6 +1977,7 @@
       }
 
       function applyRoomJoined({ roomId, code, name, history }) {
+        const sameRoom = Number(roomId) === Number(currentRoomId);
         currentRoomId = roomId;
         const normalized = normalizeRoomCodeClient(code || "");
         currentRoomCode = normalized.length >= 4 ? normalized : null;
@@ -1658,22 +1992,30 @@
         syncMyRooms();
         renderRoomHeader();
         renderRoomList();
-        messagesEl.innerHTML = "";
-        messageNodes.clear();
+        if (!sameRoom) {
+          messagesEl.innerHTML = "";
+          messageNodes.clear();
+        }
         const list = Array.isArray(history) ? history : [];
-        for (const item of list) appendMessage(item);
+        if (!sameRoom || messagesEl.childElementCount === 0) {
+          messagesEl.innerHTML = "";
+          messageNodes.clear();
+          for (const item of list) appendMessage(item);
+        }
         const last = list[list.length - 1];
         if (last) markRoomRead(roomId, last.at);
         messageInput.focus();
       }
 
-      function joinRoomWithAck(code, { force = false } = {}) {
+      function joinRoomWithAck(code, opts = {}) {
+        const { force = false, onDone } = opts;
         const c = normalizeRoomCodeClient(code);
         if (c.length < 4) {
           alert("Mã phòng không hợp lệ.");
           return;
         }
         if (!force && currentRoomCode === c && currentRoomId != null && sessionReady) {
+          if (typeof onDone === "function") onDone();
           return;
         }
         ensureSession(() => {
@@ -1684,6 +2026,7 @@
             }
             if (res?.ok) {
               applyRoomJoined(res);
+              if (typeof onDone === "function") onDone();
               return;
             }
             alert(res?.reason || "Không vào được phòng");
@@ -1728,11 +2071,18 @@
           ensureLoggedIn();
           return;
         }
-        const emitMsg = () => socket.emit("message", { type: "text", text });
+        if (currentRoomId == null || !currentRoomCode) {
+          appendSystem("Hãy chọn phòng trước khi gửi tin.");
+          return;
+        }
+        const sendPayload = () => socket.emit("message", { type: "text", text });
+        const doSend = () => {
+          joinRoomWithAck(currentRoomCode, { force: false, onDone: sendPayload });
+        };
         if (sessionReady) {
-          emitMsg();
+          doSend();
         } else {
-          ensureSession(emitMsg);
+          ensureSession(doSend);
         }
         messageInput.value = "";
         messageInput.style.height = "auto";
@@ -1748,7 +2098,12 @@
         statusDot.classList.remove("off");
         if (myName) {
           rejoinServerSession((err) => {
-            if (!err) onSessionRestored();
+            if (!err) {
+              onSessionRestored();
+              if (appShell.classList.contains("show-chat") && currentRoomCode) {
+                rejoinActiveRoom();
+              }
+            }
           });
         } else {
           tryAutoJoinName();
@@ -1816,20 +2171,127 @@
 
       function showChatsPanel() {
         document.getElementById("panel-chats").hidden = false;
-        document.getElementById("panel-profile").hidden = true;
         document.getElementById("nav-chats").classList.add("active");
         document.getElementById("nav-settings").classList.remove("active");
         setMobileTab("chats");
       }
 
-      function showProfilePanel() {
-        document.getElementById("panel-chats").hidden = true;
-        document.getElementById("panel-profile").hidden = false;
-        document.getElementById("nav-chats").classList.remove("active");
-        document.getElementById("nav-settings").classList.add("active");
+      let profileDraft = null;
+      let profileToastTimer = null;
+
+      function showProfileToast(msg) {
+        const el = document.getElementById("profile-toast");
+        if (!el) return;
+        el.textContent = msg;
+        el.classList.add("show");
+        clearTimeout(profileToastTimer);
+        profileToastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+      }
+
+      function closeProfilePopover() {
+        document.getElementById("profile-popover")?.classList.remove("open");
+      }
+
+      function closeSettingsFlyout() {
+        document.getElementById("settings-flyout")?.classList.remove("open");
+      }
+
+      function openProfilePopover(anchorEl) {
+        if (!myName) return;
+        closeSettingsFlyout();
+        const pop = document.getElementById("profile-popover");
+        document.getElementById("popover-display-name").textContent = myName;
+        const rect = anchorEl.getBoundingClientRect();
+        pop.style.top = Math.min(rect.bottom + 8, window.innerHeight - 220) + "px";
+        pop.style.left = Math.max(8, rect.left) + "px";
+        pop.classList.add("open");
+      }
+
+      function positionSettingsFlyout() {
+        const btn = document.getElementById("nav-settings");
+        const fly = document.getElementById("settings-flyout");
+        if (!btn || !fly) return;
+        const rect = btn.getBoundingClientRect();
+        fly.style.left = Math.max(8, rect.left - 4) + "px";
+        fly.style.bottom = window.innerHeight - rect.top + 8 + "px";
+        fly.style.top = "auto";
+      }
+
+      function toggleSettingsFlyout() {
+        if (!myName) return;
+        const fly = document.getElementById("settings-flyout");
+        if (fly.classList.contains("open")) {
+          closeSettingsFlyout();
+          return;
+        }
+        closeProfilePopover();
+        positionSettingsFlyout();
+        fly.classList.add("open");
+      }
+
+      function syncSettingsFormFromProfile() {
+        const p = loadProfile();
+        profileDraft = {
+          avatarUrl: p.avatarUrl || "",
+          bgColor: p.bgColor || "",
+          bgImage: p.bgImage || "",
+        };
         document.getElementById("profile-name").value = myName || "";
+        document.getElementById("profile-error").hidden = true;
+        const custom = document.getElementById("bg-color-custom");
+        if (custom) custom.value = p.bgColor || "#0f1419";
+        document.querySelectorAll("#bg-colors button").forEach((b) => {
+          b.classList.toggle("selected", b.style.background === p.bgColor || b.dataset.color === p.bgColor);
+        });
         updateAvatarUi();
-        setMobileTab("profile");
+      }
+
+      function setSettingsTab(tab) {
+        document.querySelectorAll("[data-settings-tab]").forEach((b) => {
+          b.classList.toggle("active", b.dataset.settingsTab === tab);
+        });
+        document.querySelectorAll(".settings-tab-panel").forEach((p) => {
+          p.hidden = p.id !== "settings-panel-" + tab;
+        });
+      }
+
+      function openSettingsModal(tab = "general") {
+        if (!myName) return;
+        closeProfilePopover();
+        closeSettingsFlyout();
+        syncSettingsFormFromProfile();
+        setSettingsTab(tab);
+        openModal("modal-settings");
+      }
+
+      function saveAllProfileSettings() {
+        const name = document.getElementById("profile-name").value.trim();
+        const err = document.getElementById("profile-error");
+        const check = validateDisplayName(name);
+        if (!check.ok) {
+          err.textContent = check.reason;
+          err.hidden = false;
+          setSettingsTab("account");
+          return;
+        }
+        err.hidden = true;
+        const patch = {
+          avatarUrl: profileDraft?.avatarUrl ?? loadProfile().avatarUrl ?? "",
+          bgColor: profileDraft?.bgColor ?? loadProfile().bgColor ?? "",
+          bgImage: profileDraft?.bgImage ?? loadProfile().bgImage ?? "",
+        };
+        if (!saveProfile(patch)) return;
+        if (name !== myName) {
+          socket.emit("update_profile", { name });
+        } else {
+          showProfileToast("Đã lưu thay đổi");
+        }
+        closeModal("modal-settings");
+      }
+
+      function logoutAccount() {
+        localStorage.removeItem(STORAGE_NAME);
+        location.reload();
       }
 
       function loadProfile() {
@@ -1841,10 +2303,17 @@
       }
 
       function saveProfile(patch) {
-        const p = { ...loadProfile(), ...patch };
-        localStorage.setItem(STORAGE_PROFILE, JSON.stringify(p));
-        applyProfileTheme();
-        updateAvatarUi();
+        try {
+          const p = { ...loadProfile(), ...patch };
+          localStorage.setItem(STORAGE_PROFILE, JSON.stringify(p));
+          applyProfileTheme();
+          updateAvatarUi();
+          return true;
+        } catch (e) {
+          console.error("saveProfile", e);
+          alert("Không lưu được (bộ nhớ trình duyệt đầy). Thử ảnh nhỏ hơn hoặc xóa ảnh nền cũ.");
+          return false;
+        }
       }
 
       function applyProfileTheme() {
@@ -1927,12 +2396,16 @@
         BG_PRESETS.forEach((color) => {
           const b = document.createElement("button");
           b.type = "button";
+          b.dataset.color = color;
           b.style.background = color;
           if (p.bgColor === color) b.classList.add("selected");
           b.addEventListener("click", () => {
-            saveProfile({ bgColor: color });
             sw.querySelectorAll("button").forEach((x) => x.classList.remove("selected"));
             b.classList.add("selected");
+            profileDraft = { ...(profileDraft || loadProfile()), bgColor: color };
+            document.documentElement.style.setProperty("--chat-bg", color);
+            const custom = document.getElementById("bg-color-custom");
+            if (custom) custom.value = color;
           });
           sw.appendChild(b);
         });
@@ -1954,9 +2427,33 @@
       function saveRoomCode(code) {
         const c = normalizeRoomCodeClient(code);
         if (c.length < 4) return;
-        const set = new Set(getSavedRoomCodes());
-        set.add(c);
-        localStorage.setItem(STORAGE_ROOM_CODES, JSON.stringify([...set]));
+        const codes = getSavedRoomCodes().filter((x) => x !== c);
+        codes.unshift(c);
+        localStorage.setItem(STORAGE_ROOM_CODES, JSON.stringify(codes.slice(0, 20)));
+      }
+
+      function pruneSavedRoomCodes(serverRooms) {
+        const valid = new Set(
+          (serverRooms || [])
+            .map((r) => normalizeRoomCodeClient(r.code))
+            .filter((c) => c.length >= 4)
+        );
+        if (currentRoomCode) valid.add(currentRoomCode);
+        const last = localStorage.getItem(STORAGE_LAST_CODE);
+        if (last) valid.add(normalizeRoomCodeClient(last));
+
+        const kept = getSavedRoomCodes().filter((c) => valid.has(c));
+        const merged = [...new Set([...kept, ...valid])].slice(0, 20);
+        localStorage.setItem(STORAGE_ROOM_CODES, JSON.stringify(merged));
+
+        try {
+          const meta = getSavedRoomMeta();
+          const next = {};
+          for (const c of merged) {
+            if (meta[c]) next[c] = meta[c];
+          }
+          localStorage.setItem("webchat-room-meta", JSON.stringify(next));
+        } catch (_) {}
       }
 
       function saveRoomMeta(code, name, roomId) {
@@ -1991,9 +2488,11 @@
       function onSessionRestored() {
         sessionReady = true;
         syncMyRooms();
-        if (currentRoomCode) {
-          joinRoomWithAck(currentRoomCode, { force: true });
-        }
+      }
+
+      function rejoinActiveRoom() {
+        if (!currentRoomCode || !myName) return;
+        joinRoomWithAck(currentRoomCode, { force: true });
       }
 
       function onJoinedSession({ name, persistent, rejoin }) {
@@ -2076,29 +2575,10 @@
         }
       }
 
-      function mergeRoomsWithSavedCodes(serverRooms) {
-        const map = new Map(serverRooms.map((r) => [String(r.code || "").toUpperCase(), r]));
-        const meta = getSavedRoomMeta();
-        for (const code of getSavedRoomCodes()) {
-          if (!map.has(code)) {
-            const m = meta[code] || {};
-            map.set(code, {
-              id: m.id ?? code,
-              code,
-              name: m.name || "Phòng " + code,
-              preview: "Bấm để vào lại phòng",
-              lastAt: 0,
-              lastName: "",
-            });
-          }
-        }
-        return [...map.values()];
-      }
-
       function renderRoomList() {
         const q = roomSearch.value.trim().toLowerCase();
         roomListEl.innerHTML = "";
-        let list = mergeRoomsWithSavedCodes(roomsData.slice());
+        let list = roomsData.slice();
         if (q) list = list.filter((r) => r.name.toLowerCase().includes(q));
         if (sidebarTab === "unread") {
           list = list.filter((r) => r.lastAt && r.lastAt > readCursor(r.id) && r.id !== currentRoomId);
@@ -2179,27 +2659,71 @@
         promptCreateRoom();
       });
 
-      document.getElementById("nav-chats").addEventListener("click", showChatsPanel);
-      document.getElementById("nav-open-profile").addEventListener("click", showProfilePanel);
-      document.getElementById("nav-settings").addEventListener("click", showProfilePanel);
+      document.getElementById("nav-chats").addEventListener("click", () => {
+        closeProfilePopover();
+        closeSettingsFlyout();
+        showChatsPanel();
+      });
+      document.getElementById("nav-open-profile").addEventListener("click", (e) => {
+        if (!ensureLoggedIn()) return;
+        const pop = document.getElementById("profile-popover");
+        if (pop.classList.contains("open")) closeProfilePopover();
+        else openProfilePopover(e.currentTarget);
+      });
+      document.getElementById("nav-settings").addEventListener("click", () => {
+        if (!ensureLoggedIn()) return;
+        toggleSettingsFlyout();
+      });
 
       document.getElementById("mob-nav-chats").addEventListener("click", () => {
         appShell.classList.remove("show-chat");
+        closeProfilePopover();
         showChatsPanel();
       });
-      document.getElementById("mob-nav-profile").addEventListener("click", showProfilePanel);
+      document.getElementById("mob-nav-profile").addEventListener("click", () => {
+        if (!ensureLoggedIn()) return;
+        appShell.classList.remove("show-chat");
+        openSettingsModal("account");
+        setMobileTab("profile");
+      });
 
-      document.getElementById("btn-save-profile").addEventListener("click", () => {
-        const name = document.getElementById("profile-name").value.trim();
-        const err = document.getElementById("profile-error");
-        const check = validateDisplayName(name);
-        if (!check.ok) {
-          err.textContent = check.reason;
-          err.hidden = false;
-          return;
+      document.querySelectorAll("[data-profile-action]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const action = btn.dataset.profileAction;
+          closeProfilePopover();
+          if (action === "account") openSettingsModal("account");
+          else if (action === "settings") openSettingsModal("general");
+          else if (action === "logout") logoutAccount();
+        });
+      });
+
+      document.querySelectorAll("[data-flyout]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const action = btn.dataset.flyout;
+          closeSettingsFlyout();
+          if (action === "account") openSettingsModal("account");
+          else if (action === "settings") openSettingsModal("general");
+          else if (action === "appearance") openSettingsModal("appearance");
+          else if (action === "logout") logoutAccount();
+          else if (action === "exit") closeSettingsFlyout();
+        });
+      });
+
+      document.querySelectorAll("[data-settings-tab]").forEach((btn) => {
+        btn.addEventListener("click", () => setSettingsTab(btn.dataset.settingsTab));
+      });
+
+      document.getElementById("settings-close").addEventListener("click", () => closeModal("modal-settings"));
+      document.getElementById("settings-cancel").addEventListener("click", () => closeModal("modal-settings"));
+      document.getElementById("btn-save-all-profile").addEventListener("click", saveAllProfileSettings);
+
+      document.addEventListener("click", (e) => {
+        if (!e.target.closest("#profile-popover") && !e.target.closest("#nav-open-profile")) {
+          closeProfilePopover();
         }
-        err.hidden = true;
-        socket.emit("update_profile", { name });
+        if (!e.target.closest("#settings-flyout") && !e.target.closest("#nav-settings")) {
+          closeSettingsFlyout();
+        }
       });
 
       socket.on("profile_updated", ({ name }) => {
@@ -2207,6 +2731,7 @@
         localStorage.setItem(STORAGE_NAME, name);
         youLabel.textContent = "Bạn: " + name + profileSuffix;
         updateAvatarUi();
+        showProfileToast("Đã lưu thay đổi");
       });
 
       socket.on("profile_error", (msg) => {
@@ -2225,14 +2750,19 @@
         if (!file) return;
         try {
           const { url } = await uploadFile(file);
+          profileDraft = { ...(profileDraft || loadProfile()), avatarUrl: url };
           saveProfile({ avatarUrl: url });
+          showProfileToast("Đã lưu ảnh đại diện");
         } catch {
-          appendSystem("Không tải được ảnh đại diện.");
+          showProfileToast("Không tải được ảnh — thử lại");
         }
       });
 
       document.getElementById("bg-color-custom").addEventListener("input", (e) => {
-        saveProfile({ bgColor: e.target.value });
+        const color = e.target.value;
+        profileDraft = { ...(profileDraft || loadProfile()), bgColor: color };
+        document.documentElement.style.setProperty("--chat-bg", color);
+        document.querySelectorAll("#bg-colors button").forEach((x) => x.classList.remove("selected"));
       });
 
       document.getElementById("btn-upload-bg").addEventListener("click", () => {
@@ -2245,20 +2775,21 @@
         if (!file) return;
         try {
           const { url } = await uploadFile(file);
-          saveProfile({ bgImage: url });
+          profileDraft = { ...(profileDraft || loadProfile()), bgImage: url };
+          document.documentElement.style.setProperty("--chat-bg-image", `url("${url}")`);
+          showProfileToast("Đã chọn ảnh nền — bấm Lưu thay đổi");
         } catch {
-          appendSystem("Không tải được ảnh nền.");
+          showProfileToast("Không tải được ảnh nền");
         }
       });
 
       document.getElementById("btn-clear-bg").addEventListener("click", () => {
-        saveProfile({ bgImage: "" });
+        profileDraft = { ...(profileDraft || loadProfile()), bgImage: "" };
+        document.documentElement.style.removeProperty("--chat-bg-image");
+        showProfileToast("Đã xóa ảnh nền — bấm Lưu thay đổi");
       });
 
-      document.getElementById("btn-logout-profile").addEventListener("click", () => {
-        localStorage.removeItem(STORAGE_NAME);
-        location.reload();
-      });
+      document.getElementById("btn-logout-profile").addEventListener("click", logoutAccount);
 
       document.getElementById("btn-create-room-gate").addEventListener("click", () => {
         promptCreateRoom();
@@ -2281,6 +2812,7 @@
 
       socket.on("rooms_list", (rooms) => {
         roomsData = rooms;
+        pruneSavedRoomCodes(rooms);
         renderRoomList();
         renderRoomHeader();
         maybeAutoEnterRecentRoom();
@@ -2732,7 +3264,12 @@
         sessionReady = false;
         if (myName) {
           rejoinServerSession((err) => {
-            if (!err) onSessionRestored();
+            if (!err) {
+              onSessionRestored();
+              if (appShell.classList.contains("show-chat") && currentRoomCode) {
+                rejoinActiveRoom();
+              }
+            }
           });
         } else {
           tryAutoJoinName();
@@ -2765,7 +3302,7 @@
 
       tryAutoJoinName();
 
-      document.getElementById("change-name-btn").addEventListener("click", showProfilePanel);
+      document.getElementById("change-name-btn").addEventListener("click", () => openSettingsModal("account"));
 
       function appendSystem(payload) {
         const text = typeof payload === "string" ? payload : payload?.text;
@@ -3021,7 +3558,7 @@
 
       socket.on("system", appendSystem);
       socket.on("message", (msg) => {
-        if (msg.roomId !== currentRoomId) {
+        if (Number(msg.roomId) !== Number(currentRoomId)) {
           syncMyRooms();
           return;
         }
