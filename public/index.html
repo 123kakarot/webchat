@@ -1314,24 +1314,45 @@
       }
 
       .user-profile-modal {
-        max-width: 380px;
+        max-width: 400px;
         padding: 0;
         overflow: hidden;
+        position: relative;
+      }
+
+      .user-profile-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.7rem 0.85rem 0.7rem 1rem;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        font-size: 0.95rem;
+        font-weight: 600;
       }
 
       .user-profile-cover {
-        height: 88px;
-        background: linear-gradient(135deg, #1e3a5f, #334155);
+        height: 112px;
+        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
       }
 
       .user-profile-body {
-        padding: 0 1.15rem 1.15rem;
-        margin-top: -28px;
+        padding: 0 1rem 1.15rem;
+        background: var(--surface);
+      }
+
+      .user-profile-identity {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        margin: -34px 0 1rem;
+        min-height: 68px;
       }
 
       .user-profile-avatar {
-        width: 72px;
-        height: 72px;
+        width: 68px;
+        height: 68px;
         border-radius: 50%;
         border: 3px solid var(--surface);
         background: linear-gradient(135deg, #475569, #334155);
@@ -1342,7 +1363,8 @@
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        margin-bottom: 0.65rem;
+        flex-shrink: 0;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
       }
 
       .user-profile-avatar img {
@@ -1354,7 +1376,11 @@
       .user-profile-name {
         font-size: 1.05rem;
         font-weight: 600;
-        margin-bottom: 1rem;
+        line-height: 1.35;
+        min-width: 0;
+        word-break: break-word;
+        flex: 1;
+        padding-top: 1.35rem;
       }
 
       .user-profile-actions {
@@ -1364,13 +1390,14 @@
 
       .user-profile-actions button {
         flex: 1;
-        padding: 0.55rem 0.75rem;
+        padding: 0.6rem 0.75rem;
         border-radius: 10px;
         border: 1px solid var(--border);
         background: var(--surface2);
         color: var(--text);
         cursor: pointer;
         font-weight: 600;
+        font-size: 0.88rem;
       }
 
       .user-profile-actions button.primary {
@@ -1379,25 +1406,25 @@
         color: #fff;
       }
 
-      .user-profile-head-title {
-        padding: 0.85rem 1.15rem 0;
-        font-size: 0.95rem;
-        font-weight: 600;
-      }
-
       .user-profile-close {
-        position: absolute;
-        top: 0.65rem;
-        right: 0.65rem;
-        width: 32px;
-        height: 32px;
+        flex-shrink: 0;
+        width: 34px;
+        height: 34px;
         border: none;
         border-radius: 8px;
-        background: rgba(0, 0, 0, 0.35);
-        color: #fff;
+        background: transparent;
+        color: var(--muted);
         cursor: pointer;
-        font-size: 1.1rem;
-        z-index: 2;
+        font-size: 1.25rem;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .user-profile-close:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
       }
 
       .msg-row.self .msg-avatar {
@@ -2803,13 +2830,17 @@
     </div>
 
     <div class="modal-backdrop" id="modal-user-profile">
-      <div class="modal user-profile-modal" style="position: relative">
-        <button type="button" class="user-profile-close" data-close="modal-user-profile" aria-label="Đóng">×</button>
+      <div class="modal user-profile-modal">
+        <div class="user-profile-topbar">
+          <span>Thông tin tài khoản</span>
+          <button type="button" class="user-profile-close" data-close="modal-user-profile" aria-label="Đóng">×</button>
+        </div>
         <div class="user-profile-cover"></div>
-        <div class="user-profile-head-title">Thông tin tài khoản</div>
         <div class="user-profile-body">
-          <div class="user-profile-avatar" id="user-profile-avatar"></div>
-          <div class="user-profile-name" id="user-profile-name"></div>
+          <div class="user-profile-identity">
+            <div class="user-profile-avatar" id="user-profile-avatar"></div>
+            <div class="user-profile-name" id="user-profile-name"></div>
+          </div>
           <div class="user-profile-actions">
             <button type="button" data-close="modal-user-profile">Đóng</button>
             <button type="button" class="primary" id="user-profile-dm">Nhắn tin</button>
