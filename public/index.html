@@ -35,6 +35,7 @@
 
       #messages,
       #room-list,
+      .room-members-list,
       .settings-body,
       .settings-nav {
         scrollbar-width: thin;
@@ -43,6 +44,7 @@
 
       #messages:hover,
       #room-list:hover,
+      .room-members-list:hover,
       .settings-body:hover,
       .settings-nav:hover {
         scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
@@ -50,6 +52,7 @@
 
       #messages::-webkit-scrollbar,
       #room-list::-webkit-scrollbar,
+      .room-members-list::-webkit-scrollbar,
       .settings-body::-webkit-scrollbar,
       .settings-nav::-webkit-scrollbar {
         width: 4px;
@@ -58,6 +61,7 @@
 
       #messages::-webkit-scrollbar-track,
       #room-list::-webkit-scrollbar-track,
+      .room-members-list::-webkit-scrollbar-track,
       .settings-body::-webkit-scrollbar-track,
       .settings-nav::-webkit-scrollbar-track {
         background: transparent;
@@ -65,6 +69,7 @@
 
       #messages::-webkit-scrollbar-thumb,
       #room-list::-webkit-scrollbar-thumb,
+      .room-members-list::-webkit-scrollbar-thumb,
       .settings-body::-webkit-scrollbar-thumb,
       .settings-nav::-webkit-scrollbar-thumb {
         background: transparent;
@@ -73,6 +78,7 @@
 
       #messages:hover::-webkit-scrollbar-thumb,
       #room-list:hover::-webkit-scrollbar-thumb,
+      .room-members-list:hover::-webkit-scrollbar-thumb,
       .settings-body:hover::-webkit-scrollbar-thumb,
       .settings-nav:hover::-webkit-scrollbar-thumb {
         background: rgba(148, 163, 184, 0.4);
@@ -239,6 +245,22 @@
         display: none;
         flex-direction: column;
         min-height: 0;
+        z-index: 12;
+      }
+
+      .room-members-backdrop {
+        display: none;
+        position: absolute;
+        inset: 0;
+        z-index: 11;
+        background: rgba(8, 12, 18, 0.45);
+        border: none;
+        padding: 0;
+        cursor: default;
+      }
+
+      .chat.members-panel-open .room-members-backdrop {
+        display: block;
       }
 
       .room-members-panel.open {
@@ -2116,7 +2138,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v32</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v33</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. <strong>Tên không được trùng</strong> người đang online (kể cả khác hoa thường).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -2178,7 +2200,7 @@
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <button type="button" class="room-head-avatar" id="room-head-avatar" title="Ảnh nhóm"><span id="room-head-avatar-letter">?</span></button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v32</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v33</span></div>
           <button type="button" class="room-member-count" id="btn-room-members">0 thành viên</button>
           <div class="you" id="you-label" style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
@@ -2285,6 +2307,8 @@
       <input type="file" id="file-image" accept="image/jpeg,image/png,image/gif,image/webp" />
       <input type="file" id="file-attach" />
       </div>
+
+      <button type="button" class="room-members-backdrop" id="room-members-backdrop" aria-label="Đóng danh sách thành viên" hidden></button>
 
       <aside class="room-members-panel" id="room-members-panel" aria-label="Thành viên nhóm">
         <div class="room-members-head">
@@ -3899,8 +3923,13 @@
 
       function toggleMembersPanel(open) {
         const panel = document.getElementById("room-members-panel");
+        const backdrop = document.getElementById("room-members-backdrop");
         const wantOpen = open ?? !panel.classList.contains("open");
         panel.classList.toggle("open", wantOpen);
+        chat.classList.toggle("members-panel-open", wantOpen);
+        if (backdrop) {
+          backdrop.hidden = !wantOpen;
+        }
         if (wantOpen) renderMembersPanel();
       }
 
@@ -4050,16 +4079,28 @@
         }
       });
 
-      document.getElementById("btn-room-members").addEventListener("click", () => toggleMembersPanel(true));
+      document.getElementById("btn-room-members").addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleMembersPanel(true);
+      });
       document.getElementById("room-members-close").addEventListener("click", () => toggleMembersPanel(false));
+      document.getElementById("room-members-backdrop").addEventListener("click", () => toggleMembersPanel(false));
+      appShell.addEventListener("click", (e) => {
+        const panel = document.getElementById("room-members-panel");
+        if (!panel.classList.contains("open")) return;
+        if (panel.contains(e.target)) return;
+        if (e.target.closest("#btn-room-members")) return;
+        toggleMembersPanel(false);
+      });
       document.getElementById("btn-delete-room").addEventListener("click", deleteCurrentRoom);
       document.getElementById("btn-room-avatar").addEventListener("click", () => {
         document.getElementById("file-group-avatar-room").click();
       });
-      document.getElementById("room-head-avatar").addEventListener("click", () => {
+      document.getElementById("room-head-avatar").addEventListener("click", (e) => {
         if (myName && myName === currentRoomOwnerName) {
           document.getElementById("file-group-avatar-room").click();
         } else {
+          e.stopPropagation();
           toggleMembersPanel(true);
         }
       });
