@@ -1097,7 +1097,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v11</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v12</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Vào phòng khác hoặc tạo phòng mới ở menu bên trái sau khi đăng nhập.</p>
         <form id="join-form">
           <label for="name">Tên của bạn</label>
@@ -1176,7 +1176,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v11</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v12</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -1503,9 +1503,42 @@
         requestJoin(pendingAutoJoin, true);
       }
 
+      function rejoinServerSession(then) {
+        if (!myName || !socket.connected) {
+          if (typeof then === "function") then(new Error("offline"));
+          return;
+        }
+        socket.timeout(15000).emit("join", { name: myName, rejoin: true }, (err, res) => {
+          if (err || !res?.ok) {
+            if (typeof then === "function") then(new Error("join"));
+            return;
+          }
+          if (typeof then === "function") then(null, res);
+        });
+      }
+
+      function withServerSession(action) {
+        if (!ensureLoggedIn()) return;
+        if (!socket.connected) {
+          alert("Chưa kết nối server — đợi vài giây rồi thử lại.");
+          return;
+        }
+        rejoinServerSession((err) => {
+          if (err) {
+            alert("Mất phiên đăng nhập. Bấm F5 tải lại trang rồi thử lại.");
+            return;
+          }
+          action();
+        });
+      }
+
       socket.on("connect", () => {
         statusDot.classList.remove("off");
-        tryAutoJoinName();
+        if (myName) {
+          rejoinServerSession();
+        } else {
+          tryAutoJoinName();
+        }
       });
 
       socket.on("connect_error", () => {
@@ -1636,9 +1669,29 @@
       }
 
       function promptCreateRoom() {
-        if (!ensureLoggedIn()) return;
-        const name = prompt("Tên phòng / nhóm mới:", "Nhóm của tôi");
-        if (name?.trim()) socket.emit("create_room", name.trim());
+        withServerSession(() => {
+          const name = prompt("Tên phòng / nhóm mới:", "Nhóm của tôi");
+          if (!name?.trim()) return;
+          socket.timeout(20000).emit("create_room", name.trim(), (err, res) => {
+            if (err) {
+              alert("Không tạo được phòng (server không phản hồi).");
+              return;
+            }
+            if (res?.ok && res.room) {
+              onRoomCreated(res.room);
+              return;
+            }
+            if (res?.reason) alert(res.reason);
+          });
+        });
+      }
+
+      function onRoomCreated(room) {
+        if (!room?.code) return;
+        saveRoomCode(room.code);
+        alert("Phòng đã tạo!\n\nMã phòng: " + room.code + "\n\nGửi mã này cho mọi người cần vào.");
+        hideRoomGate();
+        socket.emit("join_room", { code: room.code });
       }
 
       function initProfileUi() {
@@ -1738,7 +1791,10 @@
       function enterRoom(code) {
         if (!ensureLoggedIn()) return;
         roomCodeError.hidden = true;
-        socket.emit("join_room", { code: String(code || "").trim() });
+        const c = String(code || "").trim();
+        withServerSession(() => {
+          socket.emit("join_room", { code: c });
+        });
       }
 
       function readCursor(roomId) {
@@ -1979,10 +2035,7 @@
       });
 
       socket.on("room_created", (room) => {
-        saveRoomCode(room.code);
-        alert("Phòng đã tạo!\n\nMã phòng: " + room.code + "\n\nGửi mã này cho mọi người cần vào.");
-        hideRoomGate();
-        enterRoom(room.code);
+        onRoomCreated(room);
       });
 
       socket.on("room_preview", (patch) => {
@@ -2409,11 +2462,10 @@
       });
 
       socket.io.on("reconnect", () => {
-        if (myName && currentRoomCode) {
-          socket.emit("join", { name: myName, rejoin: true });
-          enterRoom(currentRoomCode);
-        } else if (myName) {
-          socket.emit("join", { name: myName, rejoin: true });
+        if (myName) {
+          rejoinServerSession((err) => {
+            if (!err && currentRoomCode) enterRoom(currentRoomCode);
+          });
         } else {
           tryAutoJoinName();
         }

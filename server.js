@@ -178,7 +178,10 @@ io.on("connection", (socket) => {
 
   socket.on("join_room", async (payload) => {
     const user = online.get(socket.id);
-    if (!user) return;
+    if (!user) {
+      socket.emit("room_join_error", "Phiên đăng nhập hết hạn — tải lại trang (F5) rồi thử lại.");
+      return;
+    }
 
     const code = normalizeRoomCode(typeof payload === "string" ? payload : payload?.code);
     if (code.length < 4) {
@@ -210,17 +213,30 @@ io.on("connection", (socket) => {
     broadcastUsers(room.id);
   });
 
-  socket.on("create_room", async (nameRaw) => {
+  socket.on("create_room", async (nameRaw, ack) => {
+    const respond = (payload) => {
+      if (typeof ack === "function") ack(payload);
+    };
+
     const user = online.get(socket.id);
-    if (!user) return;
+    if (!user) {
+      const reason = "Phiên đăng nhập hết hạn — tải lại trang (F5) rồi tạo phòng lại.";
+      socket.emit("room_error", reason);
+      respond({ ok: false, reason });
+      return;
+    }
 
     const name = typeof nameRaw === "string" ? nameRaw : String(nameRaw?.name ?? "Nhóm mới");
 
     try {
       const room = await createRoom(name);
       socket.emit("room_created", room);
-    } catch {
-      socket.emit("room_error", "Không tạo được phòng");
+      respond({ ok: true, room });
+    } catch (err) {
+      console.error("[create_room]", err);
+      const reason = "Không tạo được phòng (lỗi cơ sở dữ liệu).";
+      socket.emit("room_error", reason);
+      respond({ ok: false, reason });
     }
   });
 
