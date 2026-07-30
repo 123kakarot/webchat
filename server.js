@@ -16,6 +16,7 @@ import {
   toggleReaction,
   hydrateReactionCache,
   listRoomsByCodes,
+  countMessagesSince,
   createRoom,
   getRoomByCode,
   normalizeRoomCode,
@@ -153,6 +154,10 @@ function roomChannel(roomId) {
   return `room:${roomId}`;
 }
 
+function watchChannel(code) {
+  return `watch:${normalizeRoomCode(code)}`;
+}
+
 function previewText(msg) {
   const type = msg.type || "text";
   if (type === "sticker") return "Sticker " + (msg.sticker || "");
@@ -167,12 +172,15 @@ async function emitMessage(roomId, roomCode, payload) {
   const saved = await saveMessage({ roomId, ...payload });
   io.to(roomChannel(roomId)).emit("message", saved);
   if (roomCode) {
-    io.to(roomChannel(roomId)).emit("room_preview", {
+    const previewPatch = {
       code: roomCode,
+      roomId,
       preview: previewText(saved),
       lastAt: saved.at,
       lastName: saved.name,
-    });
+    };
+    io.to(roomChannel(roomId)).emit("room_preview", previewPatch);
+    io.to(watchChannel(roomCode)).emit("room_preview", previewPatch);
   }
   return saved;
 }
@@ -232,9 +240,38 @@ io.on("connection", (socket) => {
     respond(payload);
   });
 
-  socket.on("sync_rooms", async (codes) => {
-    const list = Array.isArray(codes) ? codes : [];
-    const rooms = await listRoomsByCodes(list);
+  socket.on("sync_rooms", async (payload) => {
+    let codes = [];
+    let readAt = {};
+    if (Array.isArray(payload)) {
+      codes = payload;
+    } else if (payload && typeof payload === "object") {
+      codes = Array.isArray(payload.codes) ? payload.codes : [];
+      if (payload.readAt && typeof payload.readAt === "object") readAt = payload.readAt;
+    }
+
+    const normalized = [...new Set(codes.map(normalizeRoomCode).filter((c) => c.length >= 4))];
+
+    const prev = socket.data?.watchedCodes || [];
+    for (const c of prev) {
+      if (!normalized.includes(c)) socket.leave(watchChannel(c));
+    }
+    for (const c of normalized) {
+      socket.join(watchChannel(c));
+    }
+    socket.data = { ...(socket.data || {}), watchedCodes: normalized };
+
+    const rooms = await listRoomsByCodes(normalized);
+    const user = online.get(socket.id);
+    const activeRoomId = user?.roomId ?? null;
+    for (const room of rooms) {
+      if (Number(room.id) === Number(activeRoomId)) {
+        room.unreadCount = 0;
+      } else {
+        const since = Number(readAt[room.id] ?? readAt[String(room.id)] ?? 0);
+        room.unreadCount = await countMessagesSince(room.id, since);
+      }
+    }
     socket.emit("rooms_list", rooms);
   });
 

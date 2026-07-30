@@ -213,6 +213,22 @@ function previewFromMessage(m) {
   };
 }
 
+export async function countMessagesSince(roomId, sinceMs) {
+  const rid = Number(roomId);
+  const since = Number(sinceMs) || 0;
+  if (!Number.isFinite(rid)) return 0;
+
+  if (useMemory) {
+    return memoryMessages.filter((m) => m.roomId === rid && (m.at || 0) > since).length;
+  }
+
+  const { rows } = await pool.query(
+    `SELECT COUNT(*)::int AS c FROM messages WHERE room_id = $1 AND (EXTRACT(EPOCH FROM created_at) * 1000) > $2`,
+    [rid, since]
+  );
+  return rows[0]?.c ?? 0;
+}
+
 export async function listRoomsByCodes(codes) {
   const normalized = [...new Set(codes.map(normalizeRoomCode).filter(Boolean))];
   if (!normalized.length) return [];

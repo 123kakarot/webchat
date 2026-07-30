@@ -731,6 +731,10 @@
         background: rgba(59, 130, 246, 0.15);
       }
 
+      .room-item.unread-soft:not(.active) {
+        background: rgba(255, 255, 255, 0.07);
+      }
+
       .room-avatar {
         width: 48px;
         height: 48px;
@@ -784,6 +788,25 @@
         background: #ef4444;
         flex-shrink: 0;
         align-self: center;
+      }
+
+      .room-unread-badge {
+        flex-shrink: 0;
+        align-self: center;
+        font-size: 0.72rem;
+        font-weight: 700;
+        min-width: 1.65rem;
+        text-align: center;
+        padding: 0.12rem 0.4rem;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.25);
+        color: var(--text);
+        line-height: 1.2;
+      }
+
+      .room-unread-badge.hot {
+        background: #ef4444;
+        color: #fff;
       }
 
       .chat.active {
@@ -1830,7 +1853,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v29</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v30</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. <strong>Tên không được trùng</strong> người đang online (kể cả khác hoa thường).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -1890,7 +1913,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v29</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v30</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -3186,7 +3209,7 @@
       function syncMyRooms() {
         ensureRoomCodesSeed();
         const codes = getSavedRoomCodes();
-        socket.emit("sync_rooms", codes);
+        socket.emit("sync_rooms", { codes, readAt: buildReadAtMap() });
       }
 
       function onJoinError(reason) {
@@ -3272,10 +3295,66 @@
         return Number(localStorage.getItem(`webchat-read-at-${roomId}`) || 0);
       }
 
+      function getUnreadCount(roomId) {
+        return Number(localStorage.getItem(`webchat-unread-${roomId}`) || 0);
+      }
+
+      function setUnreadCount(roomId, n) {
+        if (roomId == null) return;
+        const v = Math.max(0, Math.floor(Number(n) || 0));
+        if (v <= 0) localStorage.removeItem(`webchat-unread-${roomId}`);
+        else localStorage.setItem(`webchat-unread-${roomId}`, String(v));
+      }
+
+      function bumpUnread(roomId) {
+        if (roomId == null || Number(roomId) === Number(currentRoomId)) return;
+        setUnreadCount(roomId, getUnreadCount(roomId) + 1);
+      }
+
+      function roomUnreadDisplay(room) {
+        if (!room || Number(room.id) === Number(currentRoomId)) {
+          return { count: 0, badge: "", rowClass: "" };
+        }
+        let count = getUnreadCount(room.id);
+        const cursor = readCursor(room.id);
+        if (count <= 0 && room.lastAt && room.lastAt > cursor) count = 1;
+        if (count <= 0) return { count: 0, badge: "", rowClass: "" };
+        const shown = count >= 99 ? 99 : count;
+        if (shown === 1) {
+          return {
+            count: shown,
+            badge: '<div class="room-unread" aria-label="1 tin chưa đọc"></div>',
+            rowClass: " unread-soft",
+          };
+        }
+        const label = "+" + shown;
+        const hot = shown >= 5;
+        return {
+          count: shown,
+          badge: `<div class="room-unread-badge${hot ? " hot" : ""}">${label}</div>`,
+          rowClass: "",
+        };
+      }
+
+      function buildReadAtMap() {
+        const readAt = {};
+        try {
+          const meta = getSavedRoomMeta();
+          for (const m of Object.values(meta)) {
+            if (m?.id != null) readAt[m.id] = readCursor(m.id);
+          }
+        } catch (_) {}
+        for (const r of roomsData) {
+          if (r?.id != null) readAt[r.id] = readCursor(r.id);
+        }
+        return readAt;
+      }
+
       function markRoomRead(roomId, at) {
         if (!roomId || !at) return;
         const prev = readCursor(roomId);
         if (at > prev) localStorage.setItem(`webchat-read-at-${roomId}`, String(at));
+        setUnreadCount(roomId, 0);
         renderRoomList();
       }
 
@@ -3306,7 +3385,7 @@
         let list = roomsData.slice();
         if (q) list = list.filter((r) => r.name.toLowerCase().includes(q));
         if (sidebarTab === "unread") {
-          list = list.filter((r) => r.lastAt && r.lastAt > readCursor(r.id) && r.id !== currentRoomId);
+          list = list.filter((r) => roomUnreadDisplay(r).count > 0);
         }
         list.sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
 
@@ -3322,9 +3401,10 @@
         }
 
         for (const room of list) {
+          const unreadUi = roomUnreadDisplay(room);
           const item = document.createElement("div");
-          item.className = "room-item" + (room.id === currentRoomId ? " active" : "");
-          const unread = room.lastAt > readCursor(room.id) && room.id !== currentRoomId;
+          item.className =
+            "room-item" + (room.id === currentRoomId ? " active" : "") + unreadUi.rowClass;
           const preview =
             room.lastName && room.preview
               ? room.lastName + ": " + room.preview
@@ -3335,7 +3415,7 @@
             `<div class="room-top"><div class="room-name">${escapeHtml(room.name)}</div>` +
             `<div class="room-time">${formatRoomTime(room.lastAt)}</div></div>` +
             `<div class="room-preview">${escapeHtml(room.code || "")} · ${escapeHtml(preview)}</div></div>` +
-            (unread ? `<div class="room-unread"></div>` : "") +
+            unreadUi.badge +
             `<button type="button" class="room-remove" title="Xóa khỏi danh sách" aria-label="Xóa phòng">×</button>`;
           item.addEventListener("click", () => enterRoom(room.code));
           item.querySelector(".room-remove").addEventListener("click", (e) => {
@@ -3546,6 +3626,14 @@
 
       socket.on("rooms_list", (rooms) => {
         roomsData = rooms;
+        for (const room of rooms) {
+          if (room?.id == null) continue;
+          if (Number(room.id) === Number(currentRoomId)) {
+            setUnreadCount(room.id, 0);
+          } else if (typeof room.unreadCount === "number" && room.unreadCount >= 0) {
+            setUnreadCount(room.id, room.unreadCount);
+          }
+        }
         persistRoomsFromServer(rooms);
         if (!rooms.length && getSavedRoomCodes().length > 0 && !roomsSyncRetried) {
           roomsSyncRetried = true;
@@ -3576,11 +3664,17 @@
       });
 
       socket.on("room_preview", (patch) => {
-        const i = roomsData.findIndex((r) => r.code === patch.code);
-        if (i >= 0) {
-          roomsData[i] = { ...roomsData[i], ...patch };
-          renderRoomList();
+        if (!patch?.code) return;
+        let i = roomsData.findIndex((r) => r.code === patch.code);
+        if (i < 0) {
+          syncMyRooms();
+          return;
         }
+        const prevId = roomsData[i].id;
+        roomsData[i] = { ...roomsData[i], ...patch };
+        const rid = patch.roomId ?? roomsData[i].id ?? prevId;
+        if (rid != null && Number(rid) !== Number(currentRoomId)) bumpUnread(rid);
+        renderRoomList();
       });
 
       function loadQuickMessages() {
@@ -4426,7 +4520,6 @@
       socket.on("system", appendSystem);
       socket.on("message", (msg) => {
         if (Number(msg.roomId) !== Number(currentRoomId)) {
-          syncMyRooms();
           return;
         }
         appendMessage(msg);
