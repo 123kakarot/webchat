@@ -140,6 +140,15 @@ function ensureClientId(raw) {
   return crypto.randomUUID();
 }
 
+function isDisplayNameTaken(name, exceptClientId = "") {
+  const key = String(name ?? "").trim().toLowerCase();
+  if (!key) return false;
+  const except = String(exceptClientId ?? "").trim();
+  return [...online.values()].some(
+    (u) => u.name.toLowerCase() === key && u.clientId !== except
+  );
+}
+
 function roomChannel(roomId) {
   return `room:${roomId}`;
 }
@@ -201,8 +210,15 @@ io.on("connection", (socket) => {
       return;
     }
 
-    joined = true;
     const clientId = ensureClientId(rawClientId);
+    if (isDisplayNameTaken(trimmed, clientId)) {
+      const reason = "Tên này đang có người khác dùng. Hãy chọn tên khác (không trùng, kể cả khác hoa thường).";
+      socket.emit("join_error", reason);
+      respond({ ok: false, reason });
+      return;
+    }
+
+    joined = true;
     online.set(socket.id, { id: socket.id, name: trimmed, clientId, roomId: null, roomCode: null });
 
     const payload = {
@@ -314,6 +330,11 @@ io.on("connection", (socket) => {
     const check = validateDisplayName(trimmed);
     if (!check.ok) {
       socket.emit("profile_error", check.reason);
+      return;
+    }
+
+    if (isDisplayNameTaken(trimmed, user.clientId)) {
+      socket.emit("profile_error", "Tên này đang có người khác dùng. Chọn tên khác.");
       return;
     }
 
