@@ -133,6 +133,19 @@ function normalizeAt(row) {
   return Date.now();
 }
 
+function parseMeta(raw) {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) return raw;
+  if (typeof raw === "string") {
+    try {
+      const p = JSON.parse(raw);
+      return p && typeof p === "object" && !Array.isArray(p) ? p : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
 function rowToMessage(row) {
   return {
     id: row.id,
@@ -143,7 +156,7 @@ function rowToMessage(row) {
     url: row.url ?? "",
     fileName: row.file_name ?? row.fileName ?? "",
     sticker: row.sticker ?? "",
-    meta: typeof row.meta === "object" && row.meta ? row.meta : {},
+    meta: parseMeta(row.meta),
     at: normalizeAt(row),
     reactions: row.reactions ?? {},
   };
@@ -464,4 +477,85 @@ export async function hydrateReactionCache(messages) {
     }
   }
   memoryMessages.sort((a, b) => a.id - b.id);
+}
+
+/** @returns {Promise<{ mode: string, counts: object, rooms: object[], recentMessages: object[] }>} */
+export async function getDbOverview({ roomLimit = 40, messageLimit = 25 } = {}) {
+  if (useMemory) {
+    const rooms = memoryRooms.map((r) => {
+      const msgs = memoryMessages.filter((m) => m.roomId === r.id);
+      const last = msgs[msgs.length - 1];
+      return {
+        id: r.id,
+        name: r.name,
+        code: r.code,
+        kind: r.kind,
+        message_count: msgs.length,
+        last_message_at: last?.at ? new Date(last.at).toISOString() : null,
+      };
+    });
+    const recentMessages = memoryMessages.slice(-messageLimit).map((m) => ({
+      id: m.id,
+      room_id: m.roomId,
+      name: m.name,
+      type: m.type,
+      text: (m.text || "").slice(0, 120),
+      created_at: m.at ? new Date(m.at).toISOString() : null,
+    }));
+    return {
+      mode: "memory",
+      counts: {
+        rooms: memoryRooms.length,
+        messages: memoryMessages.length,
+        reactions: [...memoryReactions.values()].reduce((n, m) => n + m.size, 0),
+      },
+      rooms: rooms.slice(-roomLimit).reverse(),
+      recentMessages,
+    };
+  }
+
+  const [roomCount, msgCount, reactCount] = await Promise.all([
+    pool.query(`SELECT COUNT(*)::int AS n FROM rooms`),
+    pool.query(`SELECT COUNT(*)::int AS n FROM messages`),
+    pool.query(`SELECT COUNT(*)::int AS n FROM reactions`),
+  ]);
+
+  const { rows: rooms } = await pool.query(
+    `
+    SELECT r.id, r.name, r.code, r.kind, r.created_at,
+           COUNT(m.id)::int AS message_count,
+           MAX(m.created_at) AS last_message_at
+    FROM rooms r
+    LEFT JOIN messages m ON m.room_id = r.id
+    GROUP BY r.id
+    ORDER BY MAX(m.created_at) DESC NULLS LAST, r.id DESC
+    LIMIT $1
+    `,
+    [roomLimit]
+  );
+
+  const { rows: recentMessages } = await pool.query(
+    `
+    SELECT m.id, m.room_id, m.name, m.type,
+           LEFT(COALESCE(m.text, ''), 120) AS text,
+           m.created_at,
+           r.code AS room_code
+    FROM messages m
+    LEFT JOIN rooms r ON r.id = m.room_id
+    ORDER BY m.id DESC
+    LIMIT $1
+    `,
+    [messageLimit]
+  );
+
+  return {
+    mode: "postgres",
+    counts: {
+      rooms: roomCount.rows[0]?.n ?? 0,
+      messages: msgCount.rows[0]?.n ?? 0,
+      reactions: reactCount.rows[0]?.n ?? 0,
+    },
+    rooms,
+    recentMessages,
+  };
 }

@@ -1560,7 +1560,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v21</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v22</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Vào phòng khác hoặc tạo phòng mới ở menu bên trái sau khi đăng nhập.</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -1620,7 +1620,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v21</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v22</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -2198,7 +2198,9 @@
         }
         const meta = pendingReply ? buildReplyMeta() : {};
         const sendPayload = () => {
-          socket.emit("message", { type: "text", text, meta: Object.keys(meta).length ? meta : undefined });
+          const payload = { type: "text", text };
+          if (Object.keys(meta).length) payload.meta = meta;
+          socket.emit("message", payload);
           clearPendingReply();
         };
         const doSend = () => {
@@ -3633,9 +3635,17 @@
           url = "",
           fileName = "",
           sticker = "",
-          meta = {},
           at,
         } = msg;
+        let meta = msg.meta ?? {};
+        if (typeof meta === "string") {
+          try {
+            meta = JSON.parse(meta);
+          } catch {
+            meta = {};
+          }
+        }
+        if (!meta || typeof meta !== "object") meta = {};
 
         const replyMeta =
           meta.replyToName || meta.replyToPreview
@@ -3673,16 +3683,19 @@
           bubble.appendChild(a);
         } else if (type === "contact") {
           bubble.classList.add("card-bubble");
-          bubble.innerHTML =
+          const card = document.createElement("div");
+          card.innerHTML =
             '<div class="card-title">👤 Danh thiếp</div>' +
             '<div class="card-row"><strong>' +
             escapeHtml(meta.displayName || name) +
             "</strong></div>" +
             (meta.phone ? '<div class="card-row">📞 ' + escapeHtml(meta.phone) + "</div>" : "") +
             (meta.note ? '<div class="card-row">' + escapeHtml(meta.note) + "</div>" : "");
+          bubble.appendChild(card);
         } else if (type === "payment") {
           bubble.classList.add("card-bubble");
-          bubble.innerHTML =
+          const card = document.createElement("div");
+          card.innerHTML =
             '<div class="card-title">💳 Chuyển khoản</div>' +
             (meta.bank ? '<div class="card-row">' + escapeHtml(meta.bank) + "</div>" : "") +
             '<div class="card-row"><strong>STK: ' +
@@ -3691,8 +3704,12 @@
             (meta.holder ? '<div class="card-row">' + escapeHtml(meta.holder) + "</div>" : "") +
             (meta.amount ? '<div class="card-row">Số tiền: ' + escapeHtml(meta.amount) + "</div>" : "") +
             (meta.note ? '<div class="card-row">ND: ' + escapeHtml(meta.note) + "</div>" : "");
+          bubble.appendChild(card);
         } else {
-          bubble.innerHTML = formatTextHtml(text);
+          const body = document.createElement("div");
+          body.className = "msg-text-body";
+          body.innerHTML = formatTextHtml(text);
+          bubble.appendChild(body);
         }
 
         if (type !== "sticker" && type !== "reaction") {
