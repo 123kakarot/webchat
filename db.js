@@ -15,8 +15,8 @@ let memoryNextId = 1;
 
 /** @type {Array<{ id: number, name: string, kind: string, code: string, owner_name?: string, avatar_url?: string }>} */
 const memoryRooms = [];
-/** @type {Map<number, Set<string>>} */
-const memoryRoomMembers = new Map();
+/** @type {Map<number, Map<string, { lastMessageId: number, avatarUrl: string }>>} */
+const memoryRoomReads = new Map();
 let memoryNextRoomId = 1;
 
 export function generateRoomCode() {
@@ -120,6 +120,15 @@ export async function initDb() {
       room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
       user_name VARCHAR(32) NOT NULL,
       joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (room_id, user_name)
+    );
+
+    CREATE TABLE IF NOT EXISTS room_read_state (
+      room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      user_name VARCHAR(32) NOT NULL,
+      last_message_id INTEGER NOT NULL DEFAULT 0,
+      avatar_url VARCHAR(500) NOT NULL DEFAULT '',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY (room_id, user_name)
     );
   `);
@@ -253,6 +262,81 @@ function roomRowToClient(row) {
   };
 }
 
+export async function messageBelongsToRoom(messageId, roomId) {
+  const mid = Number(messageId);
+  const rid = Number(roomId);
+  if (!Number.isFinite(mid) || !Number.isFinite(rid)) return false;
+
+  if (useMemory) {
+    return memoryMessages.some((m) => m.id === mid && m.roomId === rid);
+  }
+
+  const { rows } = await pool.query(
+    `SELECT 1 FROM messages WHERE id = $1 AND room_id = $2`,
+    [mid, rid]
+  );
+  return rows.length > 0;
+}
+
+export async function upsertRoomRead(roomId, userName, lastMessageId, avatarUrl = "") {
+  const rid = Number(roomId);
+  const name = String(userName ?? "").trim().slice(0, 32);
+  const mid = Number(lastMessageId);
+  const av = String(avatarUrl ?? "").slice(0, 500);
+  if (!Number.isFinite(rid) || !name || !Number.isFinite(mid) || mid < 1) return false;
+
+  if (useMemory) {
+    if (!memoryRoomReads.has(rid)) memoryRoomReads.set(rid, new Map());
+    const map = memoryRoomReads.get(rid);
+    const prev = map.get(name);
+    if (prev && prev.lastMessageId >= mid) {
+      if (av && av !== prev.avatarUrl) map.set(name, { ...prev, avatarUrl: av });
+      return false;
+    }
+    map.set(name, { lastMessageId: mid, avatarUrl: av || prev?.avatarUrl || "" });
+    return true;
+  }
+
+  const { rows } = await pool.query(
+    `
+    INSERT INTO room_read_state (room_id, user_name, last_message_id, avatar_url, updated_at)
+    VALUES ($1, $2, $3, $4, NOW())
+    ON CONFLICT (room_id, user_name) DO UPDATE SET
+      last_message_id = GREATEST(room_read_state.last_message_id, EXCLUDED.last_message_id),
+      avatar_url = CASE WHEN EXCLUDED.avatar_url <> '' THEN EXCLUDED.avatar_url ELSE room_read_state.avatar_url END,
+      updated_at = NOW()
+    RETURNING last_message_id
+    `,
+    [rid, name, mid, av]
+  );
+  return Number(rows[0]?.last_message_id) === mid;
+}
+
+export async function getRoomReads(roomId) {
+  const rid = Number(roomId);
+  if (!Number.isFinite(rid)) return [];
+
+  if (useMemory) {
+    const map = memoryRoomReads.get(rid);
+    if (!map) return [];
+    return [...map.entries()].map(([userName, v]) => ({
+      userName,
+      lastMessageId: v.lastMessageId,
+      avatarUrl: v.avatarUrl || "",
+    }));
+  }
+
+  const { rows } = await pool.query(
+    `SELECT user_name, last_message_id, avatar_url FROM room_read_state WHERE room_id = $1`,
+    [rid]
+  );
+  return rows.map((r) => ({
+    userName: r.user_name,
+    lastMessageId: Number(r.last_message_id) || 0,
+    avatarUrl: r.avatar_url || "",
+  }));
+}
+
 export async function addRoomMember(roomId, userName) {
   const rid = Number(roomId);
   const name = String(userName ?? "").trim().slice(0, 32);
@@ -354,6 +438,7 @@ export async function deleteRoomById(roomId) {
     if (idx < 0) return false;
     memoryRooms.splice(idx, 1);
     memoryRoomMembers.delete(rid);
+    memoryRoomReads.delete(rid);
     for (let j = memoryMessages.length - 1; j >= 0; j--) {
       if (memoryMessages[j].roomId === rid) memoryMessages.splice(j, 1);
     }

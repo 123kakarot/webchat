@@ -25,6 +25,9 @@ import {
   updateRoomFields,
   deleteRoomById,
   normalizeRoomCode,
+  upsertRoomRead,
+  getRoomReads,
+  messageBelongsToRoom,
   getDbOverview,
 } from "./db.js";
 
@@ -161,6 +164,11 @@ function broadcastRoomRoster(roomId) {
     if (roster) io.to(`room:${roomId}`).emit("room_roster", roster);
   });
   broadcastUsers(roomId);
+}
+
+async function broadcastRoomReads(roomId) {
+  const readers = await getRoomReads(roomId);
+  io.to(`room:${roomId}`).emit("room_reads", { roomId, readers });
 }
 
 function parseJoinPayload(raw) {
@@ -359,6 +367,7 @@ io.on("connection", (socket) => {
 
       const history = await loadRecentMessages(room.id, 250);
       const roster = await buildRoomRoster(room.id);
+      const readers = await getRoomReads(room.id);
       const data = {
         ok: true,
         roomId: room.id,
@@ -367,6 +376,7 @@ io.on("connection", (socket) => {
         ownerName: room.ownerName || "",
         avatarUrl: room.avatarUrl || "",
         roster,
+        readers,
         history,
       };
       socket.emit("room_joined", data);
@@ -409,6 +419,17 @@ io.on("connection", (socket) => {
       socket.emit("room_error", reason);
       respond({ ok: false, reason });
     }
+  });
+
+  socket.on("mark_read", async (payload) => {
+    const user = online.get(socket.id);
+    if (!user?.roomId) return;
+    const messageId = Number(payload?.messageId);
+    if (!Number.isInteger(messageId) || messageId < 1) return;
+    if (!(await messageBelongsToRoom(messageId, user.roomId))) return;
+    const avatarUrl = String(payload?.avatarUrl ?? "").slice(0, 500);
+    await upsertRoomRead(user.roomId, user.name, messageId, avatarUrl);
+    broadcastRoomReads(user.roomId);
   });
 
   socket.on("update_profile", (payload) => {

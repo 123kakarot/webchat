@@ -1321,6 +1321,44 @@
         border-color: var(--accent);
       }
 
+      .msg-seen {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-end;
+        align-items: center;
+        margin-top: 0.15rem;
+        padding-right: 0.15rem;
+        min-height: 18px;
+      }
+
+      .msg-seen-avatar {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 1.5px solid var(--bg);
+        margin-left: -5px;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #475569, #334155);
+        color: #fff;
+        font-size: 0.55rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        line-height: 1;
+      }
+
+      .msg-seen-avatar:first-child {
+        margin-left: 0;
+      }
+
+      .msg-seen-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
       .msg-bubble {
         padding: 0.55rem 0.85rem;
         border-radius: 14px;
@@ -2078,7 +2116,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v31</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v32</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. <strong>Tên không được trùng</strong> người đang online (kể cả khác hoa thường).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -2140,7 +2178,7 @@
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <button type="button" class="room-head-avatar" id="room-head-avatar" title="Ảnh nhóm"><span id="room-head-avatar-letter">?</span></button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v31</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v32</span></div>
           <button type="button" class="room-member-count" id="btn-room-members">0 thành viên</button>
           <div class="you" id="you-label" style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
@@ -2494,6 +2532,7 @@
       const joinBtn = document.getElementById("join-btn");
       const joinError = document.getElementById("join-error");
       const messagesEl = document.getElementById("messages");
+      messagesEl.addEventListener("scroll", () => scheduleMarkRead(), { passive: true });
       const sendForm = document.getElementById("send-form");
       const messageInput = document.getElementById("message-input");
       const youLabel = document.getElementById("you-label");
@@ -2565,6 +2604,10 @@
 
       const BG_PRESETS = ["#0f1419", "#1a1a2e", "#162447", "#1b263b", "#2d132c", "#1c3334", "#2c1810", "#eef2ff"];
       const messageNodes = new Map();
+      /** @type {Map<string, { lastMessageId: number, avatarUrl: string }>} */
+      let roomReaders = new Map();
+      let markReadTimer = null;
+      let lastMarkReadSent = 0;
       const imageLightboxEl = document.getElementById("image-lightbox");
       const imageLightboxImg = document.getElementById("image-lightbox-img");
       const imageLightboxThumbs = document.getElementById("image-lightbox-thumbs");
@@ -2811,9 +2854,11 @@
           .slice(0, 8);
       }
 
-      function applyRoomJoined({ roomId, code, name, history, ownerName, avatarUrl, roster }) {
+      function applyRoomJoined({ roomId, code, name, history, ownerName, avatarUrl, roster, readers }) {
         clearPendingReply();
         clearPendingImages();
+        lastMarkReadSent = 0;
+        applyRoomReads(readers);
         const sameRoom = Number(roomId) === Number(currentRoomId);
         currentRoomId = roomId;
         currentRoomOwnerName = ownerName || roster?.ownerName || "";
@@ -2845,7 +2890,107 @@
         }
         const last = list[list.length - 1];
         if (last) markRoomRead(roomId, last.at);
+        scheduleMarkRead(true);
         messageInput.focus();
+      }
+
+      function applyRoomReads(readers) {
+        roomReaders = new Map();
+        for (const r of readers || []) {
+          if (!r?.userName) continue;
+          roomReaders.set(r.userName, {
+            lastMessageId: Number(r.lastMessageId) || 0,
+            avatarUrl: r.avatarUrl || "",
+          });
+        }
+        refreshAllSeenAvatars();
+      }
+
+      function computeReadUpToMessageId() {
+        const el = messagesEl;
+        if (!el || !messageNodes.size) return null;
+        const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 140;
+        if (nearBottom) {
+          let max = 0;
+          for (const id of messageNodes.keys()) max = Math.max(max, Number(id));
+          return max || null;
+        }
+        let maxVisible = 0;
+        const viewTop = el.scrollTop;
+        const viewBottom = viewTop + el.clientHeight;
+        for (const [id, node] of messageNodes) {
+          const row = node.row;
+          if (!row) continue;
+          const top = row.offsetTop;
+          const bottom = top + row.offsetHeight;
+          if (bottom >= viewTop + 20 && top <= viewBottom - 20) {
+            maxVisible = Math.max(maxVisible, Number(id));
+          }
+        }
+        return maxVisible || null;
+      }
+
+      function emitMarkRead(messageId) {
+        const mid = Number(messageId);
+        if (!currentRoomId || !Number.isFinite(mid) || mid < 1) return;
+        if (mid <= lastMarkReadSent) return;
+        lastMarkReadSent = mid;
+        const p = loadProfile();
+        socket.emit("mark_read", { messageId: mid, avatarUrl: p.avatarUrl || "" });
+      }
+
+      function scheduleMarkRead(immediate) {
+        clearTimeout(markReadTimer);
+        if (immediate) {
+          const id = computeReadUpToMessageId();
+          if (id) emitMarkRead(id);
+          return;
+        }
+        markReadTimer = setTimeout(() => {
+          const id = computeReadUpToMessageId();
+          if (id) emitMarkRead(id);
+        }, 350);
+      }
+
+      function renderSeenAvatars(seenEl, messageId, authorName) {
+        if (!seenEl) return;
+        const viewers = [];
+        for (const [name, st] of roomReaders) {
+          if (name === authorName) continue;
+          if ((st.lastMessageId || 0) >= Number(messageId)) {
+            viewers.push({ name, avatarUrl: st.avatarUrl || "" });
+          }
+        }
+        viewers.sort((a, b) => a.name.localeCompare(b.name, "vi"));
+        if (!viewers.length) {
+          seenEl.innerHTML = "";
+          seenEl.hidden = true;
+          return;
+        }
+        seenEl.hidden = false;
+        seenEl.innerHTML = "";
+        viewers.slice(0, 14).forEach((v, i) => {
+          const span = document.createElement("span");
+          span.className = "msg-seen-avatar";
+          span.title = v.name + " đã xem";
+          span.style.zIndex = String(30 - i);
+          if (v.avatarUrl) {
+            const img = document.createElement("img");
+            img.src = v.avatarUrl;
+            img.alt = "";
+            span.appendChild(img);
+          } else {
+            span.textContent = roomInitials(v.name);
+          }
+          seenEl.appendChild(span);
+        });
+      }
+
+      function refreshAllSeenAvatars() {
+        for (const [msgId, node] of messageNodes) {
+          if (!node.seenEl || !node.msg || !isMyMessage(node.msg)) continue;
+          renderSeenAvatars(node.seenEl, msgId, node.msg.name);
+        }
       }
 
       function joinRoomWithAck(code, opts = {}) {
@@ -4961,11 +5106,19 @@
         stack.appendChild(actions);
         stack.appendChild(wrap);
 
+        const seenEl = document.createElement("div");
+        seenEl.className = "msg-seen";
+        seenEl.hidden = true;
+        if (isMyMessage(msg)) stack.appendChild(seenEl);
+
         row.appendChild(nameEl);
         row.appendChild(stack);
         messagesEl.appendChild(row);
 
-        messageNodes.set(id, { row, reactionsEl, msg: { ...msg } });
+        messageNodes.set(id, { row, reactionsEl, seenEl, msg: { ...msg } });
+        if (isMyMessage(msg)) renderSeenAvatars(seenEl, id, name);
+
+        scheduleMarkRead();
 
         let longPressTimer;
         row.addEventListener("touchstart", () => {
@@ -4986,6 +5139,7 @@
         }
         appendMessage(msg);
         markRoomRead(currentRoomId, msg.at);
+        if (!isMyMessage(msg)) scheduleMarkRead(true);
       });
       socket.on("message_reactions", ({ messageId, reactions }) => {
         updateMessageReactions(messageId, reactions);
@@ -5022,6 +5176,11 @@
         syncMyRooms();
         renderRoomList();
         renderRoomHeader();
+      });
+
+      socket.on("room_reads", (payload) => {
+        if (Number(payload?.roomId) !== Number(currentRoomId)) return;
+        applyRoomReads(payload.readers);
       });
 
       socket.on("users", (names) => {
