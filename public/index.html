@@ -1178,7 +1178,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v16</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v17</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Vào phòng khác hoặc tạo phòng mới ở menu bên trái sau khi đăng nhập.</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -1257,7 +1257,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v16</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v17</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -1327,7 +1327,7 @@
           <div class="quick-list" id="quick-list"></div>
         </div>
 
-        <form class="composer" id="send-form">
+        <form class="composer" id="send-form" action="javascript:void(0)" method="post">
           <div class="input-wrap">
             <textarea
               id="message-input"
@@ -1645,9 +1645,13 @@
 
       function applyRoomJoined({ roomId, code, name, history }) {
         currentRoomId = roomId;
-        currentRoomCode = code;
-        saveRoomCode(code);
-        localStorage.setItem(STORAGE_LAST_CODE, code);
+        const normalized = normalizeRoomCodeClient(code || "");
+        currentRoomCode = normalized.length >= 4 ? normalized : null;
+        if (currentRoomCode) {
+          saveRoomCode(currentRoomCode);
+          localStorage.setItem(STORAGE_LAST_CODE, currentRoomCode);
+        }
+        saveRoomMeta(currentRoomCode || code, name, roomId);
         hideRoomGate();
         appShell.classList.add("active", "show-chat");
         chat.classList.add("active");
@@ -1715,6 +1719,29 @@
         pendingAutoJoin = null;
         resetJoinUi();
         joinError.hidden = true;
+      });
+
+      function sendChatMessage() {
+        const text = messageInput.value.trim();
+        if (!text) return;
+        if (!myName) {
+          ensureLoggedIn();
+          return;
+        }
+        const emitMsg = () => socket.emit("message", { type: "text", text });
+        if (sessionReady) {
+          emitMsg();
+        } else {
+          ensureSession(emitMsg);
+        }
+        messageInput.value = "";
+        messageInput.style.height = "auto";
+        mentionList.classList.remove("open");
+      }
+
+      sendForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        sendChatMessage();
       });
 
       socket.on("connect", () => {
@@ -1925,11 +1952,21 @@
       }
 
       function saveRoomCode(code) {
-        const c = String(code || "").toUpperCase();
-        if (!c) return;
+        const c = normalizeRoomCodeClient(code);
+        if (c.length < 4) return;
         const set = new Set(getSavedRoomCodes());
         set.add(c);
         localStorage.setItem(STORAGE_ROOM_CODES, JSON.stringify([...set]));
+      }
+
+      function saveRoomMeta(code, name, roomId) {
+        const c = normalizeRoomCodeClient(code);
+        if (c.length < 4) return;
+        try {
+          const meta = JSON.parse(localStorage.getItem("webchat-room-meta") || "{}");
+          meta[c] = { name: name || "Phòng chat", id: roomId ?? null };
+          localStorage.setItem("webchat-room-meta", JSON.stringify(meta));
+        } catch (_) {}
       }
 
       function syncMyRooms() {
@@ -2031,10 +2068,37 @@
         return (name || "?").trim().slice(0, 1).toUpperCase();
       }
 
+      function getSavedRoomMeta() {
+        try {
+          return JSON.parse(localStorage.getItem("webchat-room-meta") || "{}");
+        } catch {
+          return {};
+        }
+      }
+
+      function mergeRoomsWithSavedCodes(serverRooms) {
+        const map = new Map(serverRooms.map((r) => [String(r.code || "").toUpperCase(), r]));
+        const meta = getSavedRoomMeta();
+        for (const code of getSavedRoomCodes()) {
+          if (!map.has(code)) {
+            const m = meta[code] || {};
+            map.set(code, {
+              id: m.id ?? code,
+              code,
+              name: m.name || "Phòng " + code,
+              preview: "Bấm để vào lại phòng",
+              lastAt: 0,
+              lastName: "",
+            });
+          }
+        }
+        return [...map.values()];
+      }
+
       function renderRoomList() {
         const q = roomSearch.value.trim().toLowerCase();
         roomListEl.innerHTML = "";
-        let list = roomsData.slice();
+        let list = mergeRoomsWithSavedCodes(roomsData.slice());
         if (q) list = list.filter((r) => r.name.toLowerCase().includes(q));
         if (sidebarTab === "unread") {
           list = list.filter((r) => r.lastAt && r.lastAt > readCursor(r.id) && r.id !== currentRoomId);
@@ -2080,7 +2144,13 @@
       function renderRoomHeader() {
         const room = roomsData.find((r) => r.id === currentRoomId);
         roomTitleEl.textContent = room?.name || "Phòng chat";
-        document.getElementById("room-code-label").textContent = currentRoomCode || room?.code || "—";
+        const label =
+          currentRoomCode && currentRoomCode.length >= 4
+            ? currentRoomCode
+            : room?.code && String(room.code).length >= 4
+              ? room.code
+              : "—";
+        document.getElementById("room-code-label").textContent = label;
       }
 
       document.querySelectorAll(".sidebar-tabs button").forEach((btn) => {
@@ -2970,16 +3040,6 @@
       });
 
       onlineToggle.addEventListener("click", () => onlinePanel.classList.toggle("open"));
-
-      sendForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const text = messageInput.value.trim();
-        if (!text) return;
-        socket.emit("message", { type: "text", text });
-        messageInput.value = "";
-        messageInput.style.height = "auto";
-        mentionList.classList.remove("open");
-      });
     </script>
   </body>
 </html>
