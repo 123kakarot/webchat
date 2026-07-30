@@ -1108,7 +1108,7 @@
       </div>
     </section>
 
-    <section class="gate" id="gate-room" hidden>
+    <section class="gate" id="gate-room" hidden style="display:none">
       <div class="gate-card">
         <h1>Mã phòng</h1>
         <p>Chỉ ai có đúng mã mới xem và chat được. Tạo phòng mới sẽ có mã riêng.</p>
@@ -1409,6 +1409,50 @@
       const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"];
       const socket = io();
 
+      let joinWaitTimer = null;
+
+      function resetJoinUi() {
+        joinBtn.disabled = false;
+        joinBtn.textContent = "Tiếp tục";
+      }
+
+      function clearJoinWait() {
+        if (joinWaitTimer) {
+          clearTimeout(joinWaitTimer);
+          joinWaitTimer = null;
+        }
+      }
+
+      function startJoinWait() {
+        clearJoinWait();
+        joinWaitTimer = setTimeout(() => {
+          if (myName) return;
+          pendingAutoJoin = null;
+          resetJoinUi();
+          joinError.textContent =
+            "Không vào lại được (mạng chậm hoặc server đang ngủ). Bấm Tiếp tục.";
+          joinError.hidden = false;
+        }, 15000);
+      }
+
+      function tryAutoJoinName() {
+        if (!pendingAutoJoin || myName) return;
+        if (!socket.connected) return;
+        startJoinWait();
+        requestJoin(pendingAutoJoin, true);
+      }
+
+      function ensureLoggedIn() {
+        if (myName) return true;
+        roomCodeError.textContent = "Hãy hoàn tất bước nhập tên (Tiếp tục) trước.";
+        roomCodeError.hidden = false;
+        gate.style.display = "";
+        gateRoom.style.display = "none";
+        gateRoom.hidden = true;
+        resetJoinUi();
+        return false;
+      }
+
       const savedName = localStorage.getItem(STORAGE_NAME);
       if (savedName) {
         nameInput.value = savedName;
@@ -1417,6 +1461,7 @@
           pendingAutoJoin = savedName;
           joinBtn.textContent = "Đang vào lại…";
           joinBtn.disabled = true;
+          startJoinWait();
         }
       }
 
@@ -1492,11 +1537,13 @@
       }
 
       function promptJoinCode() {
+        if (!ensureLoggedIn()) return;
         const code = prompt("Nhập mã phòng:");
         if (code?.trim()) enterRoom(code.trim());
       }
 
       function promptCreateRoom() {
+        if (!ensureLoggedIn()) return;
         const name = prompt("Tên phòng / nhóm mới:", "Nhóm của tôi");
         if (name?.trim()) socket.emit("create_room", name.trim());
       }
@@ -1545,15 +1592,19 @@
       }
 
       function showRoomGate() {
+        gate.style.display = "none";
         gateRoom.hidden = false;
+        gateRoom.style.display = "";
         roomCodeInput.focus();
       }
 
       function hideRoomGate() {
         gateRoom.hidden = true;
+        gateRoom.style.display = "none";
       }
 
       function enterRoom(code) {
+        if (!ensureLoggedIn()) return;
         roomCodeError.hidden = true;
         socket.emit("join_room", { code: String(code || "").trim() });
       }
@@ -1730,6 +1781,7 @@
 
       roomCodeForm.addEventListener("submit", (e) => {
         e.preventDefault();
+        if (!ensureLoggedIn()) return;
         enterRoom(roomCodeInput.value);
       });
 
@@ -1746,6 +1798,10 @@
         roomsData = rooms;
         renderRoomList();
         renderRoomHeader();
+      });
+
+      socket.on("room_error", (msg) => {
+        alert(msg || "Không tạo được phòng");
       });
 
       socket.on("room_join_error", (msg) => {
@@ -1778,8 +1834,11 @@
       socket.on("room_created", (room) => {
         saveRoomCode(room.code);
         alert("Phòng đã tạo!\n\nMã phòng: " + room.code + "\n\nGửi mã này cho mọi người cần vào.");
+        hideRoomGate();
         enterRoom(room.code);
       });
+
+      tryAutoJoinName();
 
       socket.on("room_preview", (patch) => {
         const i = roomsData.findIndex((r) => r.code === patch.code);
@@ -2210,8 +2269,23 @@
 
       socket.on("connect", () => {
         statusDot.classList.remove("off");
-        if (pendingAutoJoin && !myName) {
-          requestJoin(pendingAutoJoin, true);
+        tryAutoJoinName();
+      });
+
+      socket.io.on("reconnect", () => {
+        if (myName && currentRoomCode) {
+          socket.emit("join", { name: myName, rejoin: true });
+        } else {
+          tryAutoJoinName();
+        }
+      });
+
+      socket.on("connect_error", () => {
+        if (!myName && pendingAutoJoin) {
+          clearJoinWait();
+          resetJoinUi();
+          joinError.textContent = "Mất kết nối server. Thử bấm Tiếp tục lại.";
+          joinError.hidden = false;
         }
       });
       socket.on("disconnect", () => statusDot.classList.add("off"));
@@ -2228,23 +2302,29 @@
         }
         joinError.hidden = true;
         joinBtn.disabled = true;
+        joinBtn.textContent = "Đang vào lại…";
+        startJoinWait();
         requestJoin(name, false);
       });
 
       socket.on("join_error", (reason) => {
-        joinBtn.disabled = false;
-        joinBtn.textContent = "Vào phòng";
+        clearJoinWait();
+        resetJoinUi();
         pendingAutoJoin = null;
         localStorage.removeItem(STORAGE_NAME);
         joinError.textContent = reason;
         joinError.hidden = false;
+        hideRoomGate();
+        gate.style.display = "";
       });
 
       socket.on("joined", ({ name, persistent, rejoin }) => {
+        clearJoinWait();
         myName = name;
         pendingAutoJoin = null;
         localStorage.setItem(STORAGE_NAME, name);
         gate.style.display = "none";
+        hideRoomGate();
         youLabel.textContent =
           "Bạn: " + name + (persistent ? " · lưu cloud" : " · chỉ tạm (chưa có DB)");
         profileSuffix = persistent ? " · lưu cloud" : " · chỉ tạm (chưa có DB)";
