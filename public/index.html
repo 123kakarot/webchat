@@ -658,6 +658,7 @@
         <form id="join-form">
           <label for="name">Tên của bạn</label>
           <input id="name" autocomplete="nickname" placeholder="Ví dụ: Lan, Minh…" maxlength="32" required />
+          <p id="join-error" hidden style="color:#f87171;font-size:0.85rem;margin-bottom:0.75rem"></p>
           <button type="submit" id="join-btn">Vào phòng</button>
         </form>
       </div>
@@ -817,7 +818,8 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script>
+    <script type="module">
+      import { validateDisplayName } from "/nameFilter.js";
       const EMOJIS =
         "😀 😃 😄 😁 😆 😅 🤣 😂 🙂 😊 😇 🥰 😍 🤩 😘 😗 😚 😙 🥲 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 🤨 😐 😑 😶 😏 😒 🙄 😬 🤥 😌 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🤮 🤧 🥵 🥶 🥴 😵 🤯 🤠 🥳 🥸 😎 🤓 🧐 😕 😟 🙁 ☹️ 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 🤬 👍 👎 👏 🙏 ❤️ 🔥 ✨ 🎉".split(
           " "
@@ -830,6 +832,7 @@
       const joinForm = document.getElementById("join-form");
       const nameInput = document.getElementById("name");
       const joinBtn = document.getElementById("join-btn");
+      const joinError = document.getElementById("join-error");
       const messagesEl = document.getElementById("messages");
       const sendForm = document.getElementById("send-form");
       const messageInput = document.getElementById("message-input");
@@ -1238,9 +1241,22 @@
       joinForm.addEventListener("submit", (e) => {
         e.preventDefault();
         const name = nameInput.value.trim();
-        if (!name) return;
+        const check = validateDisplayName(name);
+        if (!check.ok) {
+          joinError.textContent = check.reason;
+          joinError.hidden = false;
+          joinBtn.disabled = false;
+          return;
+        }
+        joinError.hidden = true;
         joinBtn.disabled = true;
         socket.emit("join", name);
+      });
+
+      socket.on("join_error", (reason) => {
+        joinBtn.disabled = false;
+        joinError.textContent = reason;
+        joinError.hidden = false;
       });
 
       socket.on("joined", ({ name }) => {

@@ -6,6 +6,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import multer from "multer";
 import crypto from "crypto";
+import { validateDisplayName } from "./nameFilter.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.join(__dirname, "uploads");
@@ -18,6 +19,10 @@ const io = new Server(httpServer, {
 });
 
 app.use(express.static(path.join(__dirname, "public")));
+app.get("/nameFilter.js", (_req, res) => {
+  res.type("application/javascript");
+  res.sendFile(path.join(__dirname, "nameFilter.js"));
+});
 app.use("/uploads", express.static(uploadsDir));
 
 const storage = multer.diskStorage({
@@ -62,7 +67,13 @@ io.on("connection", (socket) => {
 
   socket.on("join", (name) => {
     const trimmed = String(name ?? "").trim().slice(0, 32);
-    if (!trimmed || joined) return;
+    if (joined) return;
+
+    const check = validateDisplayName(trimmed);
+    if (!check.ok) {
+      socket.emit("join_error", check.reason);
+      return;
+    }
 
     joined = true;
     online.set(socket.id, { id: socket.id, name: trimmed });
