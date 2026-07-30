@@ -1097,7 +1097,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v13</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v14</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Vào phòng khác hoặc tạo phòng mới ở menu bên trái sau khi đăng nhập.</p>
         <form id="join-form">
           <label for="name">Tên của bạn</label>
@@ -1176,7 +1176,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v13</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v14</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -1475,7 +1475,7 @@
               onJoinedSession(res);
               return;
             }
-            if (res?.reason) onJoinError(res.reason);
+            if (res?.reason && !myName) onJoinError(res.reason);
           });
         };
 
@@ -1567,10 +1567,13 @@
         messageInput.focus();
       }
 
-      function joinRoomWithAck(code) {
+      function joinRoomWithAck(code, { force = false } = {}) {
         const c = normalizeRoomCodeClient(code);
         if (c.length < 4) {
           alert("Mã phòng không hợp lệ.");
+          return;
+        }
+        if (!force && currentRoomCode === c && currentRoomId != null && sessionReady) {
           return;
         }
         ensureSession(() => {
@@ -1595,7 +1598,9 @@
       socket.on("connect", () => {
         statusDot.classList.remove("off");
         if (myName) {
-          rejoinServerSession();
+          rejoinServerSession((err) => {
+            if (!err) onSessionRestored();
+          });
         } else {
           tryAutoJoinName();
         }
@@ -1751,8 +1756,11 @@
 
       function onRoomCreated(room) {
         if (!room?.code) return;
+        saveRoomCode(room.code);
+        localStorage.setItem(STORAGE_LAST_CODE, room.code);
+        syncMyRooms();
         alert("Phòng đã tạo!\n\nMã phòng: " + room.code + "\n\nGửi mã này cho mọi người cần vào.");
-        joinRoomWithAck(room.code);
+        joinRoomWithAck(room.code, { force: true });
       }
 
       function initProfileUi() {
@@ -1802,10 +1810,23 @@
         clearJoinWait();
         resetJoinUi();
         pendingAutoJoin = null;
+        myName = "";
+        sessionReady = false;
+        localStorage.removeItem(STORAGE_NAME);
         joinError.textContent = reason || "Không đăng nhập được.";
         joinError.hidden = false;
         hideRoomGate();
         gate.style.display = "";
+        appShell.classList.remove("active", "show-chat");
+        chat.classList.remove("active");
+      }
+
+      function onSessionRestored() {
+        sessionReady = true;
+        syncMyRooms();
+        if (currentRoomCode) {
+          joinRoomWithAck(currentRoomCode, { force: true });
+        }
       }
 
       function onJoinedSession({ name, persistent, rejoin }) {
@@ -2505,7 +2526,7 @@
         sessionReady = false;
         if (myName) {
           rejoinServerSession((err) => {
-            if (!err && currentRoomCode) joinRoomWithAck(currentRoomCode);
+            if (!err) onSessionRestored();
           });
         } else {
           tryAutoJoinName();
@@ -2539,12 +2560,27 @@
       });
 
       socket.on("join_error", (reason) => {
-        localStorage.removeItem(STORAGE_NAME);
+        if (myName) {
+          sessionReady = false;
+          console.warn("join_error while logged in:", reason);
+          return;
+        }
         onJoinError(reason);
       });
 
       socket.on("joined", (payload) => {
-        if (payload?.name) onJoinedSession(payload);
+        if (!payload?.name) return;
+        if (myName) {
+          if (payload.name !== myName) {
+            myName = payload.name;
+            localStorage.setItem(STORAGE_NAME, payload.name);
+            youLabel.textContent = "Bạn: " + payload.name + profileSuffix;
+            updateAvatarUi();
+          }
+          onSessionRestored();
+          return;
+        }
+        onJoinedSession(payload);
       });
 
       tryAutoJoinName();
