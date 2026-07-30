@@ -1560,7 +1560,7 @@
   <body>
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v22</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v23</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Vào phòng khác hoặc tạo phòng mới ở menu bên trái sau khi đăng nhập.</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -1620,7 +1620,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v22</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v23</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -3112,11 +3112,33 @@
         return d.innerHTML;
       }
 
+      function getMentionNames() {
+        const fromChat = [...messageNodes.values()].map((n) => n.msg?.name).filter(Boolean);
+        const fromReply = pendingReply?.name ? [pendingReply.name] : [];
+        return [...new Set([myName, ...onlineNames, ...fromChat, ...fromReply])]
+          .filter(Boolean)
+          .sort((a, b) => b.length - a.length);
+      }
+
       function formatTextHtml(text) {
         let s = escapeHtml(text);
         s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
         s = s.replace(/_(.+?)_/g, "<em>$1</em>");
+
+        const placeholders = [];
+        for (const name of getMentionNames()) {
+          const pattern = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const re = new RegExp(`@${pattern}(?=\\s|$|[.,!?;:])`, "gi");
+          s = s.replace(re, (full) => {
+            const key = `\x00@${placeholders.length}@\x00`;
+            placeholders.push(`<span class="mention">${escapeHtml(full)}</span>`);
+            return key;
+          });
+        }
         s = s.replace(/@([\w\u00C0-\u1EF9]+)/g, '<span class="mention">@$1</span>');
+        placeholders.forEach((html, i) => {
+          s = s.split(`\x00@${i}@\x00`).join(html);
+        });
         return s;
       }
 
@@ -3442,13 +3464,14 @@
         const val = messageInput.value;
         const pos = messageInput.selectionStart;
         const before = val.slice(0, pos);
-        const match = before.match(/@([\w\u00C0-\u1EF9]*)$/);
+        const match = before.match(/@([^@\n]*)$/);
         if (!match) {
           mentionList.classList.remove("open");
           return;
         }
         const q = match[1].toLowerCase();
-        const hits = onlineNames.filter((n) => n !== myName && n.toLowerCase().startsWith(q));
+        const pool = [...new Set([...onlineNames, ...getMentionNames()])].filter((n) => n && n !== myName);
+        const hits = pool.filter((n) => n.toLowerCase().startsWith(q));
         if (!hits.length) {
           mentionList.classList.remove("open");
           return;
@@ -3459,7 +3482,7 @@
           btn.type = "button";
           btn.textContent = "@" + name;
           btn.addEventListener("click", () => {
-            const newBefore = before.replace(/@[\w\u00C0-\u1EF9]*$/, "@" + name + " ");
+            const newBefore = before.replace(/@[^@\n]*$/, "@" + name + " ");
             messageInput.value = newBefore + val.slice(pos);
             mentionList.classList.remove("open");
             messageInput.focus();
