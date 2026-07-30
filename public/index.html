@@ -149,7 +149,128 @@
         display: flex;
       }
 
-      .sidebar {
+      .nav-rail {
+        width: 56px;
+        background: #0a0e14;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0.5rem 0;
+        gap: 0.35rem;
+        flex-shrink: 0;
+      }
+
+      .nav-rail .spacer {
+        flex: 1;
+      }
+
+      .nav-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        padding: 0;
+        overflow: hidden;
+        cursor: pointer;
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        color: #fff;
+        font-weight: 600;
+        font: inherit;
+      }
+
+      .nav-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .nav-item {
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 1.1rem;
+      }
+
+      .nav-item.active,
+      .nav-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
+
+      .sidebar-actions {
+        display: flex;
+        gap: 0.35rem;
+        margin-top: 0.5rem;
+      }
+
+      .sidebar-actions button {
+        flex: 1;
+        padding: 0.45rem 0.35rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.72rem;
+        cursor: pointer;
+      }
+
+      .sidebar-actions button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+
+      .profile-panel-inner {
+        padding: 0.75rem;
+        overflow-y: auto;
+        flex: 1;
+      }
+
+      .profile-avatar-lg {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        margin: 0 auto 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        overflow: hidden;
+        font-size: 1.75rem;
+        font-weight: 600;
+      }
+
+      .profile-avatar-lg img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .color-swatches {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.35rem;
+      }
+
+      .color-swatches button {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        cursor: pointer;
+      }
+
+      .color-swatches button.selected {
+        border-color: #fff;
+      }
+
         width: min(340px, 42vw);
         border-right: 1px solid var(--border);
         background: var(--surface2);
@@ -356,6 +477,10 @@
         display: flex;
         flex-direction: column;
         gap: 0.65rem;
+        background-color: var(--chat-bg, var(--bg));
+        background-image: var(--chat-bg-image, none);
+        background-size: cover;
+        background-position: center;
       }
 
       .msg-system {
@@ -998,11 +1123,23 @@
     </section>
 
     <div class="app-shell" id="app-shell">
+      <nav class="nav-rail" aria-label="Menu">
+        <button type="button" class="nav-avatar" id="nav-open-profile" title="Hồ sơ"><span id="nav-avatar-text">?</span></button>
+        <button type="button" class="nav-item active" id="nav-chats" title="Danh sách chat">💬</button>
+        <div class="spacer"></div>
+        <button type="button" class="nav-item" id="nav-settings" title="Giao diện">🎨</button>
+      </nav>
+
       <aside class="sidebar" id="sidebar">
+        <div id="panel-chats">
         <div class="sidebar-head">
           <div class="sidebar-search">
             <input id="room-search" type="search" placeholder="Tìm kiếm" autocomplete="off" />
-            <button type="button" class="sidebar-icon-btn" id="btn-new-group" title="Tạo nhóm">+</button>
+            <button type="button" class="sidebar-icon-btn" id="btn-new-group" title="Phòng">+</button>
+          </div>
+          <div class="sidebar-actions">
+            <button type="button" id="btn-join-code">🔑 Vào mã</button>
+            <button type="button" class="primary" id="btn-create-room-sidebar">➕ Tạo phòng</button>
           </div>
           <div class="sidebar-tabs">
             <button type="button" class="active" data-tab="all">Tất cả</button>
@@ -1010,6 +1147,28 @@
           </div>
         </div>
         <div id="room-list"></div>
+        </div>
+
+        <div id="panel-profile" hidden class="profile-panel-inner">
+          <h2 style="font-size:1rem;margin-bottom:0.75rem">Hồ sơ & giao diện</h2>
+          <div class="profile-avatar-lg" id="profile-avatar-preview"><span id="profile-avatar-letter">?</span></div>
+          <button type="button" class="gate-btn secondary" id="btn-upload-avatar" style="width:100%;margin-bottom:1rem">Đổi ảnh đại diện</button>
+          <input type="file" id="file-avatar" accept="image/*" hidden />
+
+          <label style="font-size:0.8rem;color:var(--muted)">Tên hiển thị</label>
+          <input id="profile-name" maxlength="32" style="width:100%;margin:0.35rem 0 0.75rem;padding:0.55rem;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font:inherit" />
+          <p id="profile-error" hidden style="color:#f87171;font-size:0.8rem;margin-bottom:0.5rem"></p>
+          <button type="button" class="gate-btn" id="btn-save-profile" style="width:100%;margin-bottom:1.25rem">Lưu tên</button>
+
+          <label style="font-size:0.8rem;color:var(--muted)">Màu nền khung chat</label>
+          <div class="color-swatches" id="bg-colors"></div>
+          <input type="color" id="bg-color-custom" style="margin-top:0.5rem;width:100%;height:36px;border:none;background:transparent" />
+
+          <label style="font-size:0.8rem;color:var(--muted);display:block;margin-top:1rem">Ảnh nền (tùy chọn)</label>
+          <button type="button" class="gate-btn secondary" id="btn-upload-bg" style="width:100%;margin-top:0.35rem">Tải ảnh nền</button>
+          <button type="button" class="gate-btn secondary" id="btn-clear-bg" style="width:100%;margin-top:0.35rem">Xóa ảnh nền</button>
+          <button type="button" class="gate-btn secondary" id="btn-logout-profile" style="width:100%;margin-top:1.5rem">Thoát & đăng nhập lại</button>
+        </div>
       </aside>
 
     <main class="chat" id="chat">
@@ -1017,7 +1176,7 @@
         <div style="display:flex;align-items:center;gap:0.5rem;min-width:0">
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v5</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v6</span></div>
           <div class="you" id="you-label"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
@@ -1108,6 +1267,16 @@
       <input type="file" id="file-image" accept="image/jpeg,image/png,image/gif,image/webp" />
       <input type="file" id="file-attach" />
     </main>
+    </div>
+
+    <div class="modal-backdrop" id="modal-room-action">
+      <div class="modal">
+        <h2>Phòng chat</h2>
+        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem">Chọn tham gia bằng mã hoặc tạo phòng mới.</p>
+        <button type="button" class="gate-btn" id="modal-join-code" style="width:100%;margin-bottom:0.5rem">🔑 Tham gia bằng mã</button>
+        <button type="button" class="gate-btn secondary" id="modal-create-room" style="width:100%">➕ Tạo phòng mới</button>
+        <button type="button" data-close="modal-room-action" class="gate-btn secondary" style="width:100%;margin-top:0.5rem">Đóng</button>
+      </div>
     </div>
 
     <div class="modal-backdrop" id="modal-contact">
@@ -1229,10 +1398,13 @@
       let currentRoomId = null;
       let currentRoomCode = null;
       let roomsData = [];
-      let sidebarTab = "all";
+      let profileSuffix = "";
       const STORAGE_NAME = "webchat-name";
       const STORAGE_ROOM_CODES = "webchat-room-codes";
       const STORAGE_LAST_CODE = "webchat-last-code";
+      const STORAGE_PROFILE = "webchat-profile";
+
+      const BG_PRESETS = ["#0f1419", "#1a1a2e", "#162447", "#1b263b", "#2d132c", "#1c3334", "#2c1810", "#eef2ff"];
       const messageNodes = new Map();
       const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"];
       const socket = io();
@@ -1247,6 +1419,109 @@
           joinBtn.disabled = true;
         }
       }
+
+      function showChatsPanel() {
+        document.getElementById("panel-chats").hidden = false;
+        document.getElementById("panel-profile").hidden = true;
+        document.getElementById("nav-chats").classList.add("active");
+        document.getElementById("nav-settings").classList.remove("active");
+      }
+
+      function showProfilePanel() {
+        document.getElementById("panel-chats").hidden = true;
+        document.getElementById("panel-profile").hidden = false;
+        document.getElementById("nav-chats").classList.remove("active");
+        document.getElementById("nav-settings").classList.add("active");
+        document.getElementById("profile-name").value = myName || "";
+        updateAvatarUi();
+      }
+
+      function loadProfile() {
+        try {
+          return JSON.parse(localStorage.getItem(STORAGE_PROFILE) || "{}");
+        } catch {
+          return {};
+        }
+      }
+
+      function saveProfile(patch) {
+        const p = { ...loadProfile(), ...patch };
+        localStorage.setItem(STORAGE_PROFILE, JSON.stringify(p));
+        applyProfileTheme();
+        updateAvatarUi();
+      }
+
+      function applyProfileTheme() {
+        const p = loadProfile();
+        if (p.bgColor) {
+          document.documentElement.style.setProperty("--chat-bg", p.bgColor);
+        } else {
+          document.documentElement.style.removeProperty("--chat-bg");
+        }
+        if (p.bgImage) {
+          document.documentElement.style.setProperty("--chat-bg-image", `url("${p.bgImage}")`);
+        } else {
+          document.documentElement.style.removeProperty("--chat-bg-image");
+        }
+      }
+
+      function updateAvatarUi() {
+        const p = loadProfile();
+        const letter = roomInitials(myName || "?");
+        const navBtn = document.getElementById("nav-open-profile");
+        const navText = document.getElementById("nav-avatar-text");
+        const prev = document.getElementById("profile-avatar-preview");
+        const prevLetter = document.getElementById("profile-avatar-letter");
+
+        const setEl = (el, url, fallback) => {
+          if (!el) return;
+          if (url) {
+            el.innerHTML = `<img src="${url}" alt="" />`;
+          } else {
+            el.textContent = fallback;
+          }
+        };
+
+        if (p.avatarUrl) {
+          navBtn.innerHTML = `<img src="${p.avatarUrl}" alt="" />`;
+          prev.innerHTML = `<img src="${p.avatarUrl}" alt="" />`;
+        } else {
+          navBtn.innerHTML = `<span id="nav-avatar-text">${letter}</span>`;
+          prev.innerHTML = `<span id="profile-avatar-letter">${letter}</span>`;
+        }
+      }
+
+      function promptJoinCode() {
+        const code = prompt("Nhập mã phòng:");
+        if (code?.trim()) enterRoom(code.trim());
+      }
+
+      function promptCreateRoom() {
+        const name = prompt("Tên phòng / nhóm mới:", "Nhóm của tôi");
+        if (name?.trim()) socket.emit("create_room", name.trim());
+      }
+
+      function initProfileUi() {
+        const sw = document.getElementById("bg-colors");
+        sw.innerHTML = "";
+        const p = loadProfile();
+        BG_PRESETS.forEach((color) => {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.style.background = color;
+          if (p.bgColor === color) b.classList.add("selected");
+          b.addEventListener("click", () => {
+            saveProfile({ bgColor: color });
+            sw.querySelectorAll("button").forEach((x) => x.classList.remove("selected"));
+            b.classList.add("selected");
+          });
+          sw.appendChild(b);
+        });
+        applyProfileTheme();
+        updateAvatarUi();
+      }
+
+      initProfileUi();
 
       function getSavedRoomCodes() {
         try {
@@ -1360,13 +1635,97 @@
       roomSearch.addEventListener("input", () => renderRoomList());
 
       document.getElementById("btn-new-group").addEventListener("click", () => {
-        const code = prompt("Nhập mã phòng để thêm vào danh sách:");
-        if (code?.trim()) enterRoom(code.trim());
+        openModal("modal-room-action");
+      });
+
+      document.getElementById("btn-join-code").addEventListener("click", promptJoinCode);
+      document.getElementById("btn-create-room-sidebar").addEventListener("click", promptCreateRoom);
+      document.getElementById("modal-join-code").addEventListener("click", () => {
+        closeModal("modal-room-action");
+        promptJoinCode();
+      });
+      document.getElementById("modal-create-room").addEventListener("click", () => {
+        closeModal("modal-room-action");
+        promptCreateRoom();
+      });
+
+      document.getElementById("nav-chats").addEventListener("click", showChatsPanel);
+      document.getElementById("nav-open-profile").addEventListener("click", showProfilePanel);
+      document.getElementById("nav-settings").addEventListener("click", showProfilePanel);
+
+      document.getElementById("btn-save-profile").addEventListener("click", () => {
+        const name = document.getElementById("profile-name").value.trim();
+        const err = document.getElementById("profile-error");
+        const check = validateDisplayName(name);
+        if (!check.ok) {
+          err.textContent = check.reason;
+          err.hidden = false;
+          return;
+        }
+        err.hidden = true;
+        socket.emit("update_profile", { name });
+      });
+
+      socket.on("profile_updated", ({ name }) => {
+        myName = name;
+        localStorage.setItem(STORAGE_NAME, name);
+        youLabel.textContent = youLabel.textContent.replace(/^Bạn: [^·]+/, "Bạn: " + name);
+        updateAvatarUi();
+      });
+
+      socket.on("profile_error", (msg) => {
+        const err = document.getElementById("profile-error");
+        err.textContent = msg;
+        err.hidden = false;
+      });
+
+      document.getElementById("btn-upload-avatar").addEventListener("click", () => {
+        document.getElementById("file-avatar").click();
+      });
+
+      document.getElementById("file-avatar").addEventListener("change", async () => {
+        const file = document.getElementById("file-avatar").files?.[0];
+        document.getElementById("file-avatar").value = "";
+        if (!file) return;
+        try {
+          const { url } = await uploadFile(file);
+          saveProfile({ avatarUrl: url });
+        } catch {
+          appendSystem("Không tải được ảnh đại diện.");
+        }
+      });
+
+      document.getElementById("bg-color-custom").addEventListener("input", (e) => {
+        saveProfile({ bgColor: e.target.value });
+      });
+
+      document.getElementById("btn-upload-bg").addEventListener("click", () => {
+        document.getElementById("file-bg").click();
+      });
+
+      document.getElementById("file-bg").addEventListener("change", async () => {
+        const file = document.getElementById("file-bg").files?.[0];
+        document.getElementById("file-bg").value = "";
+        if (!file) return;
+        try {
+          const { url } = await uploadFile(file);
+          saveProfile({ bgImage: url });
+        } catch {
+          appendSystem("Không tải được ảnh nền.");
+        }
+      });
+
+      document.getElementById("btn-clear-bg").addEventListener("click", () => {
+        saveProfile({ bgImage: "" });
+      });
+
+      document.getElementById("btn-logout-profile").addEventListener("click", () => {
+        localStorage.removeItem(STORAGE_NAME);
+        location.reload();
       });
 
       document.getElementById("btn-create-room-gate").addEventListener("click", () => {
-        const name = prompt("Tên phòng / nhóm mới:", "Nhóm của tôi");
-        if (name?.trim()) socket.emit("create_room", name.trim());
+        promptCreateRoom();
       });
 
       roomCodeForm.addEventListener("submit", (e) => {
@@ -1888,21 +2247,25 @@
         gate.style.display = "none";
         youLabel.textContent =
           "Bạn: " + name + (persistent ? " · lưu cloud" : " · chỉ tạm (chưa có DB)");
+        profileSuffix = persistent ? " · lưu cloud" : " · chỉ tạm (chưa có DB)";
         joinBtn.textContent = "Tiếp tục";
         joinBtn.disabled = false;
+        updateAvatarUi();
         syncMyRooms();
+        showChatsPanel();
         const lastCode = localStorage.getItem(STORAGE_LAST_CODE);
         if (rejoin && lastCode) {
           enterRoom(lastCode);
+        } else if (getSavedRoomCodes().length) {
+          appShell.classList.add("active");
+          chat.classList.add("active");
+          hideRoomGate();
         } else {
           showRoomGate();
         }
       });
 
-      document.getElementById("change-name-btn").addEventListener("click", () => {
-        localStorage.removeItem(STORAGE_NAME);
-        location.reload();
-      });
+      document.getElementById("change-name-btn").addEventListener("click", showProfilePanel);
 
       function appendSystem(payload) {
         const text = typeof payload === "string" ? payload : payload?.text;

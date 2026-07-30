@@ -199,6 +199,29 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("update_profile", (payload) => {
+    const user = online.get(socket.id);
+    if (!user || !payload) return;
+
+    const trimmed = String(payload.name ?? "").trim().slice(0, 32);
+    const check = validateDisplayName(trimmed);
+    if (!check.ok) {
+      socket.emit("profile_error", check.reason);
+      return;
+    }
+
+    const old = user.name;
+    user.name = trimmed;
+    socket.emit("profile_updated", { name: trimmed });
+    if (user.roomId) {
+      io.to(roomChannel(user.roomId)).emit("system", {
+        text: `${old} đổi tên thành ${trimmed}`,
+        roomId: user.roomId,
+      });
+      broadcastUsers(user.roomId);
+    }
+  });
+
   socket.on("message", async (payload) => {
     const user = online.get(socket.id);
     if (!user || !user.roomId) return;
