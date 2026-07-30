@@ -191,6 +191,16 @@ function ensureClientId(raw) {
   return crypto.randomUUID();
 }
 
+function isDisplayNameTakenInRoom(roomId, name, exceptClientId = "") {
+  const key = String(name ?? "").trim().toLowerCase();
+  if (!key) return false;
+  const except = String(exceptClientId ?? "").trim();
+  const rid = Number(roomId);
+  return [...online.values()].some(
+    (u) => Number(u.roomId) === rid && u.name.toLowerCase() === key && u.clientId !== except
+  );
+}
+
 function isDisplayNameTaken(name, exceptClientId = "") {
   const key = String(name ?? "").trim().toLowerCase();
   if (!key) return false;
@@ -269,12 +279,6 @@ io.on("connection", (socket) => {
     }
 
     const clientId = ensureClientId(rawClientId);
-    if (isDisplayNameTaken(trimmed, clientId)) {
-      const reason = "Tên này đang có người khác dùng. Hãy chọn tên khác (không trùng, kể cả khác hoa thường).";
-      socket.emit("join_error", reason);
-      respond({ ok: false, reason });
-      return;
-    }
 
     joined = true;
     online.set(socket.id, { id: socket.id, name: trimmed, clientId, roomId: null, roomCode: null });
@@ -350,6 +354,14 @@ io.on("connection", (socket) => {
       const room = await getRoomByCode(code);
       if (!room) {
         const reason = "Mã phòng không đúng";
+        socket.emit("room_join_error", reason);
+        respond({ ok: false, reason });
+        return;
+      }
+
+      if (isDisplayNameTakenInRoom(room.id, user.name, user.clientId)) {
+        const reason =
+          "Trong nhóm này đã có người dùng tên này. Đổi tên (Tên của bạn) rồi vào lại — không trùng trong cùng nhóm.";
         socket.emit("room_join_error", reason);
         respond({ ok: false, reason });
         return;
@@ -443,8 +455,8 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (isDisplayNameTaken(trimmed, user.clientId)) {
-      socket.emit("profile_error", "Tên này đang có người khác dùng. Chọn tên khác.");
+    if (user.roomId && isDisplayNameTakenInRoom(user.roomId, trimmed, user.clientId)) {
+      socket.emit("profile_error", "Trong nhóm này đã có người dùng tên này. Chọn tên khác.");
       return;
     }
 
