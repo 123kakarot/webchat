@@ -974,7 +974,8 @@ io.on("connection", (socket) => {
       if (payload.meta && typeof payload.meta === "object") {
         for (const [k, v] of Object.entries(payload.meta)) {
           const key = String(k).slice(0, 32);
-          meta[key] = String(v ?? "").slice(0, 200);
+          const maxLen = key === "avatarUrl" ? 500 : 200;
+          meta[key] = String(v ?? "").slice(0, maxLen);
         }
       }
     }

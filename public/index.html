@@ -1249,8 +1249,51 @@
         position: relative;
         overflow: visible;
         display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 0.45rem;
+        max-width: min(92%, 520px);
+      }
+
+      .msg-body {
+        flex: 1;
+        min-width: 0;
+        display: flex;
         flex-direction: column;
-        max-width: 85%;
+        max-width: 100%;
+      }
+
+      .msg-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #475569, #334155);
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        margin-top: 0.1rem;
+        user-select: none;
+      }
+
+      .msg-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .msg-row.self .msg-avatar {
+        order: 2;
+        margin-top: 0;
+      }
+
+      .msg-row.self .msg-body {
+        order: 1;
+        align-items: flex-end;
       }
 
       .msg-system {
@@ -1261,7 +1304,8 @@
 
       .msg-row.self {
         align-self: flex-end;
-        align-items: flex-end;
+        flex-direction: row;
+        justify-content: flex-end;
       }
 
       .msg-name {
@@ -2963,6 +3007,8 @@
       const messageNodes = new Map();
       /** @type {Map<string, { lastMessageId: number, avatarUrl: string }>} */
       let roomReaders = new Map();
+      /** @type {Map<string, string>} */
+      const memberAvatarByName = new Map();
       let markReadTimer = null;
       let lastMarkReadSent = 0;
       const imageLightboxEl = document.getElementById("image-lightbox");
@@ -3249,6 +3295,7 @@
         if (!sameRoom) {
           messagesEl.innerHTML = "";
           messageNodes.clear();
+          memberAvatarByName.clear();
         }
         const list = Array.isArray(history) ? history : [];
         if (!sameRoom || messagesEl.childElementCount === 0) {
@@ -3272,6 +3319,7 @@
             lastMessageId: Number(r.lastMessageId) || 0,
             avatarUrl: r.avatarUrl || "",
           });
+          if (r.avatarUrl) memberAvatarByName.set(r.userName, r.avatarUrl);
         }
         refreshAllSeenAvatars();
       }
@@ -3381,6 +3429,7 @@
       }
 
       function avatarUrlForTypingName(name) {
+        if (memberAvatarByName.has(name)) return memberAvatarByName.get(name);
         const st = roomReaders.get(name);
         if (st?.avatarUrl) return st.avatarUrl;
         return "";
@@ -3582,8 +3631,20 @@
       async function emitImageMessage(file, meta = {}) {
         const { url } = await uploadFile(file);
         const payload = { type: "image", url };
-        if (Object.keys(meta).length) payload.meta = meta;
-        socket.emit("message", payload);
+        payload.meta = senderAvatarMeta(meta);
+        emitChatMessage(payload);
+      }
+
+      function senderAvatarMeta(base = {}) {
+        const meta = { ...(base && typeof base === "object" ? base : {}) };
+        const av = loadProfile().avatarUrl || "";
+        if (av) meta.avatarUrl = av;
+        return meta;
+      }
+
+      function emitChatMessage(payload) {
+        const meta = senderAvatarMeta(payload.meta || {});
+        socket.emit("message", { ...payload, meta });
       }
 
       function submitComposer() {
@@ -3605,7 +3666,7 @@
             if (text) {
               const payload = { type: "text", text };
               if (Object.keys(replyMeta).length) payload.meta = replyMeta;
-              socket.emit("message", payload);
+              emitChatMessage(payload);
               replyMeta = {};
             }
             for (const item of images) {
@@ -4983,7 +5044,7 @@
           btn.type = "button";
           btn.textContent = text;
           btn.addEventListener("click", () => {
-            socket.emit("message", { type: "text", text });
+            emitChatMessage( { type: "text", text });
             pickers.quick.classList.remove("open");
           });
           el.appendChild(btn);
@@ -5078,7 +5139,7 @@
       });
 
       buildPickerGrid(document.getElementById("sticker-grid"), STICKERS, "sticker", (s) => {
-        socket.emit("message", { type: "sticker", sticker: s });
+        emitChatMessage( { type: "sticker", sticker: s });
         pickers.sticker.classList.remove("open");
       });
 
@@ -5160,7 +5221,7 @@
         const phone = document.getElementById("contact-phone").value.trim();
         const note = document.getElementById("contact-note").value.trim();
         if (!phone && !displayName) return;
-        socket.emit("message", {
+        emitChatMessage( {
           type: "contact",
           meta: { displayName, phone, note },
         });
@@ -5174,7 +5235,7 @@
         const amount = document.getElementById("pay-amount").value.trim();
         const note = document.getElementById("pay-note").value.trim();
         if (!account) return;
-        socket.emit("message", {
+        emitChatMessage( {
           type: "payment",
           meta: { bank, account, holder, amount, note },
         });
@@ -5225,7 +5286,7 @@
           try {
             const file = new File([blob], "screenshot.png", { type: "image/png" });
             const { url } = await uploadFile(file);
-            socket.emit("message", { type: "image", url, fileName: "Ảnh chụp màn hình" });
+            emitChatMessage( { type: "image", url, fileName: "Ảnh chụp màn hình" });
           } catch {
             appendSystem("Không gửi được ảnh chụp.");
           }
@@ -5245,7 +5306,7 @@
             if (!blob) return;
             const file = new File([blob], "chat.png", { type: "image/png" });
             const { url } = await uploadFile(file);
-            socket.emit("message", { type: "image", url, fileName: "Ảnh khung chat" });
+            emitChatMessage( { type: "image", url, fileName: "Ảnh khung chat" });
           }, "image/png");
         } catch {
           appendSystem("Không chụp được khung chat.");
@@ -5265,7 +5326,7 @@
       document.getElementById("btn-file").addEventListener("click", () => fileAttach.click());
 
       document.getElementById("btn-like").addEventListener("click", () => {
-        socket.emit("message", { type: "reaction", text: "👍" });
+        emitChatMessage( { type: "reaction", text: "👍" });
       });
 
       async function uploadFile(file) {
@@ -5327,7 +5388,7 @@
         if (!file) return;
         try {
           const { url, fileName } = await uploadFile(file);
-          socket.emit("message", { type: "file", url, fileName });
+          emitChatMessage( { type: "file", url, fileName });
         } catch {
           appendSystem("Không gửi được file (tối đa 10MB).");
         }
@@ -5691,6 +5752,42 @@
         return msg.name === myName;
       }
 
+      function resolveMessageAvatar(msg) {
+        const meta = msg.meta && typeof msg.meta === "object" ? msg.meta : {};
+        const fromMeta = String(meta.avatarUrl || "").trim();
+        if (fromMeta) {
+          if (msg.name) memberAvatarByName.set(msg.name, fromMeta);
+          return fromMeta;
+        }
+        if (msg.name && memberAvatarByName.has(msg.name)) {
+          return memberAvatarByName.get(msg.name);
+        }
+        const st = roomReaders.get(msg.name);
+        if (st?.avatarUrl) return st.avatarUrl;
+        if (isMyMessage(msg)) {
+          const av = loadProfile().avatarUrl || "";
+          if (av && msg.name) memberAvatarByName.set(msg.name, av);
+          return av;
+        }
+        return "";
+      }
+
+      function buildMsgAvatarEl(msg) {
+        const el = document.createElement("div");
+        el.className = "msg-avatar";
+        el.title = msg.name || "";
+        const url = resolveMessageAvatar(msg);
+        if (url) {
+          const img = document.createElement("img");
+          img.src = url;
+          img.alt = "";
+          el.appendChild(img);
+        } else {
+          el.textContent = roomInitials(msg.name || "?");
+        }
+        return el;
+      }
+
       function appendMessage(msg) {
         const { id, name, reactions = {}, type } = msg;
         if (id == null) {
@@ -5733,12 +5830,12 @@
         btnForward.addEventListener("click", (e) => {
           e.stopPropagation();
           const { type, text, url, fileName, sticker, meta } = msg;
-          if (type === "text") socket.emit("message", { type: "text", text: "↪ " + name + ": " + text });
-          else if (type === "sticker") socket.emit("message", { type: "sticker", sticker });
-          else if (type === "image") socket.emit("message", { type: "image", url, fileName });
-          else if (type === "file") socket.emit("message", { type: "file", url, fileName });
-          else if (type === "contact") socket.emit("message", { type: "contact", meta });
-          else if (type === "payment") socket.emit("message", { type: "payment", meta });
+          if (type === "text") emitChatMessage( { type: "text", text: "↪ " + name + ": " + text });
+          else if (type === "sticker") emitChatMessage( { type: "sticker", sticker });
+          else if (type === "image") emitChatMessage( { type: "image", url, fileName });
+          else if (type === "file") emitChatMessage( { type: "file", url, fileName });
+          else if (type === "contact") emitChatMessage( { type: "contact", meta });
+          else if (type === "payment") emitChatMessage( { type: "payment", meta });
         });
 
         const btnMore = document.createElement("button");
@@ -5813,8 +5910,13 @@
         const showSeen = messageSupportsSeen(msg);
         if (showSeen) stack.appendChild(seenEl);
 
-        row.appendChild(nameEl);
-        row.appendChild(stack);
+        const body = document.createElement("div");
+        body.className = "msg-body";
+        body.appendChild(nameEl);
+        body.appendChild(stack);
+
+        row.appendChild(buildMsgAvatarEl(msg));
+        row.appendChild(body);
         messagesEl.appendChild(row);
 
         messageNodes.set(id, { row, reactionsEl, seenEl: showSeen ? seenEl : null, msg: { ...msg } });
