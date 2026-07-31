@@ -29,6 +29,38 @@
         --mention: #60a5fa;
         --nav-width: 88px;
         --glass: rgba(21, 27, 36, 0.92);
+        --input-bg: rgba(0, 0, 0, 0.25);
+      }
+
+      :root[data-theme="light"] {
+        --bg: #eef2f7;
+        --surface: #ffffff;
+        --surface2: #f8fafc;
+        --border: #d1dae6;
+        --text: #0f172a;
+        --muted: #64748b;
+        --accent: #2563eb;
+        --accent-hover: #1d4ed8;
+        --bubble-other: #e2e8f0;
+        --bubble-self: #2563eb;
+        --system: #64748b;
+        --toolbar-icon: #475569;
+        --mention: #2563eb;
+        --glass: rgba(255, 255, 255, 0.94);
+        --input-bg: #ffffff;
+      }
+
+      html[data-theme="light"] .nav-rail {
+        background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+      }
+
+      html[data-theme="light"] .nav-item.active {
+        background: rgba(37, 99, 235, 0.12);
+        color: #1d4ed8;
+      }
+
+      html[data-theme="light"] .gate {
+        background: radial-gradient(ellipse at top, #dbeafe 0%, var(--bg) 60%);
       }
 
       * {
@@ -1463,7 +1495,7 @@
       .sidebar-search input {
         flex: 1;
         border: 1px solid var(--border);
-        background: rgba(0, 0, 0, 0.25);
+        background: var(--input-bg);
         color: var(--text);
         border-radius: 12px;
         padding: 0.5rem 0.75rem 0.5rem 2rem;
@@ -1484,12 +1516,6 @@
         font-size: 0.85rem;
         opacity: 0.55;
         pointer-events: none;
-      }
-
-      .sidebar-icon-btn.primary-plus {
-        background: var(--accent);
-        border-color: var(--accent);
-        color: #fff;
       }
 
       .sidebar-icon-btn {
@@ -4355,7 +4381,7 @@
         </button>
         <label class="nav-theme-row">
           <span>Chế độ tối</span>
-          <input type="checkbox" id="nav-theme-toggle" checked disabled title="Luôn bật" />
+          <input type="checkbox" id="nav-theme-toggle" checked title="Bật giao diện tối" />
         </label>
       </nav>
 
@@ -4367,7 +4393,6 @@
               <span class="sidebar-search-icon" aria-hidden="true">🔍</span>
               <input id="room-search" type="search" placeholder="Tìm kiếm" autocomplete="off" />
             </div>
-            <button type="button" class="sidebar-icon-btn primary-plus" id="btn-new-group" title="Tạo / tham gia phòng">+</button>
           </div>
           <div class="sidebar-actions">
             <button type="button" id="btn-join-code">🔑 Vào mã</button>
@@ -4986,8 +5011,35 @@
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
-      const CLIENT_BUILD = "58";
+      const STORAGE_THEME = "webchat-theme";
+      const CLIENT_BUILD = "59";
       const BASE_DOC_TITLE = "Webchat";
+
+      function applyUiTheme(mode) {
+        const dark = mode !== "light";
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", dark ? "#0f172a" : "#eef2f7");
+        const toggle = document.getElementById("nav-theme-toggle");
+        if (toggle) toggle.checked = dark;
+        try {
+          localStorage.setItem(STORAGE_THEME, dark ? "dark" : "light");
+        } catch {
+          /* ignore */
+        }
+      }
+
+      function loadUiTheme() {
+        let mode = "dark";
+        try {
+          mode = localStorage.getItem(STORAGE_THEME) || "dark";
+        } catch {
+          /* ignore */
+        }
+        applyUiTheme(mode);
+      }
+
+      loadUiTheme();
 
       function joinPayload(name, rejoin) {
         return {
@@ -7363,10 +7415,6 @@
 
       roomSearch.addEventListener("input", () => renderRoomList());
 
-      document.getElementById("btn-new-group").addEventListener("click", () => {
-        openModal("modal-room-action");
-      });
-
       document.getElementById("btn-join-code").addEventListener("click", promptJoinCode);
       document.getElementById("btn-create-room-sidebar").addEventListener("click", promptCreateRoom);
       document.getElementById("modal-join-code").addEventListener("click", () => {
@@ -7513,6 +7561,9 @@
         setNavMenuActive("settings");
         document.getElementById("nav-settings")?.classList.add("active");
         toggleSettingsFlyout();
+      });
+      document.getElementById("nav-theme-toggle")?.addEventListener("change", (e) => {
+        applyUiTheme(e.target.checked ? "dark" : "light");
       });
 
       document.getElementById("mob-nav-chats").addEventListener("click", () => {
