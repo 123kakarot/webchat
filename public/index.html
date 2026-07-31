@@ -1308,10 +1308,12 @@
 
       .msg-row.poll-msg {
         align-self: center;
-        max-width: min(100%, 320px);
-        width: 100%;
+        max-width: min(calc(100% - 1rem), 320px);
+        width: auto;
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
+        margin-left: auto;
+        margin-right: auto;
       }
 
       .msg-row.poll-msg .msg-avatar,
@@ -1327,15 +1329,19 @@
       .msg-row.poll-msg .msg-body {
         width: 100%;
         align-items: center;
+        flex: none;
       }
 
       .msg-row.poll-msg .msg-stack {
         width: 100%;
-        align-items: center;
+        flex-direction: column;
+        align-items: stretch;
+        align-self: center;
       }
 
       .msg-row.poll-msg .msg-bubble-wrap {
         width: 100%;
+        align-self: center;
       }
 
       .msg-row.poll-msg .msg-bubble {
@@ -4092,7 +4098,7 @@
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
-      const CLIENT_BUILD = "51";
+      const CLIENT_BUILD = "52";
       const BASE_DOC_TITLE = "Webchat";
 
       function joinPayload(name, rejoin) {
