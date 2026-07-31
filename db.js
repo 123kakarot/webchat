@@ -25,7 +25,56 @@ const memoryRoomPins = new Map();
 const memoryRoomMutes = new Map();
 /** @type {Map<number, Set<string>>} */
 const memoryJoinRequests = new Map();
+/** @type {Map<string, { status: string, requestedBy: string }>} */
+const memoryFriendships = new Map();
 let memoryNextRoomId = 1;
+
+function friendPairKey(nameA, nameB) {
+  const a = String(nameA ?? "").trim().slice(0, 32);
+  const b = String(nameB ?? "").trim().slice(0, 32);
+  if (!a || !b) return "";
+  return [a, b].sort((x, y) => x.localeCompare(y, "vi")).join("\0");
+}
+
+function avatarUrlForUserName(userName) {
+  const name = String(userName ?? "").trim();
+  if (!name) return "";
+  for (const reads of memoryRoomReads.values()) {
+    if (!(reads instanceof Map)) continue;
+    const v = reads.get(name);
+    if (v?.avatarUrl) return v.avatarUrl;
+  }
+  return "";
+}
+
+async function listCoMemberNames(userName) {
+  const me = String(userName ?? "").trim().slice(0, 32);
+  if (!me) return [];
+
+  if (useMemory) {
+    const names = new Set();
+    for (const r of memoryRooms) {
+      const map = memoryRoomMembers.get(r.id);
+      if (!map?.has(me)) continue;
+      for (const n of map.keys()) {
+        if (n !== me) names.add(n);
+      }
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, "vi"));
+  }
+
+  const { rows } = await pool.query(
+    `
+    SELECT DISTINCT m2.user_name AS name
+    FROM room_members m1
+    JOIN room_members m2 ON m1.room_id = m2.room_id
+    WHERE m1.user_name = $1 AND m2.user_name <> $1
+    ORDER BY m2.user_name ASC
+    `,
+    [me]
+  );
+  return rows.map((r) => r.name).filter(Boolean);
+}
 
 const MAX_ROOM_PINS = 3;
 
@@ -185,6 +234,16 @@ export async function initDb() {
     INSERT INTO reaction_scores (message_id, user_name, emoji, qty)
     SELECT message_id, user_name, emoji, 1 FROM reactions
     ON CONFLICT (message_id, user_name, emoji) DO NOTHING;
+
+    CREATE TABLE IF NOT EXISTS user_friendships (
+      user_a VARCHAR(32) NOT NULL,
+      user_b VARCHAR(32) NOT NULL,
+      status VARCHAR(16) NOT NULL DEFAULT 'pending',
+      requested_by VARCHAR(32) NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_a, user_b),
+      CHECK (user_a < user_b)
+    );
   `);
 
   await backfillRoomCodesPg();
@@ -541,53 +600,268 @@ export async function listCommonGroupRooms(nameA, nameB) {
   return rows.map(roomRowToClient).filter(Boolean);
 }
 
-export async function listContactsForUser(userName) {
+async function friendRowForUser(me, row) {
+  const other = row.user_a === me ? row.user_b : row.user_a;
+  let avatarUrl = "";
+  if (useMemory) avatarUrl = avatarUrlForUserName(other);
+  else avatarUrl = row.avatar_url || "";
+  return {
+    name: other,
+    avatarUrl,
+    requestedBy: row.requested_by,
+    since: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+  };
+}
+
+export async function getFriendRelation(userName, otherName) {
+  const me = String(userName ?? "").trim().slice(0, 32);
+  const other = String(otherName ?? "").trim().slice(0, 32);
+  if (!me || !other || me.toLowerCase() === other.toLowerCase()) return "none";
+
+  const key = friendPairKey(me, other);
+  if (!key) return "none";
+
+  if (useMemory) {
+    const row = memoryFriendships.get(key);
+    if (!row) return "none";
+    if (row.status === "accepted") return "friends";
+    if (row.requestedBy === me) return "pending_out";
+    return "pending_in";
+  }
+
+  const [a, b] = key.split("\0");
+  const { rows } = await pool.query(
+    `SELECT status, requested_by FROM user_friendships WHERE user_a = $1 AND user_b = $2`,
+    [a, b]
+  );
+  const row = rows[0];
+  if (!row) return "none";
+  if (row.status === "accepted") return "friends";
+  if (row.requested_by === me) return "pending_out";
+  return "pending_in";
+}
+
+export async function listFriendsForUser(userName) {
   const me = String(userName ?? "").trim().slice(0, 32);
   if (!me) return [];
 
   if (useMemory) {
-    const names = new Set();
-    for (const r of memoryRooms) {
-      const map = memoryRoomMembers.get(r.id);
-      if (!map?.has(me)) continue;
-      for (const n of map.keys()) {
-        if (n !== me) names.add(n);
-      }
+    const out = [];
+    for (const [key, row] of memoryFriendships) {
+      if (row.status !== "accepted") continue;
+      const [a, b] = key.split("\0");
+      const other = a === me ? b : b === me ? a : null;
+      if (!other) continue;
+      out.push({ name: other, avatarUrl: avatarUrlForUserName(other) });
     }
-    const avatarByName = {};
-    for (const reads of memoryRoomReads.values()) {
-      for (const [uname, v] of reads) {
-        if (v?.avatarUrl) avatarByName[uname] = v.avatarUrl;
-      }
-    }
-    return [...names]
-      .sort((a, b) => a.localeCompare(b, "vi"))
-      .map((name) => ({ name, avatarUrl: avatarByName[name] || "" }));
+    return out.sort((x, y) => x.name.localeCompare(y.name, "vi"));
   }
 
   const { rows } = await pool.query(
     `
-    SELECT DISTINCT m2.user_name AS name,
+    SELECT f.user_a, f.user_b, f.requested_by, f.created_at,
       (
         SELECT rrs.avatar_url
         FROM room_read_state rrs
-        WHERE rrs.user_name = m2.user_name AND COALESCE(rrs.avatar_url, '') <> ''
+        WHERE rrs.user_name = CASE WHEN f.user_a = $1 THEN f.user_b ELSE f.user_a END
+          AND COALESCE(rrs.avatar_url, '') <> ''
         ORDER BY rrs.updated_at DESC NULLS LAST
         LIMIT 1
       ) AS avatar_url
-    FROM room_members m1
-    JOIN room_members m2 ON m1.room_id = m2.room_id
-    WHERE m1.user_name = $1 AND m2.user_name <> $1
-    ORDER BY m2.user_name ASC
+    FROM user_friendships f
+    WHERE f.status = 'accepted' AND ($1 = f.user_a OR $1 = f.user_b)
+    ORDER BY CASE WHEN f.user_a = $1 THEN f.user_b ELSE f.user_a END ASC
     `,
     [me]
   );
-  return rows
-    .map((r) => ({
-      name: r.name,
-      avatarUrl: r.avatar_url || "",
-    }))
-    .filter((c) => c.name);
+  const out = [];
+  for (const row of rows) {
+    out.push(await friendRowForUser(me, row));
+  }
+  return out.map(({ name, avatarUrl }) => ({ name, avatarUrl }));
+}
+
+export async function listIncomingFriendRequests(userName) {
+  const me = String(userName ?? "").trim().slice(0, 32);
+  if (!me) return [];
+
+  if (useMemory) {
+    const out = [];
+    for (const [key, row] of memoryFriendships) {
+      if (row.status !== "pending" || row.requestedBy === me) continue;
+      const [a, b] = key.split("\0");
+      const other = a === me ? b : b === me ? a : null;
+      if (!other) continue;
+      out.push({ name: other, avatarUrl: avatarUrlForUserName(other), requestedBy: row.requestedBy });
+    }
+    return out.sort((x, y) => x.name.localeCompare(y.name, "vi"));
+  }
+
+  const { rows } = await pool.query(
+    `
+    SELECT f.user_a, f.user_b, f.requested_by, f.created_at,
+      (
+        SELECT rrs.avatar_url FROM room_read_state rrs
+        WHERE rrs.user_name = f.requested_by AND COALESCE(rrs.avatar_url, '') <> ''
+        ORDER BY rrs.updated_at DESC NULLS LAST LIMIT 1
+      ) AS avatar_url
+    FROM user_friendships f
+    WHERE f.status = 'pending' AND f.requested_by <> $1 AND ($1 = f.user_a OR $1 = f.user_b)
+    ORDER BY f.created_at DESC
+    `,
+    [me]
+  );
+  const out = [];
+  for (const row of rows) {
+    const item = await friendRowForUser(me, row);
+    out.push({ name: item.name, avatarUrl: item.avatarUrl, requestedBy: item.requestedBy });
+  }
+  return out;
+}
+
+export async function listOutgoingFriendRequests(userName) {
+  const me = String(userName ?? "").trim().slice(0, 32);
+  if (!me) return [];
+
+  if (useMemory) {
+    const out = [];
+    for (const [key, row] of memoryFriendships) {
+      if (row.status !== "pending" || row.requestedBy !== me) continue;
+      const [a, b] = key.split("\0");
+      const other = a === me ? b : b === me ? a : null;
+      if (!other) continue;
+      out.push({ name: other, avatarUrl: avatarUrlForUserName(other) });
+    }
+    return out.sort((x, y) => x.name.localeCompare(y.name, "vi"));
+  }
+
+  const { rows } = await pool.query(
+    `
+    SELECT f.user_a, f.user_b, f.requested_by, f.created_at,
+      (
+        SELECT rrs.avatar_url FROM room_read_state rrs
+        WHERE rrs.user_name = CASE WHEN f.user_a = $1 THEN f.user_b ELSE f.user_a END
+          AND COALESCE(rrs.avatar_url, '') <> ''
+        ORDER BY rrs.updated_at DESC NULLS LAST LIMIT 1
+      ) AS avatar_url
+    FROM user_friendships f
+    WHERE f.status = 'pending' AND f.requested_by = $1
+    ORDER BY f.created_at DESC
+    `,
+    [me]
+  );
+  const out = [];
+  for (const row of rows) {
+    const item = await friendRowForUser(me, row);
+    out.push({ name: item.name, avatarUrl: item.avatarUrl });
+  }
+  return out;
+}
+
+export async function listFriendSuggestions(userName) {
+  const me = String(userName ?? "").trim().slice(0, 32);
+  if (!me) return [];
+  const co = await listCoMemberNames(me);
+  const out = [];
+  for (const name of co) {
+    const rel = await getFriendRelation(me, name);
+    if (rel === "none") {
+      out.push({
+        name,
+        avatarUrl: useMemory ? avatarUrlForUserName(name) : "",
+        source: "Cùng nhóm chat",
+      });
+    }
+  }
+  if (!useMemory) {
+    for (const item of out) {
+      const { rows } = await pool.query(
+        `SELECT avatar_url FROM room_read_state WHERE user_name = $1 AND COALESCE(avatar_url, '') <> ''
+         ORDER BY updated_at DESC NULLS LAST LIMIT 1`,
+        [item.name]
+      );
+      item.avatarUrl = rows[0]?.avatar_url || "";
+    }
+  }
+  return out;
+}
+
+export async function sendFriendRequest(fromName, toName) {
+  const from = String(fromName ?? "").trim().slice(0, 32);
+  const to = String(toName ?? "").trim().slice(0, 32);
+  if (!from || !to) return { ok: false, reason: "Thiếu tên." };
+  if (from.toLowerCase() === to.toLowerCase()) return { ok: false, reason: "Không thể kết bạn với chính mình." };
+
+  const key = friendPairKey(from, to);
+  if (!key) return { ok: false, reason: "Tên không hợp lệ." };
+
+  const existingRel = await getFriendRelation(from, to);
+  if (existingRel === "friends") return { ok: false, reason: "Đã là bạn bè." };
+  if (existingRel === "pending_out") return { ok: false, reason: "Đã gửi lời mời kết bạn." };
+
+  if (existingRel === "pending_in") {
+    if (useMemory) {
+      memoryFriendships.set(key, { status: "accepted", requestedBy: from });
+    } else {
+      const [a, b] = key.split("\0");
+      await pool.query(
+        `UPDATE user_friendships SET status = 'accepted' WHERE user_a = $1 AND user_b = $2`,
+        [a, b]
+      );
+    }
+    return { ok: true, status: "friends" };
+  }
+
+  if (useMemory) {
+    memoryFriendships.set(key, { status: "pending", requestedBy: from });
+  } else {
+    const [a, b] = key.split("\0");
+    await pool.query(
+      `INSERT INTO user_friendships (user_a, user_b, status, requested_by)
+       VALUES ($1, $2, 'pending', $3)
+       ON CONFLICT (user_a, user_b) DO UPDATE SET status = 'pending', requested_by = EXCLUDED.requested_by, created_at = NOW()`,
+      [a, b, from]
+    );
+  }
+  return { ok: true, status: "pending_out" };
+}
+
+export async function respondFriendRequest(responderName, otherName, accept) {
+  const me = String(responderName ?? "").trim().slice(0, 32);
+  const other = String(otherName ?? "").trim().slice(0, 32);
+  if (!me || !other) return { ok: false, reason: "Thiếu tên." };
+
+  const rel = await getFriendRelation(me, other);
+  if (rel === "friends") return { ok: true, status: "friends" };
+  if (rel !== "pending_in") return { ok: false, reason: "Không có lời mời từ người này." };
+
+  const key = friendPairKey(me, other);
+  if (!key) return { ok: false, reason: "Lỗi." };
+
+  if (!accept) {
+    if (useMemory) memoryFriendships.delete(key);
+    else {
+      const [a, b] = key.split("\0");
+      await pool.query(`DELETE FROM user_friendships WHERE user_a = $1 AND user_b = $2`, [a, b]);
+    }
+    return { ok: true, status: "none" };
+  }
+
+  if (useMemory) {
+    memoryFriendships.set(key, { status: "accepted", requestedBy: other });
+  } else {
+    const [a, b] = key.split("\0");
+    await pool.query(
+      `UPDATE user_friendships SET status = 'accepted' WHERE user_a = $1 AND user_b = $2`,
+      [a, b]
+    );
+  }
+  return { ok: true, status: "friends" };
+}
+
+/** @deprecated use listFriendsForUser */
+export async function listContactsForUser(userName) {
+  return listFriendsForUser(userName);
 }
 
 export async function isRegisteredRoomMember(roomId, userName) {

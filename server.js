@@ -42,6 +42,13 @@ import {
   unpinRoomMessage,
   listCommonGroupRooms,
   listContactsForUser,
+  listFriendsForUser,
+  listIncomingFriendRequests,
+  listOutgoingFriendRequests,
+  listFriendSuggestions,
+  sendFriendRequest,
+  respondFriendRequest,
+  getFriendRelation,
   isRegisteredRoomMember,
   setRoomMute,
   clearRoomMute,
@@ -56,7 +63,7 @@ import {
   getDbOverview,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "60");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "61");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -208,6 +215,14 @@ function broadcastUsers(roomId) {
     .filter((u) => u.roomId === roomId)
     .map((u) => u.name);
   io.to(`room:${roomId}`).emit("users", names);
+}
+
+function emitToUserByName(name, event, data) {
+  const target = String(name ?? "").trim();
+  if (!target) return;
+  for (const [sid, u] of online) {
+    if (u.name === target) io.to(sid).emit(event, data);
+  }
 }
 
 async function buildRoomRoster(roomId) {
@@ -731,7 +746,7 @@ io.on("connection", (socket) => {
       return;
     }
     try {
-      const list = await listContactsForUser(user.name);
+      const list = await listFriendsForUser(user.name);
       const onlineNames = new Set(
         [...online.values()].map((u) => u.name).filter(Boolean)
       );
@@ -745,6 +760,109 @@ io.on("connection", (socket) => {
     } catch (err) {
       console.error("[list_contacts]", err);
       respond({ ok: false, reason: "Không tải được danh bạ." });
+    }
+  });
+
+  socket.on("sync_friends", async (_payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user) {
+      respond({ ok: false, reason: "Chưa đăng nhập." });
+      return;
+    }
+    try {
+      const onlineNames = new Set(
+        [...online.values()].map((u) => u.name).filter(Boolean)
+      );
+      const friends = await listFriendsForUser(user.name);
+      const incoming = await listIncomingFriendRequests(user.name);
+      const outgoing = await listOutgoingFriendRequests(user.name);
+      respond({
+        ok: true,
+        friends: friends.map((c) => ({ ...c, online: onlineNames.has(c.name) })),
+        incoming,
+        outgoing,
+      });
+    } catch (err) {
+      console.error("[sync_friends]", err);
+      respond({ ok: false, reason: "Không tải được danh bạ." });
+    }
+  });
+
+  socket.on("friend_suggestions", async (_payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user) {
+      respond({ ok: false, reason: "Chưa đăng nhập." });
+      return;
+    }
+    try {
+      const suggestions = await listFriendSuggestions(user.name);
+      respond({ ok: true, suggestions });
+    } catch (err) {
+      console.error("[friend_suggestions]", err);
+      respond({ ok: false, reason: "Không tải được gợi ý." });
+    }
+  });
+
+  socket.on("friend_request", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user) {
+      respond({ ok: false, reason: "Chưa đăng nhập." });
+      return;
+    }
+    const target = String(payload?.targetName ?? "").trim().slice(0, 32);
+    if (!target) {
+      respond({ ok: false, reason: "Thiếu tên." });
+      return;
+    }
+    try {
+      const result = await sendFriendRequest(user.name, target);
+      if (result.ok && result.status === "pending_out") {
+        emitToUserByName(target, "friend_incoming", {
+          fromName: user.name,
+        });
+      } else if (result.ok && result.status === "friends") {
+        emitToUserByName(target, "friend_accepted", { name: user.name });
+      }
+      respond(result);
+    } catch (err) {
+      console.error("[friend_request]", err);
+      respond({ ok: false, reason: "Không gửi được lời mời." });
+    }
+  });
+
+  socket.on("friend_respond", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user) {
+      respond({ ok: false, reason: "Chưa đăng nhập." });
+      return;
+    }
+    const other = String(payload?.targetName ?? "").trim().slice(0, 32);
+    const accept = Boolean(payload?.accept);
+    if (!other) {
+      respond({ ok: false, reason: "Thiếu tên." });
+      return;
+    }
+    try {
+      const result = await respondFriendRequest(user.name, other, accept);
+      if (result.ok && accept && result.status === "friends") {
+        emitToUserByName(other, "friend_accepted", { name: user.name });
+      }
+      respond(result);
+    } catch (err) {
+      console.error("[friend_respond]", err);
+      respond({ ok: false, reason: "Không xử lý được lời mời." });
     }
   });
 

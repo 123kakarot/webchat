@@ -768,6 +768,31 @@
         position: relative;
       }
 
+      .room-member-friend-btn {
+        flex-shrink: 0;
+        border: 1px solid var(--accent);
+        background: transparent;
+        color: #93c5fd;
+        border-radius: 999px;
+        padding: 0.3rem 0.65rem;
+        font: inherit;
+        font-size: 0.72rem;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      html[data-theme="light"] .room-member-friend-btn {
+        color: var(--accent);
+      }
+
+      .room-member-friend-btn:disabled {
+        opacity: 0.55;
+        cursor: default;
+        border-color: var(--border);
+        color: var(--muted);
+      }
+
       .room-member-manage-btn {
         width: 32px;
         height: 32px;
@@ -2303,6 +2328,87 @@
 
       button.msg-avatar:hover {
         filter: brightness(1.1);
+      }
+
+      .add-friend-modal {
+        max-width: 420px;
+      }
+
+      .add-friend-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+      }
+
+      .add-friend-head h2 {
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+
+      .add-friend-label {
+        display: block;
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+      }
+
+      .add-friend-modal input {
+        width: 100%;
+        margin-bottom: 0.85rem;
+      }
+
+      .add-friend-section-title {
+        font-size: 0.82rem;
+        font-weight: 600;
+        margin-bottom: 0.45rem;
+        color: var(--muted);
+      }
+
+      .add-friend-suggestions {
+        max-height: 220px;
+        overflow-y: auto;
+        margin-bottom: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+      }
+
+      .add-friend-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.5rem 0.65rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      .add-friend-row:last-child {
+        border-bottom: none;
+      }
+
+      .add-friend-row-meta {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .add-friend-row-name {
+        font-size: 0.88rem;
+        font-weight: 600;
+      }
+
+      .add-friend-row-source {
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+
+      .add-friend-row button {
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text);
+        border-radius: 999px;
+        padding: 0.25rem 0.55rem;
+        font: inherit;
+        font-size: 0.72rem;
+        cursor: pointer;
       }
 
       .user-profile-modal {
@@ -4653,7 +4759,7 @@
           <nav class="contacts-section-nav" aria-label="Mục danh bạ">
             <button type="button" class="active" data-contacts-section="friends">Danh sách bạn bè</button>
             <button type="button" data-contacts-section="groups">Danh sách nhóm và cộng đồng</button>
-            <button type="button" disabled title="Sắp có">Lời mời kết bạn</button>
+            <button type="button" data-contacts-section="requests">Lời mời kết bạn</button>
             <button type="button" disabled title="Sắp có">Lời mời vào nhóm và cộng đồng</button>
           </nav>
         </div>
@@ -4671,7 +4777,7 @@
               <option value="za">Tên (Z-A)</option>
               <option value="online">Đang online</option>
             </select>
-            <button type="button" class="contacts-add-btn" id="contacts-add-friend">+ Nhắn tin mới</button>
+            <button type="button" class="contacts-add-btn" id="contacts-add-friend">+ Thêm bạn</button>
           </div>
         </div>
         <div class="contacts-list-scroll" id="contacts-list"></div>
@@ -4998,6 +5104,23 @@
       </div>
     </div>
 
+    <div class="modal-backdrop" id="modal-add-friend">
+      <div class="modal add-friend-modal">
+        <div class="add-friend-head">
+          <h2>Thêm bạn</h2>
+          <button type="button" class="user-profile-close" data-close="modal-add-friend" aria-label="Đóng">×</button>
+        </div>
+        <label class="add-friend-label">Tên hiển thị</label>
+        <input id="add-friend-name" type="search" placeholder="Nhập tên người cần kết bạn" maxlength="32" autocomplete="off" />
+        <div class="add-friend-section-title">Có thể bạn quen</div>
+        <div class="add-friend-suggestions" id="add-friend-suggestions"></div>
+        <div class="modal-actions">
+          <button type="button" data-close="modal-add-friend">Hủy</button>
+          <button type="button" class="primary" id="add-friend-submit">Gửi lời mời</button>
+        </div>
+      </div>
+    </div>
+
     <div class="modal-backdrop" id="modal-user-profile">
       <div class="modal user-profile-modal">
         <div class="user-profile-topbar">
@@ -5011,6 +5134,7 @@
             <div class="user-profile-name" id="user-profile-name"></div>
           </div>
           <div class="user-profile-actions">
+            <button type="button" id="user-profile-friend" hidden>Kết bạn</button>
             <button type="button" data-close="modal-user-profile">Đóng</button>
             <button type="button" class="primary" id="user-profile-dm">Nhắn tin</button>
           </div>
@@ -5282,7 +5406,7 @@
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
-      const CLIENT_BUILD = "60";
+      const CLIENT_BUILD = "61";
       const BASE_DOC_TITLE = "Webchat";
 
       function applyUiTheme(mode) {
@@ -6212,22 +6336,199 @@
         return /[A-ZÀ-Ỹ]/i.test(ch) ? ch.toUpperCase() : "#";
       }
 
-      function fetchContactsList(cb) {
+      let friendIncoming = [];
+      let friendOutgoing = [];
+      /** @type {Record<string, string>} */
+      let friendStatusMap = {};
+
+      function rebuildFriendStatusMap() {
+        friendStatusMap = {};
+        for (const f of contactsData) friendStatusMap[f.name] = "friends";
+        for (const r of friendIncoming) friendStatusMap[r.name] = "pending_in";
+        for (const r of friendOutgoing) friendStatusMap[r.name] = "pending_out";
+      }
+
+      function getFriendStatus(name) {
+        return friendStatusMap[String(name ?? "").trim()] || "none";
+      }
+
+      function syncFriends(cb) {
         if (!socket?.connected || !myName) {
           contactsData = [];
+          friendIncoming = [];
+          friendOutgoing = [];
+          rebuildFriendStatusMap();
           if (cb) cb();
           return;
         }
         contactsLoading = true;
-        socket.timeout(15000).emit("list_contacts", {}, (err, res) => {
+        socket.timeout(15000).emit("sync_friends", {}, (err, res) => {
           contactsLoading = false;
           if (err || !res?.ok) {
             contactsData = [];
+            friendIncoming = [];
+            friendOutgoing = [];
           } else {
-            contactsData = Array.isArray(res.contacts) ? res.contacts : [];
+            contactsData = Array.isArray(res.friends) ? res.friends : [];
+            friendIncoming = Array.isArray(res.incoming) ? res.incoming : [];
+            friendOutgoing = Array.isArray(res.outgoing) ? res.outgoing : [];
           }
+          rebuildFriendStatusMap();
           if (cb) cb();
         });
+      }
+
+      function applyFriendUiAfterChange() {
+        rebuildFriendStatusMap();
+        if (appShell.classList.contains("contacts-mode")) renderContactsMain();
+        renderMembersPanel();
+        syncUserProfileFriendButton();
+      }
+
+      function sendFriendRequestTo(targetName) {
+        const target = String(targetName ?? "").trim();
+        if (!target || !myName) return;
+        socket.timeout(12000).emit("friend_request", { targetName: target }, (err, res) => {
+          if (err || !res?.ok) {
+            alert(res?.reason || "Không gửi được lời mời kết bạn.");
+            return;
+          }
+          if (res.status === "friends") {
+            showProfileToast("Đã trở thành bạn bè");
+          } else {
+            showProfileToast("Đã gửi lời mời kết bạn");
+            if (!friendOutgoing.some((x) => x.name === target)) {
+              friendOutgoing.push({ name: target, avatarUrl: "" });
+            }
+            friendStatusMap[target] = "pending_out";
+          }
+          syncFriends(() => applyFriendUiAfterChange());
+        });
+      }
+
+      function respondFriendRequestFrom(otherName, accept) {
+        const other = String(otherName ?? "").trim();
+        if (!other) return;
+        socket.timeout(12000).emit("friend_respond", { targetName: other, accept }, (err, res) => {
+          if (err || !res?.ok) {
+            alert(res?.reason || "Không xử lý được lời mời.");
+            return;
+          }
+          showProfileToast(accept ? "Đã chấp nhận kết bạn" : "Đã từ chối lời mời");
+          syncFriends(() => applyFriendUiAfterChange());
+        });
+      }
+
+      function syncUserProfileFriendButton() {
+        const btn = document.getElementById("user-profile-friend");
+        if (!btn || !userProfileTargetName || userProfileTargetName === myName) {
+          if (btn) btn.hidden = true;
+          return;
+        }
+        btn.hidden = false;
+        btn.disabled = false;
+        btn.classList.remove("primary");
+        const st = getFriendStatus(userProfileTargetName);
+        if (st === "friends") {
+          btn.textContent = "Bạn bè";
+          btn.disabled = true;
+        } else if (st === "pending_out") {
+          btn.textContent = "Đã gửi lời mời";
+          btn.disabled = true;
+        } else if (st === "pending_in") {
+          btn.textContent = "Chấp nhận";
+          btn.classList.add("primary");
+        } else {
+          btn.textContent = "Kết bạn";
+        }
+      }
+
+      function appendMemberFriendButton(row, memberName) {
+        const room = roomsData.find((r) => r.id === currentRoomId);
+        if (room?.kind === "direct" || memberName === myName) return;
+        const st = getFriendStatus(memberName);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "room-member-friend-btn";
+        if (st === "friends") {
+          btn.textContent = "Bạn bè";
+          btn.disabled = true;
+        } else if (st === "pending_out") {
+          btn.textContent = "Đã gửi";
+          btn.disabled = true;
+        } else if (st === "pending_in") {
+          btn.textContent = "Chấp nhận";
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            respondFriendRequestFrom(memberName, true);
+          });
+        } else {
+          btn.textContent = "Kết bạn";
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            sendFriendRequestTo(memberName);
+          });
+        }
+        row.appendChild(btn);
+      }
+
+      function openAddFriendModal() {
+        if (!ensureLoggedIn()) return;
+        document.getElementById("add-friend-name").value = "";
+        openModal("modal-add-friend");
+        loadAddFriendSuggestions();
+        document.getElementById("add-friend-name").focus();
+      }
+
+      function loadAddFriendSuggestions() {
+        const el = document.getElementById("add-friend-suggestions");
+        if (!el) return;
+        el.innerHTML = '<div class="contacts-empty" style="padding:1rem">Đang tải…</div>';
+        socket.timeout(12000).emit("friend_suggestions", {}, (err, res) => {
+          if (!el.isConnected) return;
+          if (err || !res?.ok) {
+            el.innerHTML = '<div class="contacts-empty" style="padding:1rem">Không tải được gợi ý</div>';
+            return;
+          }
+          const list = res.suggestions || [];
+          if (!list.length) {
+            el.innerHTML =
+              '<div class="contacts-empty" style="padding:1rem">Chưa có gợi ý — nhập tên người cùng nhóm bạn.</div>';
+            return;
+          }
+          el.innerHTML = "";
+          for (const s of list.slice(0, 30)) {
+            const row = document.createElement("div");
+            row.className = "add-friend-row";
+            const av = s.avatarUrl
+              ? `<img src="${String(s.avatarUrl).replace(/"/g, "&quot;")}" alt="" />`
+              : escapeHtml(roomInitials(s.name));
+            row.innerHTML =
+              `<div class="contacts-row-avatar">${av}</div>` +
+              `<div class="add-friend-row-meta"><div class="add-friend-row-name">${escapeHtml(s.name)}</div>` +
+              `<div class="add-friend-row-source">${escapeHtml(s.source || "Cùng nhóm chat")}</div></div>`;
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = "Kết bạn";
+            btn.addEventListener("click", () => {
+              document.getElementById("add-friend-name").value = s.name;
+              sendFriendRequestTo(s.name);
+              closeModal("modal-add-friend");
+            });
+            row.appendChild(btn);
+            el.appendChild(row);
+          }
+        });
+      }
+
+      function submitAddFriendByName() {
+        const name = document.getElementById("add-friend-name")?.value?.trim();
+        if (!name) {
+          alert("Nhập tên hiển thị.");
+          return;
+        }
+        sendFriendRequestTo(name);
+        closeModal("modal-add-friend");
       }
 
       function setContactsSection(section) {
@@ -6238,11 +6539,14 @@
         const titleEl = document.getElementById("contacts-main-title");
         if (section === "groups") {
           titleEl.textContent = "Danh sách nhóm và cộng đồng";
+        } else if (section === "requests") {
+          titleEl.textContent = "Lời mời kết bạn";
         } else {
           titleEl.textContent = "Danh sách bạn bè";
         }
-        document.getElementById("contacts-sort").hidden = section === "groups";
-        document.getElementById("contacts-add-friend").hidden = section === "groups";
+        const hideTools = section === "groups" || section === "requests";
+        document.getElementById("contacts-sort").hidden = hideTools;
+        document.getElementById("contacts-add-friend").hidden = section !== "friends";
         renderContactsMain();
       }
 
@@ -6290,6 +6594,46 @@
           return;
         }
 
+        if (contactsSection === "requests") {
+          let incoming = friendIncoming.slice();
+          if (navQ) incoming = incoming.filter((c) => c.name.toLowerCase().includes(navQ));
+          if (listQ) incoming = incoming.filter((c) => c.name.toLowerCase().includes(listQ));
+          countEl.textContent = `Lời mời (${incoming.length})`;
+          if (contactsLoading) {
+            listEl.innerHTML = '<div class="contacts-empty">Đang tải…</div>';
+            return;
+          }
+          if (!incoming.length) {
+            listEl.innerHTML = '<div class="contacts-empty">Chưa có lời mời kết bạn.</div>';
+            return;
+          }
+          for (const c of incoming) {
+            const row = document.createElement("div");
+            row.className = "contacts-row";
+            row.style.cursor = "default";
+            const avInner = c.avatarUrl
+              ? `<img src="${String(c.avatarUrl).replace(/"/g, "&quot;")}" alt="" />`
+              : escapeHtml(roomInitials(c.name));
+            row.innerHTML =
+              `<span class="contacts-row-avatar">${avInner}</span>` +
+              `<span class="contacts-row-name">${escapeHtml(c.name)}</span>`;
+            const accept = document.createElement("button");
+            accept.type = "button";
+            accept.className = "room-member-friend-btn";
+            accept.textContent = "Chấp nhận";
+            accept.addEventListener("click", () => respondFriendRequestFrom(c.name, true));
+            const decline = document.createElement("button");
+            decline.type = "button";
+            decline.className = "room-member-friend-btn";
+            decline.textContent = "Từ chối";
+            decline.addEventListener("click", () => respondFriendRequestFrom(c.name, false));
+            row.appendChild(accept);
+            row.appendChild(decline);
+            listEl.appendChild(row);
+          }
+          return;
+        }
+
         let friends = contactsData.slice();
         if (navQ) friends = friends.filter((c) => c.name.toLowerCase().includes(navQ));
         if (listQ) friends = friends.filter((c) => c.name.toLowerCase().includes(listQ));
@@ -6314,7 +6658,7 @@
 
         if (!friends.length) {
           listEl.innerHTML =
-            '<div class="contacts-empty">Chưa có bạn bè trong danh bạ.<br/>Tham gia cùng nhóm hoặc bấm <strong>+ Nhắn tin mới</strong> để chat riêng.</div>';
+            '<div class="contacts-empty">Chưa có bạn bè.<br/>Trong nhóm bấm <strong>Kết bạn</strong> hoặc <strong>+ Thêm bạn</strong>.</div>';
           return;
         }
 
@@ -6357,16 +6701,7 @@
         setNavMenuActive("contacts");
         setMobileTab("contacts");
         setContactsSection(contactsSection || "friends");
-        fetchContactsList(() => renderContactsMain());
-      }
-
-      function promptNewDirectChat() {
-        if (!ensureLoggedIn()) return;
-        const name = prompt("Nhập tên hiển thị người cần nhắn tin:", "");
-        if (name == null) return;
-        const trimmed = name.trim();
-        if (!trimmed) return;
-        startDirectChatWith(trimmed);
+        syncFriends(() => renderContactsMain());
       }
 
       let profileDraft = null;
@@ -6806,6 +7141,7 @@
           updateAvatarUi();
           openMainApp();
           sessionReady = true;
+          syncFriends();
           if (rejoin && currentRoomCode) {
             pendingOpenRecentRoom = false;
             syncMyRooms();
@@ -7447,6 +7783,7 @@
             }
           });
         }
+        syncUserProfileFriendButton();
         openModal("modal-user-profile");
       }
 
@@ -7647,6 +7984,8 @@
               openUserProfile(m.name);
             });
           }
+
+          appendMemberFriendButton(row, m.name);
 
           const canManage =
             manageLevel &&
@@ -7868,6 +8207,11 @@
       document.getElementById("user-profile-dm").addEventListener("click", () => {
         startDirectChatWith(userProfileTargetName);
       });
+      document.getElementById("user-profile-friend")?.addEventListener("click", () => {
+        const st = getFriendStatus(userProfileTargetName);
+        if (st === "pending_in") respondFriendRequestFrom(userProfileTargetName, true);
+        else sendFriendRequestTo(userProfileTargetName);
+      });
       document.getElementById("create-group-name").addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
@@ -8000,7 +8344,8 @@
       document.getElementById("contacts-nav-search")?.addEventListener("input", () => renderContactsMain());
       document.getElementById("contacts-list-search")?.addEventListener("input", () => renderContactsMain());
       document.getElementById("contacts-sort")?.addEventListener("change", () => renderContactsMain());
-      document.getElementById("contacts-add-friend")?.addEventListener("click", promptNewDirectChat);
+      document.getElementById("contacts-add-friend")?.addEventListener("click", openAddFriendModal);
+      document.getElementById("add-friend-submit")?.addEventListener("click", submitAddFriendByName);
       document.getElementById("mob-nav-contacts")?.addEventListener("click", () => {
         appShell.classList.remove("show-chat");
         showContactsPanel();
@@ -8231,6 +8576,17 @@
         renderRoomHeader();
         if (appShell.classList.contains("contacts-mode")) renderContactsMain();
         maybeAutoEnterRecentRoom();
+      });
+
+      socket.on("friend_incoming", () => {
+        syncFriends(() => {
+          applyFriendUiAfterChange();
+          if (contactsSection === "requests") renderContactsMain();
+        });
+      });
+
+      socket.on("friend_accepted", () => {
+        syncFriends(() => applyFriendUiAfterChange());
       });
 
       socket.on("room_error", (msg) => {
