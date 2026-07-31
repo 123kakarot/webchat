@@ -1285,17 +1285,33 @@ export async function editMessageText(messageId, userName, roomId, newText) {
   return { ok: true, message: rowToMessage(rows[0]) };
 }
 
-export async function castPollVote(messageId, userName, optionIndex) {
+export async function castPollVote(messageId, userName, optionIndicesRaw) {
   const mid = Number(messageId);
   const name = String(userName ?? "").trim().slice(0, 32);
-  const idx = Math.floor(Number(optionIndex));
-  if (!Number.isFinite(mid) || !name || idx < 0) return { ok: false, reason: "Dữ liệu không hợp lệ." };
+  if (!Number.isFinite(mid) || !name) return { ok: false, reason: "Dữ liệu không hợp lệ." };
+
+  let indices = [];
+  if (Array.isArray(optionIndicesRaw)) {
+    indices = optionIndicesRaw.map((i) => Math.floor(Number(i))).filter((i) => i >= 0);
+  } else if (optionIndicesRaw != null && optionIndicesRaw !== "") {
+    indices = [Math.floor(Number(optionIndicesRaw))].filter((i) => i >= 0);
+  }
+  indices = [...new Set(indices)];
+  if (!indices.length) return { ok: false, reason: "Chọn ít nhất một lựa chọn." };
 
   const msg = await getMessageById(mid);
   if (!msg || (msg.type || "") !== "poll") return { ok: false, reason: "Không phải bình chọn." };
   const meta = { ...(msg.meta || {}) };
+  if (meta.locked) return { ok: false, reason: "Bình chọn đã khóa." };
   const options = Array.isArray(meta.options) ? meta.options : [];
-  if (idx >= options.length) return { ok: false, reason: "Lựa chọn không hợp lệ." };
+  if (indices.some((i) => i >= options.length)) {
+    return { ok: false, reason: "Lựa chọn không hợp lệ." };
+  }
+  const allowMultiple = Boolean(meta.allowMultiple);
+  if (!allowMultiple && indices.length > 1) {
+    return { ok: false, reason: "Chỉ được chọn một phương án." };
+  }
+
   const votes =
     meta.votes && typeof meta.votes === "object" && !Array.isArray(meta.votes)
       ? { ...meta.votes }
@@ -1303,9 +1319,35 @@ export async function castPollVote(messageId, userName, optionIndex) {
   for (const k of Object.keys(votes)) {
     if (Array.isArray(votes[k])) votes[k] = votes[k].filter((n) => n !== name);
   }
-  const key = String(idx);
-  votes[key] = [...(votes[key] || []), name];
+  for (const idx of indices) {
+    const key = String(idx);
+    votes[key] = [...(votes[key] || []), name];
+  }
   meta.votes = votes;
+
+  if (useMemory) {
+    const m = memoryMessages.find((x) => x.id === mid);
+    if (m) m.meta = meta;
+    return { ok: true, message: { ...m, meta, reactions: msg.reactions || {} } };
+  }
+
+  const { rows } = await pool.query(
+    `UPDATE messages SET meta = $2::jsonb WHERE id = $1
+     RETURNING id, room_id, name, type, text, url, file_name, sticker, meta, created_at, deleted_at, edited_at,
+               (EXTRACT(EPOCH FROM created_at) * 1000) AS at`,
+    [mid, JSON.stringify(meta)]
+  );
+  return { ok: true, message: rowToMessage(rows[0]) };
+}
+
+export async function lockPollMessage(messageId, userName) {
+  const mid = Number(messageId);
+  const name = String(userName ?? "").trim().slice(0, 32);
+  if (!Number.isFinite(mid) || !name) return { ok: false, reason: "Dữ liệu không hợp lệ." };
+  const msg = await getMessageById(mid);
+  if (!msg || (msg.type || "") !== "poll") return { ok: false, reason: "Không phải bình chọn." };
+  if (msg.name !== name) return { ok: false, reason: "Chỉ người tạo mới khóa được." };
+  const meta = { ...(msg.meta || {}), locked: true };
 
   if (useMemory) {
     const m = memoryMessages.find((x) => x.id === mid);

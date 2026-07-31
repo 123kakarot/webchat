@@ -50,10 +50,11 @@ import {
   recallMessage,
   editMessageText,
   castPollVote,
+  lockPollMessage,
   getDbOverview,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "46");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "47");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1253,6 +1254,21 @@ io.on("connection", (socket) => {
       if (payload.meta && typeof payload.meta === "object") {
         for (const [k, v] of Object.entries(payload.meta)) {
           const key = String(k).slice(0, 32);
+          if (key === "options" && Array.isArray(v)) {
+            meta.options = v
+              .map((o) => String(o ?? "").trim().slice(0, 120))
+              .filter(Boolean)
+              .slice(0, 8);
+            continue;
+          }
+          if (key === "votes" && v && typeof v === "object" && !Array.isArray(v)) {
+            meta.votes = v;
+            continue;
+          }
+          if (key === "allowMultiple" || key === "locked") {
+            meta[key] = Boolean(v);
+            continue;
+          }
           const maxLen = key === "avatarUrl" ? 500 : 200;
           meta[key] = String(v ?? "").slice(0, maxLen);
         }
@@ -1340,7 +1356,11 @@ io.on("connection", (socket) => {
       return;
     }
     try {
-      const result = await castPollVote(payload?.messageId, user.name, payload?.optionIndex);
+      const result = await castPollVote(
+        payload?.messageId,
+        user.name,
+        payload?.optionIndices ?? payload?.optionIndex
+      );
       if (result.ok && result.message) {
         io.to(roomChannel(user.roomId)).emit("message_updated", result.message);
       }
@@ -1348,6 +1368,27 @@ io.on("connection", (socket) => {
     } catch (err) {
       console.error("[poll_vote]", err);
       respond({ ok: false, reason: "Không bỏ phiếu được." });
+    }
+  });
+
+  socket.on("poll_lock", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user?.roomId) {
+      respond({ ok: false, reason: "Chưa vào phòng." });
+      return;
+    }
+    try {
+      const result = await lockPollMessage(payload?.messageId, user.name);
+      if (result.ok && result.message) {
+        io.to(roomChannel(user.roomId)).emit("message_updated", result.message);
+      }
+      respond(result);
+    } catch (err) {
+      console.error("[poll_lock]", err);
+      respond({ ok: false, reason: "Không khóa được." });
     }
   });
 
