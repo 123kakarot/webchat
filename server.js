@@ -61,9 +61,11 @@ import {
   castPollVote,
   lockPollMessage,
   getDbOverview,
+  upsertUserAvatarCache,
+  getUserAvatarCache,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "63");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "67");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -177,6 +179,7 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
     url,
     fileName: req.file.originalname.slice(0, 200),
     mime: req.file.mimetype,
+    persistent: Boolean(remote || process.env.S3_BUCKET),
   });
 });
 
@@ -705,9 +708,13 @@ io.on("connection", (socket) => {
         ? nameRaw
         : String(nameRaw?.name ?? nameRaw?.roomName ?? "Nhóm mới");
     const avatarUrl = typeof nameRaw === "object" && nameRaw ? String(nameRaw.avatarUrl ?? "").slice(0, 500) : "";
+    const avatarData =
+      typeof nameRaw === "object" && nameRaw
+        ? sanitizeAvatarDataPayload(nameRaw.avatarDataUrl)
+        : "";
 
     try {
-      const room = await createRoom(name, user.name, avatarUrl);
+      const room = await createRoom(name, user.name, avatarUrl, "group", avatarData);
       socket.emit("room_created", room);
       respond({ ok: true, room });
     } catch (err) {
@@ -1024,8 +1031,42 @@ io.on("connection", (socket) => {
     if (!Number.isInteger(messageId) || messageId < 1) return;
     if (!(await messageBelongsToRoom(messageId, user.roomId))) return;
     const avatarUrl = String(payload?.avatarUrl ?? "").slice(0, 500);
+    const avatarData = sanitizeAvatarDataPayload(payload?.avatarDataUrl);
     await upsertRoomRead(user.roomId, user.name, messageId, avatarUrl);
+    if (avatarUrl || avatarData) {
+      await upsertUserAvatarCache(user.name, avatarUrl, avatarData);
+    }
     broadcastRoomReads(user.roomId);
+  });
+
+  function sanitizeAvatarDataPayload(raw) {
+    const s = String(raw ?? "");
+    if (!s.startsWith("data:image/") || s.length > 120_000) return "";
+    return s;
+  }
+
+  socket.on("save_user_avatar", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user) {
+      respond({ ok: false, reason: "Chưa đăng nhập." });
+      return;
+    }
+    try {
+      const avatarUrl = String(payload?.avatarUrl ?? "").slice(0, 500);
+      const avatarData = sanitizeAvatarDataPayload(payload?.avatarDataUrl);
+      if (!avatarUrl && !avatarData) {
+        respond({ ok: false, reason: "Thiếu ảnh." });
+        return;
+      }
+      await upsertUserAvatarCache(user.name, avatarUrl, avatarData);
+      respond({ ok: true });
+    } catch (err) {
+      console.error("[save_user_avatar]", err);
+      respond({ ok: false, reason: "Không lưu được ảnh." });
+    }
   });
 
   socket.on("update_profile", async (payload) => {
@@ -1097,6 +1138,8 @@ io.on("connection", (socket) => {
     }
     const nextName = payload?.name != null ? String(payload.name).trim().slice(0, 64) : undefined;
     const nextAvatar = payload?.avatarUrl != null ? String(payload.avatarUrl).slice(0, 500) : undefined;
+    const nextAvatarData =
+      payload?.avatarDataUrl != null ? sanitizeAvatarDataPayload(payload.avatarDataUrl) : undefined;
     const nextRequireApproval =
       payload?.requireApproval != null ? Boolean(payload.requireApproval) : undefined;
     if (nextName !== undefined && !nextName) {
@@ -1107,6 +1150,7 @@ io.on("connection", (socket) => {
       const updated = await updateRoomFields(user.roomId, {
         name: nextName,
         avatarUrl: nextAvatar,
+        avatarData: nextAvatarData,
         requireApproval: nextRequireApproval,
       });
       if (!updated) {

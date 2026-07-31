@@ -263,6 +263,12 @@
         z-index: 1;
       }
 
+      .chat-main.chat-file-drag-over #messages,
+      .chat-main.chat-file-drag-over .composer-wrap {
+        outline: 2px dashed rgba(99, 102, 241, 0.75);
+        outline-offset: -3px;
+      }
+
       .room-head-avatar {
         width: 44px;
         height: 44px;
@@ -1980,6 +1986,67 @@
         height: 100%;
         object-fit: cover;
         border-radius: 50%;
+      }
+
+      .room-avatar.room-avatar-composite,
+      .contacts-row-avatar.room-avatar-composite,
+      .room-head-avatar.room-avatar-composite {
+        display: grid;
+        padding: 0;
+        gap: 1px;
+        background: rgba(0, 0, 0, 0.35);
+        align-items: stretch;
+        justify-items: stretch;
+      }
+
+      html[data-theme="light"] .room-avatar.room-avatar-composite,
+      html[data-theme="light"] .contacts-row-avatar.room-avatar-composite,
+      html[data-theme="light"] .room-head-avatar.room-avatar-composite {
+        background: rgba(15, 23, 42, 0.12);
+      }
+
+      .room-avatar-composite.count-2 {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+
+      .room-avatar-composite.count-3,
+      .room-avatar-composite.count-4,
+      .room-avatar-composite.count-4plus {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+
+      .room-avatar-composite .tile {
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.62rem;
+        min-width: 0;
+        min-height: 0;
+      }
+
+      .room-avatar-composite .tile img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 0;
+      }
+
+      .room-avatar-composite .tile.plus {
+        background: rgba(15, 23, 42, 0.88);
+        color: #fff;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      html[data-theme="light"] .room-avatar-composite .tile.plus {
+        background: rgba(71, 85, 105, 0.92);
       }
 
       .room-meta {
@@ -4089,6 +4156,85 @@
         display: none;
       }
 
+      .messages-stage {
+        flex: 1;
+        min-height: 0;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .scroll-bottom-wrap {
+        position: absolute;
+        right: 0.85rem;
+        bottom: 0.65rem;
+        z-index: 6;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        pointer-events: none;
+      }
+
+      .scroll-bottom-wrap[hidden] {
+        display: none !important;
+      }
+
+      .scroll-bottom-fab {
+        pointer-events: auto;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(30, 35, 48, 0.92);
+        color: rgba(226, 232, 240, 0.95);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+        transition: transform 0.15s ease, background 0.15s ease;
+      }
+
+      html[data-theme="light"] .scroll-bottom-fab {
+        background: rgba(255, 255, 255, 0.96);
+        color: #475569;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+      }
+
+      .scroll-bottom-fab:hover {
+        transform: scale(1.05);
+      }
+
+      .scroll-bottom-fab:active {
+        transform: scale(0.97);
+      }
+
+      .scroll-bottom-fab svg {
+        width: 22px;
+        height: 22px;
+        fill: currentColor;
+      }
+
+      .scroll-bottom-badge {
+        pointer-events: none;
+        min-width: 1.35rem;
+        padding: 0.15rem 0.45rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 700;
+        line-height: 1.2;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.45);
+        white-space: nowrap;
+      }
+
+      .scroll-bottom-badge[hidden] {
+        display: none !important;
+      }
+
       .composer-wrap {
         border-top: 1px solid var(--border);
         background: var(--glass);
@@ -4692,17 +4838,23 @@
         color: #fff;
       }
 
+      .toolbar-more-anchor {
+        position: relative;
+        display: inline-flex;
+        flex-shrink: 0;
+      }
+
       .more-menu {
         display: none;
         position: absolute;
-        bottom: 100%;
-        right: 0.65rem;
-        margin-bottom: 0.25rem;
+        bottom: calc(100% + 6px);
+        left: 0;
+        right: auto;
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 10px;
         min-width: 180px;
-        z-index: 20;
+        z-index: 30;
         box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
         overflow: hidden;
       }
@@ -4946,7 +5098,15 @@
       </header>
       <div class="room-pins-bar" id="room-pins-bar" hidden></div>
       <div class="online-panel" id="online-panel" hidden></div>
-      <div id="messages" role="log"></div>
+      <div class="messages-stage" id="messages-stage">
+        <div id="messages" role="log"></div>
+        <div class="scroll-bottom-wrap" id="scroll-bottom-wrap" hidden>
+          <button type="button" class="scroll-bottom-fab" id="btn-scroll-bottom" title="Xuống tin mới nhất" aria-label="Xuống tin mới nhất">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41zm0 6L12 20.17l4.59-4.58L18 16l-6 6-6-6 1.41-1.41z"/></svg>
+          </button>
+          <span class="scroll-bottom-badge" id="scroll-bottom-badge" hidden></span>
+        </div>
+      </div>
 
       <div id="typing-bar" class="typing-bar" hidden>
         <div class="typing-bar-avatars" id="typing-avatars"></div>
@@ -4985,16 +5145,17 @@
           <button type="button" class="tool-btn" id="btn-wallet" title="Thông tin chuyển khoản">
             <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
           </button>
-          <button type="button" class="tool-btn" id="btn-more" title="Thêm">
-            <svg viewBox="0 0 24 24"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-          </button>
-        </div>
-
-        <div class="more-menu" id="more-menu">
-          <button type="button" data-more="capture-chat">Chụp khung chat</button>
-          <button type="button" data-more="edit-quick">Sửa tin nhắn nhanh</button>
-          <button type="button" data-more="edit-wallet">Lưu TK chuyển khoản</button>
-          <button type="button" data-more="create-poll">Tạo bình chọn</button>
+          <div class="toolbar-more-anchor">
+            <button type="button" class="tool-btn" id="btn-more" title="Thêm">
+              <svg viewBox="0 0 24 24"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+            </button>
+            <div class="more-menu" id="more-menu">
+              <button type="button" data-more="capture-chat">Chụp khung chat</button>
+              <button type="button" data-more="edit-quick">Sửa tin nhắn nhanh</button>
+              <button type="button" data-more="edit-wallet">Lưu TK chuyển khoản</button>
+              <button type="button" data-more="create-poll">Tạo bình chọn</button>
+            </div>
+          </div>
         </div>
 
         <div class="picker" id="picker-sticker">
@@ -5476,7 +5637,74 @@
       const joinBtn = document.getElementById("join-btn");
       const joinError = document.getElementById("join-error");
       const messagesEl = document.getElementById("messages");
-      messagesEl.addEventListener("scroll", () => scheduleMarkRead(), { passive: true });
+      const scrollBottomWrap = document.getElementById("scroll-bottom-wrap");
+      const scrollBottomBadge = document.getElementById("scroll-bottom-badge");
+      let newMessagesBelow = 0;
+      let suppressScrollBottomUpdates = false;
+      const MSG_NEAR_BOTTOM_PX = 120;
+
+      function isMessagesNearBottom() {
+        if (!messagesEl) return true;
+        return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight <= MSG_NEAR_BOTTOM_PX;
+      }
+
+      function updateScrollBottomFab() {
+        if (!scrollBottomWrap) return;
+        const near = isMessagesNearBottom();
+        if (near) {
+          newMessagesBelow = 0;
+          scrollBottomWrap.hidden = true;
+          if (scrollBottomBadge) scrollBottomBadge.hidden = true;
+          return;
+        }
+        scrollBottomWrap.hidden = false;
+        if (scrollBottomBadge) {
+          if (newMessagesBelow > 0) {
+            scrollBottomBadge.hidden = false;
+            scrollBottomBadge.textContent = newMessagesBelow >= 99 ? "99+" : String(newMessagesBelow);
+          } else {
+            scrollBottomBadge.hidden = true;
+          }
+        }
+      }
+
+      function scrollMessagesToBottom(behavior = "smooth") {
+        if (!messagesEl) return;
+        if (behavior === "auto") {
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+        } else {
+          messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
+        }
+        newMessagesBelow = 0;
+        if (behavior === "smooth") {
+          setTimeout(updateScrollBottomFab, 450);
+        } else {
+          updateScrollBottomFab();
+        }
+      }
+
+      function onMessagesListMutated(msg = null, { countAsNew = false } = {}) {
+        if (suppressScrollBottomUpdates) return;
+        const near = isMessagesNearBottom();
+        const mine = msg && isMyMessage(msg);
+        if (near || mine) {
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+          newMessagesBelow = 0;
+        } else if (countAsNew) {
+          newMessagesBelow += 1;
+        }
+        updateScrollBottomFab();
+      }
+
+      messagesEl.addEventListener("scroll", () => {
+        scheduleMarkRead();
+        updateScrollBottomFab();
+      }, { passive: true });
+
+      document.getElementById("btn-scroll-bottom")?.addEventListener("click", () => {
+        scrollMessagesToBottom("smooth");
+        scheduleMarkRead(true);
+      });
       const sendForm = document.getElementById("send-form");
       const messageInput = document.getElementById("message-input");
       const typingBarEl = document.getElementById("typing-bar");
@@ -5512,7 +5740,9 @@
       let roomRoster = null;
       let currentRoomOwnerName = "";
       let currentRoomAvatarUrl = "";
+      let currentRoomAvatarData = "";
       let createGroupAvatarUrl = "";
+      let createGroupAvatarDataUrl = "";
       let roomsData = [];
       let pendingOpenRecentRoom = false;
       let roomsSyncRetried = false;
@@ -5546,7 +5776,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "63";
+      const CLIENT_BUILD = "67";
       const BASE_DOC_TITLE = "Webchat";
 
       function applyUiTheme(mode) {
@@ -5574,6 +5804,172 @@
       }
 
       loadUiTheme();
+
+      function resolveMediaUrl(url) {
+        const u = String(url ?? "").trim();
+        if (!u) return "";
+        if (u.startsWith("data:") || u.startsWith("http://") || u.startsWith("https://")) return u;
+        if (u.startsWith("/")) return location.origin + u;
+        return u;
+      }
+
+      function compressAvatarFile(file) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          const objUrl = URL.createObjectURL(file);
+          img.onload = () => {
+            URL.revokeObjectURL(objUrl);
+            const max = 128;
+            let w = img.width;
+            let h = img.height;
+            const scale = Math.min(1, max / Math.max(w, h, 1));
+            w = Math.max(1, Math.round(w * scale));
+            h = Math.max(1, Math.round(h * scale));
+            const canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL("image/jpeg", 0.82));
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(objUrl);
+            reject(new Error("image load failed"));
+          };
+          img.src = objUrl;
+        });
+      }
+
+      function mountAvatarContent(el, { url, dataUrl, letter }) {
+        if (!el) return;
+        el.innerHTML = "";
+        const primary = resolveMediaUrl(url);
+        const fallback = dataUrl && String(dataUrl).startsWith("data:image/") ? dataUrl : "";
+        if (!primary && !fallback) {
+          el.textContent = letter || "?";
+          return;
+        }
+        const img = document.createElement("img");
+        img.alt = "";
+        img.draggable = false;
+        let usedFallback = false;
+        img.addEventListener("error", () => {
+          if (!usedFallback && fallback && img.src !== fallback) {
+            usedFallback = true;
+            img.src = fallback;
+            return;
+          }
+          img.remove();
+          el.textContent = letter || "?";
+        });
+        img.src = primary || fallback;
+        el.appendChild(img);
+      }
+
+      function roomHasCustomAvatar(room) {
+        if (!room) return false;
+        if (String(room.avatarUrl || "").trim()) return true;
+        const d = room.avatarData;
+        return typeof d === "string" && d.startsWith("data:image/");
+      }
+
+      function memberAvatarsFromNames(names, limit = 4) {
+        const list = (names || []).filter(Boolean).slice(0, limit);
+        return list.map((name) => ({
+          name,
+          avatarUrl: avatarUrlForUserName(name),
+          avatarData: avatarDataForUserName(name) || undefined,
+        }));
+      }
+
+      function mountCompositeGroupAvatar(el, members, totalCount) {
+        const total = Math.max(Number(totalCount) || 0, members?.length || 0);
+        if (!members?.length || total <= 0) return false;
+
+        el.classList.add("room-avatar-composite");
+        if (total >= 5) el.classList.add("count-4plus");
+        else if (total === 4) el.classList.add("count-4");
+        else if (total === 3) el.classList.add("count-3");
+        else if (total === 2) el.classList.add("count-2");
+        else el.classList.add("count-1");
+
+        const showPlus = total >= 5;
+        const tiles = showPlus ? members.slice(0, 3) : members.slice(0, Math.min(4, total));
+
+        for (const m of tiles) {
+          const tile = document.createElement("div");
+          tile.className = "tile";
+          mountAvatarContent(tile, {
+            url: m.avatarUrl,
+            dataUrl: m.avatarData,
+            letter: roomInitials(m.name || "?"),
+          });
+          el.appendChild(tile);
+        }
+        if (showPlus) {
+          const tile = document.createElement("div");
+          tile.className = "tile plus";
+          tile.textContent = "+" + (total - 3);
+          el.appendChild(tile);
+        }
+        return true;
+      }
+
+      function mountRoomAvatar(el, room, opts = {}) {
+        if (!el || !room) return;
+        const baseClass = opts.className ?? "room-avatar";
+        el.className = baseClass;
+        el.innerHTML = "";
+
+        const title = displayNameForRoom(room);
+
+        if (room.kind === "direct" || roomHasCustomAvatar(room)) {
+          mountAvatarContent(el, {
+            url: room.avatarUrl || avatarUrlForRoom(room),
+            dataUrl: avatarDataForRoom(room),
+            letter: roomInitials(title),
+          });
+          return;
+        }
+
+        const members = room.memberAvatars || [];
+        const total = room.memberCount ?? members.length;
+        if (mountCompositeGroupAvatar(el, members, total)) return;
+
+        mountAvatarContent(el, {
+          url: "",
+          dataUrl: "",
+          letter: roomInitials(title),
+        });
+      }
+
+      function pushUserAvatarToServer(avatarUrl, avatarDataUrl) {
+        if (!socket?.connected || !myName) return;
+        socket.timeout(8000).emit(
+          "save_user_avatar",
+          { avatarUrl: avatarUrl || "", avatarDataUrl: avatarDataUrl || "" },
+          () => {}
+        );
+      }
+
+      function syncProfileAvatarToServer() {
+        const p = loadProfile();
+        if (!p.avatarUrl && !p.avatarDataUrl) return;
+        pushUserAvatarToServer(p.avatarUrl || "", p.avatarDataUrl || "");
+      }
+
+      async function processAvatarUpload(file) {
+        const { url, persistent } = await uploadFile(file);
+        let avatarDataUrl = "";
+        try {
+          avatarDataUrl = await compressAvatarFile(file);
+        } catch {
+          /* ignore */
+        }
+        if (!persistent && url.startsWith("/uploads/")) {
+          /* Render: file on disk may vanish after deploy — DB/local backup below */
+        }
+        return { url, avatarDataUrl };
+      }
 
       function joinPayload(name, rejoin) {
         return {
@@ -5648,6 +6044,7 @@
       let roomReaders = new Map();
       /** @type {Map<string, string>} */
       const memberAvatarByName = new Map();
+      const memberAvatarDataByName = new Map();
       let markReadTimer = null;
       let lastMarkReadSent = 0;
       const imageLightboxEl = document.getElementById("image-lightbox");
@@ -5918,6 +6315,14 @@
         currentRoomId = roomId;
         currentRoomOwnerName = ownerName || roster?.ownerName || "";
         currentRoomAvatarUrl = avatarUrl || roster?.avatarUrl || "";
+        if (roomId != null) {
+          const ri = roomsData.findIndex((r) => Number(r.id) === Number(roomId));
+          if (ri >= 0) {
+            currentRoomAvatarData = roomsData[ri].avatarData || "";
+          }
+        }
+        currentRoomAvatarData =
+          currentRoomAvatarData || avatarDataForRoom(roomsData.find((r) => Number(r.id) === Number(roomId)));
         if (roster) roomRoster = roster;
         const normalized = normalizeRoomCodeClient(code || "");
         currentRoomCode = normalized.length >= 4 ? normalized : null;
@@ -5942,16 +6347,23 @@
           messagesEl.innerHTML = "";
           messageNodes.clear();
           memberAvatarByName.clear();
+          newMessagesBelow = 0;
         }
         const list = Array.isArray(history) ? history : [];
         if (!sameRoom || messagesEl.childElementCount === 0) {
           messagesEl.innerHTML = "";
           messageNodes.clear();
+          suppressScrollBottomUpdates = true;
           let prevChatMsg = null;
           for (const item of list) {
             appendMessage(item, prevChatMsg);
             if ((item.type || "text") !== "system") prevChatMsg = item;
           }
+          suppressScrollBottomUpdates = false;
+          newMessagesBelow = 0;
+          scrollMessagesToBottom("auto");
+        } else {
+          updateScrollBottomFab();
         }
         applyRoomReads(readers);
         renderTypingBar([]);
@@ -6004,7 +6416,11 @@
         if (mid <= lastMarkReadSent) return;
         lastMarkReadSent = mid;
         const p = loadProfile();
-        socket.emit("mark_read", { messageId: mid, avatarUrl: p.avatarUrl || "" });
+        socket.emit("mark_read", {
+          messageId: mid,
+          avatarUrl: p.avatarUrl || "",
+          avatarDataUrl: p.avatarDataUrl || "",
+        });
       }
 
       function scheduleMarkRead(immediate) {
@@ -6277,6 +6693,92 @@
         renderPendingImages();
         return true;
       }
+
+      function chatDragHasFiles(e) {
+        const dt = e.dataTransfer;
+        if (!dt?.types) return false;
+        return [...dt.types].includes("Files");
+      }
+
+      function isChatFileDropActive() {
+        return (
+          chat.classList.contains("active") &&
+          appShell.classList.contains("show-chat") &&
+          currentRoomId != null
+        );
+      }
+
+      async function sendAttachedFile(file) {
+        try {
+          const { url, fileName } = await uploadFile(file);
+          emitChatMessage({ type: "file", url, fileName: fileName || file.name });
+        } catch {
+          appendSystem("Không gửi được file (tối đa 10MB).");
+        }
+      }
+
+      async function handleDroppedFiles(fileList) {
+        if (!isChatFileDropActive()) {
+          appendSystem("Hãy mở phòng chat trước khi thả file vào.");
+          return;
+        }
+        const files = [...fileList].filter((f) => f && f.size >= 0);
+        if (!files.length) return;
+        for (const file of files) {
+          if (file.type.startsWith("image/")) {
+            queueImageFile(file);
+          } else {
+            await sendAttachedFile(file);
+          }
+        }
+      }
+
+      function installChatFileDrop() {
+        const chatMain = document.getElementById("chat-main");
+        if (!chatMain) return;
+
+        const inChatMain = (e) => Boolean(e.target?.closest?.("#chat-main"));
+
+        const allowDrop = (e) => {
+          if (!isChatFileDropActive() || !chatDragHasFiles(e) || !inChatMain(e)) return;
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+        };
+
+        const onDrop = (e) => {
+          if (!isChatFileDropActive() || !chatDragHasFiles(e) || !inChatMain(e)) return;
+          e.preventDefault();
+          e.stopPropagation();
+          chatMain.classList.remove("chat-file-drag-over");
+          const files = e.dataTransfer?.files;
+          if (files?.length) handleDroppedFiles(files);
+        };
+
+        for (const type of ["dragenter", "dragover"]) {
+          document.addEventListener(type, allowDrop, true);
+        }
+        document.addEventListener("drop", onDrop, true);
+
+        chatMain.addEventListener(
+          "dragenter",
+          () => {
+            if (isChatFileDropActive()) chatMain.classList.add("chat-file-drag-over");
+          },
+          true
+        );
+        chatMain.addEventListener(
+          "dragleave",
+          (e) => {
+            if (!e.relatedTarget || !chatMain.contains(e.relatedTarget)) {
+              chatMain.classList.remove("chat-file-drag-over");
+            }
+          },
+          true
+        );
+      }
+
+      installChatFileDrop();
 
       async function emitImageMessage(file, meta = {}) {
         const { url } = await uploadFile(file);
@@ -6749,6 +7251,10 @@
             friendOutgoing = Array.isArray(res.outgoing) ? res.outgoing : [];
           }
           rebuildFriendStatusMap();
+          for (const f of contactsData) {
+            if (f?.name && f.avatarData) memberAvatarDataByName.set(f.name, f.avatarData);
+          }
+          renderRoomList();
           if (cb) cb();
         });
       }
@@ -6954,14 +7460,17 @@
             row.className = "contacts-group-row";
             row.tabIndex = 0;
             const title = displayNameForRoom(room);
-            const av = room.avatarUrl || avatarUrlForRoom(room);
-            const avInner = av
-              ? `<img src="${String(av).replace(/"/g, "&quot;")}" alt="" />`
-              : escapeHtml(roomInitials(title));
-            row.innerHTML =
-              `<div class="contacts-row-avatar">${avInner}</div>` +
-              `<div class="contacts-row-name">${escapeHtml(title)}</div>` +
-              `<span style="font-size:0.75rem;color:var(--muted)">${escapeHtml(room.code || "")}</span>`;
+            const avWrap = document.createElement("div");
+            mountRoomAvatar(avWrap, room, { className: "contacts-row-avatar" });
+            row.appendChild(avWrap);
+            const nameEl = document.createElement("div");
+            nameEl.className = "contacts-row-name";
+            nameEl.textContent = title;
+            row.appendChild(nameEl);
+            const codeEl = document.createElement("span");
+            codeEl.style.cssText = "font-size:0.75rem;color:var(--muted)";
+            codeEl.textContent = room.code || "";
+            row.appendChild(codeEl);
             row.addEventListener("click", () => {
               showChatsPanel();
               enterRoom(room.code);
@@ -7182,10 +7691,12 @@
         err.hidden = true;
         const patch = {
           avatarUrl: profileDraft?.avatarUrl ?? loadProfile().avatarUrl ?? "",
+          avatarDataUrl: profileDraft?.avatarDataUrl ?? loadProfile().avatarDataUrl ?? "",
           bgColor: profileDraft?.bgColor ?? loadProfile().bgColor ?? "",
           bgImage: profileDraft?.bgImage ?? loadProfile().bgImage ?? "",
         };
         if (!saveProfile(patch)) return;
+        syncProfileAvatarToServer();
         if (name !== myName) {
           socket.emit("update_profile", { name });
         } else {
@@ -7243,20 +7754,16 @@
         const prev = document.getElementById("profile-avatar-preview");
 
         if (navName) navName.textContent = myName || "—";
-        if (navWrap) {
-          if (p.avatarUrl) {
-            navWrap.innerHTML = `<img src="${p.avatarUrl.replace(/"/g, "&quot;")}" alt="" />`;
-          } else {
-            navWrap.innerHTML = `<span id="nav-avatar-text">${letter}</span>`;
-          }
-        }
-        if (prev) {
-          if (p.avatarUrl) {
-            prev.innerHTML = `<img src="${p.avatarUrl.replace(/"/g, "&quot;")}" alt="" />`;
-          } else {
-            prev.innerHTML = `<span id="profile-avatar-letter">${letter}</span>`;
-          }
-        }
+        mountAvatarContent(navWrap, {
+          url: p.avatarUrl,
+          dataUrl: p.avatarDataUrl,
+          letter,
+        });
+        mountAvatarContent(prev, {
+          url: p.avatarUrl,
+          dataUrl: p.avatarDataUrl,
+          letter,
+        });
       }
 
       function promptJoinCode() {
@@ -7269,6 +7776,7 @@
         if (!ensureLoggedIn()) return;
         ensureSession(() => {
           createGroupAvatarUrl = "";
+          createGroupAvatarDataUrl = "";
           const btn = document.getElementById("create-group-avatar-btn");
           btn.innerHTML = "📷";
           document.getElementById("create-group-name").value = "Nhóm của tôi";
@@ -7286,7 +7794,11 @@
         }
         socket.timeout(20000).emit(
           "create_room",
-          { name, avatarUrl: createGroupAvatarUrl || "" },
+          {
+            name,
+            avatarUrl: createGroupAvatarUrl || "",
+            avatarDataUrl: createGroupAvatarDataUrl || "",
+          },
           (err, res) => {
             if (err) {
               alert("Không tạo được phòng (server không phản hồi).");
@@ -7312,6 +7824,7 @@
         localStorage.setItem(STORAGE_LAST_CODE, room.code);
         if (room.ownerName) currentRoomOwnerName = room.ownerName;
         if (room.avatarUrl) currentRoomAvatarUrl = room.avatarUrl;
+        if (room.avatarData) currentRoomAvatarData = room.avatarData;
         syncMyRooms();
         closeModal("modal-create-group");
         alert(
@@ -7520,6 +8033,7 @@
           sessionReady = true;
           syncFriends();
           syncNotifications();
+          syncProfileAvatarToServer();
           if (rejoin && currentRoomCode) {
             pendingOpenRecentRoom = false;
             syncMyRooms();
@@ -8096,27 +8610,42 @@
         return st?.avatarUrl || "";
       }
 
-      let userProfileTargetName = "";
-
-      function fillAvatarElement(el, name, avatarUrl) {
-        el.innerHTML = "";
-        const letter = roomInitials(name);
-        const url = avatarUrl || avatarUrlForUserName(name);
-        if (url) {
-          const img = document.createElement("img");
-          img.src = url;
-          img.alt = "";
-          img.addEventListener("error", () => {
-            img.remove();
-            el.textContent = letter;
-          });
-          el.appendChild(img);
-        } else {
-          el.textContent = letter;
-        }
+      function avatarDataForUserName(name) {
+        const n = String(name ?? "").trim();
+        if (!n) return "";
+        if (n === myName) return loadProfile().avatarDataUrl || "";
+        const friend = contactsData.find((c) => c.name === n);
+        if (friend?.avatarData) return friend.avatarData;
+        return memberAvatarDataByName.get(n) || "";
       }
 
-      function openUserProfile(name, avatarUrl = "") {
+      function avatarDataForRoom(room) {
+        if (!room) return "";
+        if (room.avatarData) return room.avatarData;
+        if (room.kind === "direct") {
+          const peer = peerNameFromDirectRoom(room);
+          if (peer) return avatarDataForUserName(peer);
+        }
+        return "";
+      }
+
+      let userProfileTargetName = "";
+
+      function fillAvatarElement(el, name, avatarUrl, avatarData = "") {
+        const letter = roomInitials(name);
+        let dataUrl = avatarData;
+        let url = avatarUrl;
+        if (name === myName) {
+          const p = loadProfile();
+          url = url || p.avatarUrl;
+          dataUrl = dataUrl || p.avatarDataUrl;
+        }
+        url = url || avatarUrlForUserName(name);
+        dataUrl = dataUrl || avatarDataForUserName(name);
+        mountAvatarContent(el, { url, dataUrl, letter });
+      }
+
+      function openUserProfile(name, avatarUrl = "", avatarData = "") {
         const n = String(name ?? "").trim();
         if (!n) return;
         if (n === myName) {
@@ -8125,7 +8654,13 @@
         }
         userProfileTargetName = n;
         if (avatarUrl) memberAvatarByName.set(n, avatarUrl);
-        fillAvatarElement(document.getElementById("user-profile-avatar"), n, avatarUrl);
+        if (avatarData) memberAvatarDataByName.set(n, avatarData);
+        fillAvatarElement(
+          document.getElementById("user-profile-avatar"),
+          n,
+          avatarUrl,
+          avatarData || avatarDataForUserName(n)
+        );
         document.getElementById("user-profile-name").textContent = n;
         const commonEl = document.getElementById("user-profile-common");
         if (commonEl) {
@@ -8235,30 +8770,32 @@
             room.lastName && room.preview
               ? room.lastName + ": " + room.preview
               : room.preview || "Chưa có tin nhắn";
-          const avHtml = room.avatarUrl
-            ? `<img src="${String(room.avatarUrl).replace(/"/g, "&quot;")}" alt="" />`
-            : (() => {
-                const av = avatarUrlForRoom(room);
-                return av
-                  ? `<img src="${String(av).replace(/"/g, "&quot;")}" alt="" />`
-                  : escapeHtml(roomInitials(displayNameForRoom(room)));
-              })();
-          item.innerHTML =
-            `<div class="room-avatar">${avHtml}</div>` +
-            `<div class="room-meta">` +
+          const avWrap = document.createElement("div");
+          mountRoomAvatar(avWrap, room);
+          item.appendChild(avWrap);
+          const meta = document.createElement("div");
+          meta.className = "room-meta";
+          meta.innerHTML =
             `<div class="room-top"><div class="room-name">${escapeHtml(displayNameForRoom(room))}</div>` +
             `<div class="room-time">${formatRoomTime(room.lastAt)}</div></div>` +
-            `<div class="room-preview">${escapeHtml(room.code || "")} · ${escapeHtml(preview)}</div></div>` +
-            unreadUi.badge +
-            `<button type="button" class="room-remove" title="Xóa khỏi danh sách" aria-label="Xóa phòng">×</button>`;
-          item.addEventListener("click", () => enterRoom(room.code));
-          item.querySelector(".room-remove").addEventListener("click", (e) => {
+            `<div class="room-preview">${escapeHtml(room.code || "")} · ${escapeHtml(preview)}</div>`;
+          item.appendChild(meta);
+          if (unreadUi.badge) item.insertAdjacentHTML("beforeend", unreadUi.badge);
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "room-remove";
+          removeBtn.title = "Xóa khỏi danh sách";
+          removeBtn.setAttribute("aria-label", "Xóa phòng");
+          removeBtn.textContent = "×";
+          removeBtn.addEventListener("click", (e) => {
             e.stopPropagation();
             const label = room.name || room.code;
             if (confirm(`Xóa "${label}" khỏi danh sách?\n(Mã ${room.code} — không xóa phòng trên server)`)) {
               removeSavedRoom(room.code);
             }
           });
+          item.appendChild(removeBtn);
+          item.addEventListener("click", () => enterRoom(room.code));
           roomListEl.appendChild(item);
         }
         updateDocumentTitle();
@@ -8278,6 +8815,9 @@
             ownerName: roster.ownerName,
             avatarUrl: roster.avatarUrl,
           };
+          if (Number(roster.roomId) === Number(currentRoomId)) {
+            currentRoomAvatarData = roomsData[i].avatarData || avatarDataForRoom(roomsData[i]);
+          }
         }
         renderRoomHeader();
         renderRoomList();
@@ -8446,6 +8986,25 @@
         syncRoomLeaderActionsUi();
       }
 
+      function buildRoomAvatarModel(room) {
+        if (!room) return null;
+        if (room.kind === "direct") return room;
+        const merged = {
+          ...room,
+          avatarUrl: currentRoomAvatarUrl || room.avatarUrl || "",
+          avatarData: currentRoomAvatarData || room.avatarData,
+        };
+        if (roomHasCustomAvatar(merged)) return merged;
+        const rosterNames = (roomRoster?.members || []).map((m) => m.name);
+        const memberCount =
+          roomRoster?.memberCount ?? room.memberCount ?? rosterNames.length ?? 0;
+        let memberAvatars = room.memberAvatars;
+        if (rosterNames.length) {
+          memberAvatars = memberAvatarsFromNames(rosterNames, 4);
+        }
+        return { ...merged, memberCount, memberAvatars: memberAvatars || [] };
+      }
+
       function renderRoomHeader() {
         const room = roomsData.find((r) => r.id === currentRoomId);
         const title = room ? displayNameForRoom(room) : roomRoster?.name || "Phòng chat";
@@ -8458,13 +9017,14 @@
               : "—";
         document.getElementById("room-code-label").textContent = label;
 
-        const avUrl = currentRoomAvatarUrl || room?.avatarUrl || roomRoster?.avatarUrl || "";
         const avBtn = document.getElementById("room-head-avatar");
-        if (avUrl) {
-          avBtn.innerHTML = `<img src="${avUrl.replace(/"/g, "&quot;")}" alt="" />`;
-        } else {
-          avBtn.innerHTML = `<span id="room-head-avatar-letter">${roomInitials(title)}</span>`;
-        }
+        const avatarRoom = buildRoomAvatarModel(room) || {
+          kind: "group",
+          name: title,
+          memberAvatars: [],
+          memberCount: 0,
+        };
+        mountRoomAvatar(avBtn, avatarRoom, { className: "room-head-avatar" });
 
         const total = roomRoster?.memberCount ?? 0;
         const onlineN = roomRoster?.onlineCount ?? onlineNames.length;
@@ -8481,17 +9041,23 @@
         syncRoomLeaderActionsUi();
       }
 
-      function updateRoomAvatarOnServer(url) {
-        socket.timeout(15000).emit("update_room", { avatarUrl: url }, (err, res) => {
+      function updateRoomAvatarOnServer(url, avatarDataUrl = "") {
+        socket.timeout(15000).emit(
+          "update_room",
+          { avatarUrl: url, avatarDataUrl: avatarDataUrl || "" },
+          (err, res) => {
           if (err || !res?.ok) {
             alert(res?.reason || "Không đổi được ảnh nhóm.");
             return;
           }
+          if (res.room) applyRoomUpdate(res.room);
           currentRoomAvatarUrl = url;
+          if (avatarDataUrl) currentRoomAvatarData = avatarDataUrl;
           renderRoomHeader();
           renderRoomList();
           showProfileToast("Đã đổi ảnh nhóm");
-        });
+        }
+        );
       }
 
       function promptRenameRoom() {
@@ -8528,6 +9094,7 @@
           saveRoomMeta(currentRoomCode, room.name, room.id);
         }
         if (room.avatarUrl != null) currentRoomAvatarUrl = room.avatarUrl;
+        if (room.avatarData != null) currentRoomAvatarData = room.avatarData;
         if (room.ownerName) currentRoomOwnerName = room.ownerName;
         if (room.requireApproval != null) currentRequireApproval = Boolean(room.requireApproval);
         renderRoomHeader();
@@ -8604,9 +9171,15 @@
         document.getElementById("file-group-avatar-create").value = "";
         if (!file) return;
         try {
-          const { url } = await uploadFile(file);
+          const { url, avatarDataUrl } = await processAvatarUpload(file);
           createGroupAvatarUrl = url;
-          document.getElementById("create-group-avatar-btn").innerHTML = `<img src="${url}" alt="" />`;
+          createGroupAvatarDataUrl = avatarDataUrl;
+          const btn = document.getElementById("create-group-avatar-btn");
+          mountAvatarContent(btn, {
+            url,
+            dataUrl: avatarDataUrl,
+            letter: "📷",
+          });
         } catch {
           alert("Không tải được ảnh.");
         }
@@ -8690,8 +9263,8 @@
           return;
         }
         try {
-          const { url } = await uploadFile(file);
-          updateRoomAvatarOnServer(url);
+          const { url, avatarDataUrl } = await processAvatarUpload(file);
+          updateRoomAvatarOnServer(url, avatarDataUrl);
         } catch {
           alert("Không tải được ảnh.");
         }
@@ -8826,9 +9399,10 @@
         document.getElementById("file-avatar").value = "";
         if (!file) return;
         try {
-          const { url } = await uploadFile(file);
-          profileDraft = { ...(profileDraft || loadProfile()), avatarUrl: url };
-          saveProfile({ avatarUrl: url });
+          const { url, avatarDataUrl } = await processAvatarUpload(file);
+          profileDraft = { ...(profileDraft || loadProfile()), avatarUrl: url, avatarDataUrl };
+          saveProfile({ avatarUrl: url, avatarDataUrl });
+          pushUserAvatarToServer(url, avatarDataUrl);
           showProfileToast("Đã lưu ảnh đại diện");
         } catch {
           showProfileToast("Không tải được ảnh — thử lại");
@@ -9215,8 +9789,17 @@
         openModal("modal-wallet");
       });
 
-      document.getElementById("btn-more").addEventListener("click", () => {
+      document.getElementById("btn-more").addEventListener("click", (e) => {
+        e.stopPropagation();
+        Object.values(pickers).forEach((p) => p.classList.remove("open"));
+        document.querySelectorAll(".toolbar .tool-btn").forEach((b) => b.classList.remove("active"));
         document.getElementById("more-menu").classList.toggle("open");
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!e.target.closest(".toolbar-more-anchor")) {
+          document.getElementById("more-menu")?.classList.remove("open");
+        }
       });
 
       document.querySelectorAll("#more-menu [data-more]").forEach((btn) => {
@@ -9501,12 +10084,7 @@
         const file = fileAttach.files?.[0];
         fileAttach.value = "";
         if (!file) return;
-        try {
-          const { url, fileName } = await uploadFile(file);
-          emitChatMessage( { type: "file", url, fileName });
-        } catch {
-          appendSystem("Không gửi được file (tối đa 10MB).");
-        }
+        await sendAttachedFile(file);
       });
 
       messageInput.addEventListener("input", () => {
@@ -9652,10 +10230,8 @@
         el.className = "msg-system";
         el.textContent = text;
         messagesEl.appendChild(el);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+        onMessagesListMutated(null, { countAsNew: true });
       }
-
-      function scrollToPollMessage(messageId) {
         const node = messageNodes.get(Number(messageId));
         const row = node?.row;
         if (!row) return;
@@ -9698,7 +10274,7 @@
         pill.appendChild(view);
         wrap.appendChild(pill);
         messagesEl.appendChild(wrap);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+        onMessagesListMutated(null, { countAsNew: true });
       }
 
       function formatMessageTime(at) {
@@ -10567,6 +11143,13 @@
         return "";
       }
 
+      function resolveMessageAvatarData(msg) {
+        if (isMyMessage(msg)) return loadProfile().avatarDataUrl || "";
+        const n = msg.name || "";
+        if (n) return avatarDataForUserName(n);
+        return "";
+      }
+
       function buildMsgAvatarEl(msg) {
         const btn = document.createElement("button");
         btn.type = "button";
@@ -10574,23 +11157,12 @@
         const name = msg.name || "?";
         btn.title = `Xem ${name}`;
         const url = resolveMessageAvatar(msg);
+        const dataUrl = resolveMessageAvatarData(msg);
         const letter = roomInitials(name);
-        if (url) {
-          const img = document.createElement("img");
-          img.src = url;
-          img.alt = "";
-          img.draggable = false;
-          img.addEventListener("error", () => {
-            img.remove();
-            btn.textContent = letter;
-          });
-          btn.appendChild(img);
-        } else {
-          btn.textContent = letter;
-        }
+        mountAvatarContent(btn, { url, dataUrl, letter });
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
-          openUserProfile(name, url);
+          openUserProfile(name, url, dataUrl);
         });
         return btn;
       }
@@ -10838,7 +11410,7 @@
         row.addEventListener("touchend", () => clearTimeout(longPressTimer));
         row.addEventListener("touchmove", () => clearTimeout(longPressTimer));
 
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+        onMessagesListMutated(msg, { countAsNew: true });
       }
 
       document.addEventListener("click", () => closeAllReactionPickers());

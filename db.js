@@ -27,6 +27,16 @@ const memoryRoomMutes = new Map();
 const memoryJoinRequests = new Map();
 /** @type {Map<string, { status: string, requestedBy: string }>} */
 const memoryFriendships = new Map();
+/** @type {Map<string, { avatarUrl: string, avatarData: string }>} */
+const memoryUserAvatars = new Map();
+const MAX_AVATAR_DATA_LEN = 120_000;
+
+function sanitizeAvatarData(raw) {
+  const s = String(raw ?? "");
+  if (!s.startsWith("data:image/")) return "";
+  if (s.length > MAX_AVATAR_DATA_LEN) return "";
+  return s;
+}
 let memoryNextRoomId = 1;
 
 function friendPairKey(nameA, nameB) {
@@ -244,6 +254,15 @@ export async function initDb() {
       PRIMARY KEY (user_a, user_b),
       CHECK (user_a < user_b)
     );
+
+    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS avatar_data TEXT NOT NULL DEFAULT '';
+
+    CREATE TABLE IF NOT EXISTS user_avatar_cache (
+      user_name VARCHAR(32) PRIMARY KEY,
+      avatar_url VARCHAR(500) NOT NULL DEFAULT '',
+      avatar_data TEXT NOT NULL DEFAULT '',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 
   await backfillRoomCodesPg();
@@ -414,8 +433,64 @@ export async function countMessagesSince(roomId, sinceMs) {
   return rows[0]?.c ?? 0;
 }
 
+/** Avatars of up to `limit` members for group list composite (when room has no group avatar). */
+export async function getMemberAvatarPreview(roomId, limit = 4) {
+  const rid = Number(roomId);
+  const cap = Math.min(Math.max(Number(limit) || 4, 1), 4);
+  if (!Number.isFinite(rid)) return { memberCount: 0, memberAvatars: [] };
+
+  const room = await getRoomById(rid);
+  const owner = room?.ownerName || "";
+  let names = await listRoomMemberNames(rid);
+  if (owner && !names.includes(owner)) names = [...names, owner];
+  names = [...new Set(names.map((n) => String(n).trim()).filter(Boolean))];
+  names.sort((a, b) => a.localeCompare(b, "vi"));
+  if (owner) names = [owner, ...names.filter((n) => n !== owner)];
+
+  const total = names.length;
+  const memberAvatars = [];
+  for (const name of names.slice(0, cap)) {
+    const cached = await getUserAvatarCache(name);
+    let avatarUrl = cached.avatarUrl || "";
+    if (!avatarUrl && !cached.avatarData && !useMemory) {
+      const { rows } = await pool.query(
+        `SELECT avatar_url FROM room_read_state
+         WHERE user_name = $1 AND COALESCE(avatar_url, '') <> ''
+         ORDER BY updated_at DESC NULLS LAST LIMIT 1`,
+        [name]
+      );
+      avatarUrl = rows[0]?.avatar_url || "";
+    }
+    if (!avatarUrl && !cached.avatarData && useMemory) {
+      avatarUrl = avatarUrlForUserName(name);
+    }
+    memberAvatars.push({
+      name,
+      avatarUrl,
+      avatarData: cached.avatarData || undefined,
+    });
+  }
+  return { memberCount: total, memberAvatars };
+}
+
+async function attachMemberAvatarPreviews(rooms) {
+  return Promise.all(
+    rooms.map(async (room) => {
+      if (room.kind === "direct") return room;
+      if (String(room.avatarUrl || "").trim() || room.avatarData) return room;
+      const preview = await getMemberAvatarPreview(room.id, 4);
+      return {
+        ...room,
+        memberCount: preview.memberCount,
+        memberAvatars: preview.memberAvatars,
+      };
+    })
+  );
+}
+
 function roomRowToClient(row) {
   if (!row) return null;
+  const avatarData = sanitizeAvatarData(row.avatar_data ?? row.avatarData ?? "");
   return {
     id: row.id,
     name: row.name,
@@ -423,7 +498,55 @@ function roomRowToClient(row) {
     code: row.code,
     ownerName: row.owner_name ?? row.ownerName ?? "",
     avatarUrl: row.avatar_url ?? row.avatarUrl ?? "",
+    avatarData: avatarData || undefined,
     requireApproval: Boolean(row.require_approval ?? row.requireApproval),
+  };
+}
+
+export async function upsertUserAvatarCache(userName, avatarUrl, avatarData) {
+  const name = String(userName ?? "").trim().slice(0, 32);
+  if (!name) return false;
+  const url = String(avatarUrl ?? "").slice(0, 500);
+  const data = sanitizeAvatarData(avatarData);
+  if (!url && !data) return false;
+
+  if (useMemory) {
+    memoryUserAvatars.set(name, { avatarUrl: url, avatarData: data });
+    return true;
+  }
+
+  await pool.query(
+    `
+    INSERT INTO user_avatar_cache (user_name, avatar_url, avatar_data, updated_at)
+    VALUES ($1, $2, $3, NOW())
+    ON CONFLICT (user_name) DO UPDATE SET
+      avatar_url = CASE WHEN EXCLUDED.avatar_url <> '' THEN EXCLUDED.avatar_url ELSE user_avatar_cache.avatar_url END,
+      avatar_data = CASE WHEN EXCLUDED.avatar_data <> '' THEN EXCLUDED.avatar_data ELSE user_avatar_cache.avatar_data END,
+      updated_at = NOW()
+    `,
+    [name, url, data]
+  );
+  return true;
+}
+
+export async function getUserAvatarCache(userName) {
+  const name = String(userName ?? "").trim().slice(0, 32);
+  if (!name) return { avatarUrl: "", avatarData: "" };
+
+  if (useMemory) {
+    const row = memoryUserAvatars.get(name);
+    return row ? { ...row } : { avatarUrl: "", avatarData: "" };
+  }
+
+  const { rows } = await pool.query(
+    `SELECT avatar_url, avatar_data FROM user_avatar_cache WHERE user_name = $1`,
+    [name]
+  );
+  const r = rows[0];
+  if (!r) return { avatarUrl: "", avatarData: "" };
+  return {
+    avatarUrl: r.avatar_url || "",
+    avatarData: sanitizeAvatarData(r.avatar_data),
   };
 }
 
@@ -652,7 +775,12 @@ export async function listFriendsForUser(userName) {
       const [a, b] = key.split("\0");
       const other = a === me ? b : b === me ? a : null;
       if (!other) continue;
-      out.push({ name: other, avatarUrl: avatarUrlForUserName(other) });
+      const cached = memoryUserAvatars.get(other);
+      out.push({
+        name: other,
+        avatarUrl: cached?.avatarUrl || avatarUrlForUserName(other),
+        avatarData: cached?.avatarData || undefined,
+      });
     }
     return out.sort((x, y) => x.name.localeCompare(y.name, "vi"));
   }
@@ -676,9 +804,15 @@ export async function listFriendsForUser(userName) {
   );
   const out = [];
   for (const row of rows) {
-    out.push(await friendRowForUser(me, row));
+    const item = await friendRowForUser(me, row);
+    const cached = await getUserAvatarCache(item.name);
+    out.push({
+      name: item.name,
+      avatarUrl: item.avatarUrl || cached.avatarUrl,
+      avatarData: cached.avatarData || undefined,
+    });
   }
-  return out.map(({ name, avatarUrl }) => ({ name, avatarUrl }));
+  return out;
 }
 
 export async function listIncomingFriendRequests(userName) {
@@ -1237,21 +1371,23 @@ export async function getRoomById(roomId) {
   }
 
   const { rows } = await pool.query(
-    `SELECT id, name, kind, code, owner_name, avatar_url, require_approval FROM rooms WHERE id = $1`,
+    `SELECT id, name, kind, code, owner_name, avatar_url, avatar_data, require_approval FROM rooms WHERE id = $1`,
     [rid]
   );
   return roomRowToClient(rows[0]);
 }
 
-export async function updateRoomFields(roomId, { name, avatarUrl, ownerName, requireApproval } = {}) {
+export async function updateRoomFields(roomId, { name, avatarUrl, avatarData, ownerName, requireApproval } = {}) {
   const rid = Number(roomId);
   if (!Number.isFinite(rid)) return null;
+  const nextData = avatarData != null ? sanitizeAvatarData(avatarData) : undefined;
 
   if (useMemory) {
     const room = memoryRooms.find((r) => r.id === rid);
     if (!room) return null;
     if (name != null) room.name = String(name).trim().slice(0, 64) || room.name;
     if (avatarUrl != null) room.avatar_url = String(avatarUrl).slice(0, 500);
+    if (nextData !== undefined) room.avatar_data = nextData;
     if (ownerName != null) room.owner_name = String(ownerName).trim().slice(0, 32);
     if (requireApproval != null) room.require_approval = Boolean(requireApproval);
     return roomRowToClient(room);
@@ -1268,6 +1404,10 @@ export async function updateRoomFields(roomId, { name, avatarUrl, ownerName, req
     sets.push(`avatar_url = $${i++}`);
     vals.push(String(avatarUrl).slice(0, 500));
   }
+  if (nextData !== undefined) {
+    sets.push(`avatar_data = $${i++}`);
+    vals.push(nextData);
+  }
   if (ownerName != null) {
     sets.push(`owner_name = $${i++}`);
     vals.push(String(ownerName).trim().slice(0, 32));
@@ -1279,7 +1419,7 @@ export async function updateRoomFields(roomId, { name, avatarUrl, ownerName, req
   if (!sets.length) return getRoomById(rid);
   vals.push(rid);
   const { rows } = await pool.query(
-    `UPDATE rooms SET ${sets.join(", ")} WHERE id = $${i} RETURNING id, name, kind, code, owner_name, avatar_url, require_approval`,
+    `UPDATE rooms SET ${sets.join(", ")} WHERE id = $${i} RETURNING id, name, kind, code, owner_name, avatar_url, avatar_data, require_approval`,
     vals
   );
   return roomRowToClient(rows[0]);
@@ -1313,7 +1453,7 @@ export async function listRoomsByCodes(codes) {
   if (!normalized.length) return [];
 
   if (useMemory) {
-    return memoryRooms
+    const base = memoryRooms
       .filter((r) => normalized.includes(r.code))
       .map((r) => {
         const roomMsgs = memoryMessages.filter((m) => m.roomId === r.id);
@@ -1326,14 +1466,16 @@ export async function listRoomsByCodes(codes) {
           code: r.code,
           ownerName: r.owner_name ?? "",
           avatarUrl: r.avatar_url ?? "",
+          avatarData: sanitizeAvatarData(r.avatar_data) || undefined,
           ...p,
         };
       });
+    return attachMemberAvatarPreviews(base);
   }
 
   const { rows } = await pool.query(
     `
-    SELECT r.id, r.name, r.kind, r.code, r.owner_name, r.avatar_url,
+    SELECT r.id, r.name, r.kind, r.code, r.owner_name, r.avatar_url, r.avatar_data,
            lm.name AS last_name,
            lm.type AS last_type,
            lm.text AS last_text,
@@ -1350,7 +1492,7 @@ export async function listRoomsByCodes(codes) {
     [normalized]
   );
 
-  return rows.map((row) => {
+  const base = rows.map((row) => {
     let preview = row.last_text || "";
     const type = row.last_type || "text";
     if (!row.last_name) preview = "Chưa có tin nhắn";
@@ -1366,11 +1508,13 @@ export async function listRoomsByCodes(codes) {
       code: row.code,
       ownerName: row.owner_name || "",
       avatarUrl: row.avatar_url || "",
+      avatarData: sanitizeAvatarData(row.avatar_data) || undefined,
       preview: String(preview).slice(0, 80),
       lastAt: row.last_at ? Math.round(Number(row.last_at)) : 0,
       lastName: row.last_name || "",
     };
   });
+  return attachMemberAvatarPreviews(base);
 }
 
 /** @deprecated use listRoomsByCodes */
@@ -1391,17 +1535,18 @@ export async function getRoomByCode(rawCode) {
   }
 
   const { rows } = await pool.query(
-    `SELECT id, name, kind, code, owner_name, avatar_url, require_approval FROM rooms WHERE code = $1`,
+    `SELECT id, name, kind, code, owner_name, avatar_url, avatar_data, require_approval FROM rooms WHERE code = $1`,
     [code]
   );
   return roomRowToClient(rows[0]);
 }
 
-export async function createRoom(name, ownerName = "", avatarUrl = "", kind = "group") {
+export async function createRoom(name, ownerName = "", avatarUrl = "", kind = "group", avatarData = "") {
   const trimmed = String(name ?? "").trim().slice(0, 64);
   if (!trimmed) throw new Error("empty name");
   const owner = String(ownerName ?? "").trim().slice(0, 32);
   const avatar = String(avatarUrl ?? "").slice(0, 500);
+  const data = sanitizeAvatarData(avatarData);
   const roomKind = kind === "direct" ? "direct" : "group";
 
   if (useMemory) {
@@ -1413,6 +1558,7 @@ export async function createRoom(name, ownerName = "", avatarUrl = "", kind = "g
       code,
       owner_name: owner,
       avatar_url: avatar,
+      avatar_data: data,
     };
     memoryRooms.push(room);
     if (owner) {
@@ -1426,6 +1572,7 @@ export async function createRoom(name, ownerName = "", avatarUrl = "", kind = "g
       code: room.code,
       ownerName: owner,
       avatarUrl: avatar,
+      avatarData: data || undefined,
       preview: "Chưa có tin nhắn",
       lastAt: 0,
       lastName: "",
@@ -1434,9 +1581,9 @@ export async function createRoom(name, ownerName = "", avatarUrl = "", kind = "g
 
   const code = await uniqueRoomCodePg();
   const { rows } = await pool.query(
-    `INSERT INTO rooms (name, kind, code, owner_name, avatar_url) VALUES ($1, $2, $3, $4, $5)
-     RETURNING id, name, kind, code, owner_name, avatar_url`,
-    [trimmed, roomKind, code, owner || null, avatar || null]
+    `INSERT INTO rooms (name, kind, code, owner_name, avatar_url, avatar_data) VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, name, kind, code, owner_name, avatar_url, avatar_data`,
+    [trimmed, roomKind, code, owner || null, avatar || null, data || ""]
   );
   const r = rows[0];
   if (owner) await addRoomMember(r.id, owner);
@@ -1447,6 +1594,7 @@ export async function createRoom(name, ownerName = "", avatarUrl = "", kind = "g
     code: r.code,
     ownerName: r.owner_name || "",
     avatarUrl: r.avatar_url || "",
+    avatarData: sanitizeAvatarData(r.avatar_data) || undefined,
     preview: "Chưa có tin nhắn",
     lastAt: 0,
     lastName: "",
