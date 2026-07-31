@@ -541,6 +541,55 @@ export async function listCommonGroupRooms(nameA, nameB) {
   return rows.map(roomRowToClient).filter(Boolean);
 }
 
+export async function listContactsForUser(userName) {
+  const me = String(userName ?? "").trim().slice(0, 32);
+  if (!me) return [];
+
+  if (useMemory) {
+    const names = new Set();
+    for (const r of memoryRooms) {
+      const map = memoryRoomMembers.get(r.id);
+      if (!map?.has(me)) continue;
+      for (const n of map.keys()) {
+        if (n !== me) names.add(n);
+      }
+    }
+    const avatarByName = {};
+    for (const reads of memoryRoomReads.values()) {
+      for (const [uname, v] of reads) {
+        if (v?.avatarUrl) avatarByName[uname] = v.avatarUrl;
+      }
+    }
+    return [...names]
+      .sort((a, b) => a.localeCompare(b, "vi"))
+      .map((name) => ({ name, avatarUrl: avatarByName[name] || "" }));
+  }
+
+  const { rows } = await pool.query(
+    `
+    SELECT DISTINCT m2.user_name AS name,
+      (
+        SELECT rrs.avatar_url
+        FROM room_read_state rrs
+        WHERE rrs.user_name = m2.user_name AND COALESCE(rrs.avatar_url, '') <> ''
+        ORDER BY rrs.updated_at DESC NULLS LAST
+        LIMIT 1
+      ) AS avatar_url
+    FROM room_members m1
+    JOIN room_members m2 ON m1.room_id = m2.room_id
+    WHERE m1.user_name = $1 AND m2.user_name <> $1
+    ORDER BY m2.user_name ASC
+    `,
+    [me]
+  );
+  return rows
+    .map((r) => ({
+      name: r.name,
+      avatarUrl: r.avatar_url || "",
+    }))
+    .filter((c) => c.name);
+}
+
 export async function isRegisteredRoomMember(roomId, userName) {
   const list = await listRegisteredRoomMemberNames(roomId);
   const key = normalizeMemberKey(userName);

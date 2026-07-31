@@ -1552,6 +1552,232 @@
         background: var(--accent);
       }
 
+      .contacts-section-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        padding: 0.35rem 0.5rem 0.75rem;
+      }
+
+      .contacts-section-nav button {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        border: none;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.82rem;
+        text-align: left;
+        padding: 0.55rem 0.65rem;
+        cursor: pointer;
+        border-left: 3px solid transparent;
+      }
+
+      .contacts-section-nav button.active {
+        background: rgba(59, 130, 246, 0.18);
+        color: #93c5fd;
+        border-left-color: var(--accent);
+      }
+
+      html[data-theme="light"] .contacts-section-nav button.active {
+        color: #1d4ed8;
+        background: rgba(37, 99, 235, 0.1);
+      }
+
+      .contacts-section-nav button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+
+      .contacts-main {
+        flex: 1;
+        display: none;
+        flex-direction: column;
+        min-height: 0;
+        background: var(--surface);
+      }
+
+      .app-shell.contacts-mode .contacts-main {
+        display: flex;
+      }
+
+      .app-shell.contacts-mode .chat-main {
+        display: none !important;
+      }
+
+      .contacts-main-head {
+        padding: 0.85rem 1rem 0.65rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .contacts-main-head h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+
+      .contacts-main-count {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-bottom: 0.65rem;
+      }
+
+      .contacts-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        align-items: center;
+      }
+
+      .contacts-toolbar input[type="search"] {
+        flex: 1;
+        min-width: 140px;
+        border: 1px solid var(--border);
+        background: var(--input-bg);
+        color: var(--text);
+        border-radius: 999px;
+        padding: 0.45rem 0.85rem;
+        font: inherit;
+        font-size: 0.82rem;
+      }
+
+      .contacts-toolbar select {
+        border: 1px solid var(--border);
+        background: var(--input-bg);
+        color: var(--text);
+        border-radius: 999px;
+        padding: 0.4rem 0.65rem;
+        font: inherit;
+        font-size: 0.78rem;
+      }
+
+      .contacts-add-btn {
+        border: none;
+        background: var(--accent);
+        color: #fff;
+        border-radius: 999px;
+        padding: 0.4rem 0.75rem;
+        font: inherit;
+        font-size: 0.78rem;
+        cursor: pointer;
+      }
+
+      .contacts-list-scroll {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+        padding: 0.35rem 0;
+      }
+
+      .contacts-letter {
+        padding: 0.35rem 1rem 0.2rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .contacts-row {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        width: 100%;
+        border: none;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        padding: 0.55rem 1rem;
+        cursor: pointer;
+      }
+
+      .contacts-row:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      html[data-theme="light"] .contacts-row:hover {
+        background: rgba(15, 23, 42, 0.04);
+      }
+
+      .contacts-row-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.85rem;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .contacts-row-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .contacts-row-avatar .online-dot {
+        position: absolute;
+        bottom: 1px;
+        right: 1px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #22c55e;
+        border: 2px solid var(--surface);
+      }
+
+      .contacts-row-name {
+        flex: 1;
+        min-width: 0;
+        font-size: 0.9rem;
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .contacts-row-more {
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        font-size: 1.1rem;
+        padding: 0.25rem 0.4rem;
+        cursor: pointer;
+        border-radius: 8px;
+      }
+
+      .contacts-row-more:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .contacts-empty {
+        padding: 2rem 1.25rem;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.55;
+      }
+
+      .contacts-group-row {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.55rem 1rem;
+        cursor: pointer;
+      }
+
+      .contacts-group-row:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+
       #room-list {
         flex: 1;
         overflow-y: auto;
@@ -1723,6 +1949,15 @@
 
         .app-shell.show-chat .mobile-bottom-nav {
           display: none;
+        }
+
+        .app-shell.contacts-mode .sidebar {
+          display: none;
+        }
+
+        .app-shell.contacts-mode .contacts-main {
+          flex: 1;
+          width: 100%;
         }
 
         .mobile-bottom-nav {
@@ -4359,7 +4594,7 @@
             <span class="nav-item-icon" aria-hidden="true">👥</span>
             <span class="nav-item-label">Nhóm</span>
           </button>
-          <button type="button" class="nav-item" disabled title="Sắp có">
+          <button type="button" class="nav-item" id="nav-contacts" title="Danh bạ">
             <span class="nav-item-icon" aria-hidden="true">📇</span>
             <span class="nav-item-label">Danh bạ</span>
           </button>
@@ -4406,9 +4641,41 @@
         </div>
         <div id="room-list"></div>
         </div>
+        <div id="panel-contacts" hidden>
+          <div class="sidebar-head">
+            <div class="sidebar-search">
+              <div class="sidebar-search-wrap">
+                <span class="sidebar-search-icon" aria-hidden="true">🔍</span>
+                <input id="contacts-nav-search" type="search" placeholder="Tìm kiếm" autocomplete="off" />
+              </div>
+            </div>
+          </div>
+          <nav class="contacts-section-nav" aria-label="Mục danh bạ">
+            <button type="button" class="active" data-contacts-section="friends">Danh sách bạn bè</button>
+            <button type="button" data-contacts-section="groups">Danh sách nhóm và cộng đồng</button>
+            <button type="button" disabled title="Sắp có">Lời mời kết bạn</button>
+            <button type="button" disabled title="Sắp có">Lời mời vào nhóm và cộng đồng</button>
+          </nav>
+        </div>
       </aside>
 
     <main class="chat" id="chat">
+      <div id="contacts-main" class="contacts-main">
+        <div class="contacts-main-head">
+          <h2 id="contacts-main-title">Danh sách bạn bè</h2>
+          <div class="contacts-main-count" id="contacts-main-count">Bạn bè (0)</div>
+          <div class="contacts-toolbar">
+            <input type="search" id="contacts-list-search" placeholder="Tìm bạn" autocomplete="off" />
+            <select id="contacts-sort" aria-label="Sắp xếp">
+              <option value="az">Tên (A-Z)</option>
+              <option value="za">Tên (Z-A)</option>
+              <option value="online">Đang online</option>
+            </select>
+            <button type="button" class="contacts-add-btn" id="contacts-add-friend">+ Nhắn tin mới</button>
+          </div>
+        </div>
+        <div class="contacts-list-scroll" id="contacts-list"></div>
+      </div>
       <div class="chat-main" id="chat-main">
       <header class="chat-room-header">
         <div class="chat-room-head-main">
@@ -4611,7 +4878,7 @@
           <span class="mob-icon" aria-hidden="true">💬</span>
           <span>Tin nhắn</span>
         </button>
-        <button type="button" class="mob-tab" id="mob-nav-contacts" disabled title="Sắp có">
+        <button type="button" class="mob-tab" id="mob-nav-contacts" title="Danh bạ">
           <span class="mob-icon" aria-hidden="true">👥</span>
           <span>Danh bạ</span>
         </button>
@@ -4992,6 +5259,9 @@
       const MAX_PENDING_IMAGES = 10;
       let sessionReady = false;
       let sidebarTab = "all";
+      let contactsSection = "friends";
+      let contactsData = [];
+      let contactsLoading = false;
       let profileSuffix = "";
       /** @type {Array<{ messageId: number, preview: string, name: string, pinnedBy?: string }>} */
       let roomPins = [];
@@ -5012,7 +5282,7 @@
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
-      const CLIENT_BUILD = "59";
+      const CLIENT_BUILD = "60";
       const BASE_DOC_TITLE = "Webchat";
 
       function applyUiTheme(mode) {
@@ -5915,7 +6185,16 @@
       function setNavMenuActive(which) {
         document.getElementById("nav-chats")?.classList.toggle("active", which === "chats");
         document.getElementById("nav-groups")?.classList.toggle("active", which === "groups");
+        document.getElementById("nav-contacts")?.classList.toggle("active", which === "contacts");
         if (which !== "settings") document.getElementById("nav-settings")?.classList.remove("active");
+      }
+
+      function showChatsPanel() {
+        appShell.classList.remove("contacts-mode");
+        document.getElementById("panel-contacts").hidden = true;
+        document.getElementById("panel-chats").hidden = false;
+        setNavMenuActive("chats");
+        setMobileTab("chats");
       }
 
       function setSidebarTab(tab) {
@@ -5926,10 +6205,168 @@
         renderRoomList();
       }
 
-      function showChatsPanel() {
-        document.getElementById("panel-chats").hidden = false;
-        setNavMenuActive("chats");
-        setMobileTab("chats");
+      function contactSortKey(name) {
+        const n = String(name || "").trim();
+        if (!n) return "#";
+        const ch = n[0].toUpperCase();
+        return /[A-ZÀ-Ỹ]/i.test(ch) ? ch.toUpperCase() : "#";
+      }
+
+      function fetchContactsList(cb) {
+        if (!socket?.connected || !myName) {
+          contactsData = [];
+          if (cb) cb();
+          return;
+        }
+        contactsLoading = true;
+        socket.timeout(15000).emit("list_contacts", {}, (err, res) => {
+          contactsLoading = false;
+          if (err || !res?.ok) {
+            contactsData = [];
+          } else {
+            contactsData = Array.isArray(res.contacts) ? res.contacts : [];
+          }
+          if (cb) cb();
+        });
+      }
+
+      function setContactsSection(section) {
+        contactsSection = section;
+        document.querySelectorAll("[data-contacts-section]").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.contactsSection === section);
+        });
+        const titleEl = document.getElementById("contacts-main-title");
+        if (section === "groups") {
+          titleEl.textContent = "Danh sách nhóm và cộng đồng";
+        } else {
+          titleEl.textContent = "Danh sách bạn bè";
+        }
+        document.getElementById("contacts-sort").hidden = section === "groups";
+        document.getElementById("contacts-add-friend").hidden = section === "groups";
+        renderContactsMain();
+      }
+
+      function renderContactsMain() {
+        const listEl = document.getElementById("contacts-list");
+        const countEl = document.getElementById("contacts-main-count");
+        if (!listEl) return;
+
+        const navQ = (document.getElementById("contacts-nav-search")?.value || "").trim().toLowerCase();
+        const listQ = (document.getElementById("contacts-list-search")?.value || "").trim().toLowerCase();
+        const sort = document.getElementById("contacts-sort")?.value || "az";
+
+        listEl.innerHTML = "";
+
+        if (contactsSection === "groups") {
+          let groups = roomsData.filter((r) => r.kind !== "direct");
+          if (navQ) groups = groups.filter((r) => displayNameForRoom(r).toLowerCase().includes(navQ));
+          if (listQ) groups = groups.filter((r) => displayNameForRoom(r).toLowerCase().includes(listQ));
+          groups.sort((a, b) => displayNameForRoom(a).localeCompare(displayNameForRoom(b), "vi"));
+          countEl.textContent = `Nhóm (${groups.length})`;
+          if (!groups.length) {
+            listEl.innerHTML =
+              '<div class="contacts-empty">Chưa có nhóm nào.<br/>Tạo phòng hoặc vào mã từ tab <strong>Tin nhắn</strong>.</div>';
+            return;
+          }
+          for (const room of groups) {
+            const row = document.createElement("div");
+            row.className = "contacts-group-row";
+            row.tabIndex = 0;
+            const title = displayNameForRoom(room);
+            const av = room.avatarUrl || avatarUrlForRoom(room);
+            const avInner = av
+              ? `<img src="${String(av).replace(/"/g, "&quot;")}" alt="" />`
+              : escapeHtml(roomInitials(title));
+            row.innerHTML =
+              `<div class="contacts-row-avatar">${avInner}</div>` +
+              `<div class="contacts-row-name">${escapeHtml(title)}</div>` +
+              `<span style="font-size:0.75rem;color:var(--muted)">${escapeHtml(room.code || "")}</span>`;
+            row.addEventListener("click", () => {
+              showChatsPanel();
+              enterRoom(room.code);
+            });
+            listEl.appendChild(row);
+          }
+          return;
+        }
+
+        let friends = contactsData.slice();
+        if (navQ) friends = friends.filter((c) => c.name.toLowerCase().includes(navQ));
+        if (listQ) friends = friends.filter((c) => c.name.toLowerCase().includes(listQ));
+        if (sort === "online") {
+          friends.sort((a, b) => {
+            const o = Number(b.online) - Number(a.online);
+            if (o !== 0) return o;
+            return a.name.localeCompare(b.name, "vi");
+          });
+        } else if (sort === "za") {
+          friends.sort((a, b) => b.name.localeCompare(a.name, "vi"));
+        } else {
+          friends.sort((a, b) => a.name.localeCompare(b.name, "vi"));
+        }
+
+        countEl.textContent = `Bạn bè (${friends.length})`;
+
+        if (contactsLoading) {
+          listEl.innerHTML = '<div class="contacts-empty">Đang tải danh bạ…</div>';
+          return;
+        }
+
+        if (!friends.length) {
+          listEl.innerHTML =
+            '<div class="contacts-empty">Chưa có bạn bè trong danh bạ.<br/>Tham gia cùng nhóm hoặc bấm <strong>+ Nhắn tin mới</strong> để chat riêng.</div>';
+          return;
+        }
+
+        let lastLetter = "";
+        for (const c of friends) {
+          const letter = contactSortKey(c.name);
+          if (letter !== lastLetter) {
+            lastLetter = letter;
+            const h = document.createElement("div");
+            h.className = "contacts-letter";
+            h.textContent = letter;
+            listEl.appendChild(h);
+          }
+          const row = document.createElement("button");
+          row.type = "button";
+          row.className = "contacts-row";
+          const avInner = c.avatarUrl
+            ? `<img src="${String(c.avatarUrl).replace(/"/g, "&quot;")}" alt="" />`
+            : escapeHtml(roomInitials(c.name));
+          const dot = c.online ? '<span class="online-dot" aria-hidden="true"></span>' : "";
+          row.innerHTML =
+            `<span class="contacts-row-avatar">${avInner}${dot}</span>` +
+            `<span class="contacts-row-name">${escapeHtml(c.name)}</span>` +
+            `<span class="contacts-row-more" aria-hidden="true">⋯</span>`;
+          row.addEventListener("click", () => openUserProfile(c.name, c.avatarUrl || ""));
+          listEl.appendChild(row);
+        }
+      }
+
+      function showContactsPanel() {
+        if (!ensureLoggedIn()) return;
+        closeProfilePopover();
+        closeSettingsFlyout();
+        closeChatRightPanels();
+        appShell.classList.remove("show-chat");
+        appShell.classList.add("active", "contacts-mode");
+        chat.classList.add("active");
+        document.getElementById("panel-chats").hidden = true;
+        document.getElementById("panel-contacts").hidden = false;
+        setNavMenuActive("contacts");
+        setMobileTab("contacts");
+        setContactsSection(contactsSection || "friends");
+        fetchContactsList(() => renderContactsMain());
+      }
+
+      function promptNewDirectChat() {
+        if (!ensureLoggedIn()) return;
+        const name = prompt("Nhập tên hiển thị người cần nhắn tin:", "");
+        if (name == null) return;
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        startDirectChatWith(trimmed);
       }
 
       let profileDraft = null;
@@ -7031,6 +7468,7 @@
             saveRoomCode(room.code);
             saveRoomMeta(room.code, displayNameForRoom(room), room.id);
             localStorage.setItem(STORAGE_LAST_CODE, room.code);
+            showChatsPanel();
             syncMyRooms();
             joinRoomWithAck(room.code, { force: true });
             toggleMembersPanel(false);
@@ -7550,6 +7988,23 @@
         setNavMenuActive("groups");
         setSidebarTab("groups");
       });
+      document.getElementById("nav-contacts").addEventListener("click", () => {
+        showContactsPanel();
+      });
+      document.querySelectorAll("[data-contacts-section]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (btn.disabled) return;
+          setContactsSection(btn.dataset.contactsSection);
+        });
+      });
+      document.getElementById("contacts-nav-search")?.addEventListener("input", () => renderContactsMain());
+      document.getElementById("contacts-list-search")?.addEventListener("input", () => renderContactsMain());
+      document.getElementById("contacts-sort")?.addEventListener("change", () => renderContactsMain());
+      document.getElementById("contacts-add-friend")?.addEventListener("click", promptNewDirectChat);
+      document.getElementById("mob-nav-contacts")?.addEventListener("click", () => {
+        appShell.classList.remove("show-chat");
+        showContactsPanel();
+      });
       document.getElementById("nav-open-profile").addEventListener("click", (e) => {
         if (!ensureLoggedIn()) return;
         const pop = document.getElementById("profile-popover");
@@ -7774,6 +8229,7 @@
         }
         renderRoomList();
         renderRoomHeader();
+        if (appShell.classList.contains("contacts-mode")) renderContactsMain();
         maybeAutoEnterRecentRoom();
       });
 

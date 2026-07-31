@@ -41,6 +41,7 @@ import {
   pinRoomMessage,
   unpinRoomMessage,
   listCommonGroupRooms,
+  listContactsForUser,
   isRegisteredRoomMember,
   setRoomMute,
   clearRoomMute,
@@ -55,7 +56,7 @@ import {
   getDbOverview,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "59");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "60");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -717,6 +718,33 @@ io.on("connection", (socket) => {
     } catch (err) {
       console.error("[open_direct_chat]", err);
       respond({ ok: false, reason: "Không mở được chat riêng." });
+    }
+  });
+
+  socket.on("list_contacts", async (_payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user) {
+      respond({ ok: false, reason: "Chưa đăng nhập." });
+      return;
+    }
+    try {
+      const list = await listContactsForUser(user.name);
+      const onlineNames = new Set(
+        [...online.values()].map((u) => u.name).filter(Boolean)
+      );
+      respond({
+        ok: true,
+        contacts: list.map((c) => ({
+          ...c,
+          online: onlineNames.has(c.name),
+        })),
+      });
+    } catch (err) {
+      console.error("[list_contacts]", err);
+      respond({ ok: false, reason: "Không tải được danh bạ." });
     }
   });
 
