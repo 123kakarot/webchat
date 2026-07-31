@@ -2717,6 +2717,80 @@
         position: relative;
       }
 
+      .poll-details-settings-menu button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: none;
+        color: var(--text);
+        font: inherit;
+        font-size: 0.85rem;
+        padding: 0.45rem 0.15rem;
+        cursor: pointer;
+        border-radius: 6px;
+      }
+
+      .poll-details-settings-menu button:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .poll-details-section {
+        margin-bottom: 1.1rem;
+      }
+
+      .poll-details-section:last-child {
+        margin-bottom: 0.25rem;
+      }
+
+      .poll-details-section-title {
+        margin: 0 0 0.45rem;
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #f3f4f6;
+        line-height: 1.35;
+      }
+
+      .poll-details-voter {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.35rem 0;
+      }
+
+      .poll-details-voter-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #475569, #334155);
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .poll-details-voter-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .poll-details-voter-name {
+        font-size: 0.92rem;
+        font-weight: 500;
+        color: #f3f4f6;
+      }
+
+      .poll-details-empty {
+        font-size: 0.88rem;
+        color: #9ca3af;
+        padding: 0.15rem 0 0.25rem;
+      }
+
       .poll-details-block {
         margin-bottom: 0.85rem;
       }
@@ -3872,7 +3946,8 @@
         </div>
         <div class="poll-modal-body" id="poll-details-body"></div>
         <div class="poll-modal-foot-wrap">
-          <div class="poll-settings-menu" id="poll-details-settings-menu" hidden>
+          <div class="poll-settings-menu poll-details-settings-menu" id="poll-details-settings-menu" hidden>
+            <button type="button" id="poll-details-pin">Ghim lên đầu trò chuyện</button>
             <button type="button" id="poll-details-lock">Khóa bình chọn</button>
           </div>
           <div class="poll-modal-foot">
@@ -4202,7 +4277,7 @@
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
-      const CLIENT_BUILD = "54";
+      const CLIENT_BUILD = "55";
       const BASE_DOC_TITLE = "Webchat";
 
       function joinPayload(name, rejoin) {
@@ -6969,6 +7044,12 @@
         const menu = document.getElementById("poll-details-settings-menu");
         if (menu) menu.hidden = !menu.hidden;
       });
+      document.getElementById("poll-details-pin")?.addEventListener("click", () => {
+        const msg = pollDetailsMsg;
+        if (!msg) return;
+        togglePinMessage(msg);
+        document.getElementById("poll-details-settings-menu").hidden = true;
+      });
       document.getElementById("poll-details-lock")?.addEventListener("click", () => {
         const msg = pollDetailsMsg;
         if (!msg?.id || msg.name !== myName) return;
@@ -7718,6 +7799,29 @@
         openModal("modal-poll-vote");
       }
 
+      function buildPollVoterAvatarEl(voterName) {
+        const av = document.createElement("div");
+        av.className = "poll-details-voter-avatar";
+        const url =
+          voterName === myName
+            ? loadProfile().avatarUrl || memberAvatarByName.get(myName) || ""
+            : memberAvatarByName.get(voterName) || "";
+        const letter = roomInitials(voterName);
+        if (url) {
+          const img = document.createElement("img");
+          img.src = url;
+          img.alt = "";
+          img.addEventListener("error", () => {
+            img.remove();
+            av.textContent = letter;
+          });
+          av.appendChild(img);
+        } else {
+          av.textContent = letter;
+        }
+        return av;
+      }
+
       function openPollDetailsModal(msg) {
         pollDetailsMsg = msg;
         const meta = pollMetaOf(msg);
@@ -7726,28 +7830,42 @@
         const menu = document.getElementById("poll-details-settings-menu");
         if (!body) return;
         menu.hidden = true;
-        gear.hidden = msg.name !== myName || meta.locked;
+        const isOwner = msg.name === myName;
+        gear.hidden = !isOwner || meta.locked;
         body.innerHTML = "";
         const options = Array.isArray(meta.options) ? meta.options : [];
         const votes = pollVotesOf(meta);
         options.forEach((opt, i) => {
-          const voters = Array.isArray(votes[String(i)]) ? votes[String(i)] : [];
-          const block = document.createElement("div");
-          block.className = "poll-details-block";
-          block.innerHTML = "<h4>" + escapeHtml(String(opt)) + " (" + voters.length + ")</h4>";
-          const ul = document.createElement("ul");
-          if (!voters.length) {
-            const li = document.createElement("li");
-            li.className = "muted";
-            li.textContent = "Chưa có phiếu";
-            ul.appendChild(li);
-          } else voters.forEach((n) => {
-            const li = document.createElement("li");
-            li.textContent = n;
-            ul.appendChild(li);
+          const voters = Array.isArray(votes[String(i)]) ? [...votes[String(i)]] : [];
+          voters.sort((a, b) => {
+            const la = a === myName ? "" : a;
+            const lb = b === myName ? "" : b;
+            return la.localeCompare(lb, "vi");
           });
-          block.appendChild(ul);
-          body.appendChild(block);
+          const section = document.createElement("div");
+          section.className = "poll-details-section";
+          const title = document.createElement("h4");
+          title.className = "poll-details-section-title";
+          title.textContent = String(opt) + " (" + voters.length + ")";
+          section.appendChild(title);
+          if (!voters.length) {
+            const empty = document.createElement("div");
+            empty.className = "poll-details-empty";
+            empty.textContent = "Chưa có phiếu";
+            section.appendChild(empty);
+          } else {
+            voters.forEach((voterName) => {
+              const row = document.createElement("div");
+              row.className = "poll-details-voter";
+              row.appendChild(buildPollVoterAvatarEl(voterName));
+              const nm = document.createElement("div");
+              nm.className = "poll-details-voter-name";
+              nm.textContent = voterName === myName ? "Bạn" : voterName;
+              row.appendChild(nm);
+              section.appendChild(row);
+            });
+          }
+          body.appendChild(section);
         });
         openModal("modal-poll-details");
       }
