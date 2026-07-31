@@ -1633,6 +1633,82 @@
         display: none !important;
       }
 
+      .app-shell.notifications-mode .notifications-main {
+        display: flex;
+      }
+
+      .app-shell.notifications-mode .chat-main,
+      .app-shell.notifications-mode .contacts-main {
+        display: none !important;
+      }
+
+      .notif-row {
+        display: flex;
+        gap: 0.65rem;
+        align-items: flex-start;
+        padding: 0.65rem 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        cursor: pointer;
+      }
+
+      .notif-row.unread {
+        background: rgba(59, 130, 246, 0.08);
+      }
+
+      .notif-row:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .notif-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(59, 130, 246, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 1.1rem;
+      }
+
+      .notif-body {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .notif-title {
+        font-size: 0.88rem;
+        font-weight: 600;
+        line-height: 1.35;
+      }
+
+      .notif-sub {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 0.15rem;
+      }
+
+      .notif-time {
+        font-size: 0.68rem;
+        color: var(--muted);
+        flex-shrink: 0;
+      }
+
+      .notif-actions {
+        display: flex;
+        gap: 0.35rem;
+        margin-top: 0.45rem;
+        flex-wrap: wrap;
+      }
+
+      .notifications-main {
+        flex: 1;
+        display: none;
+        flex-direction: column;
+        min-height: 0;
+        background: var(--surface);
+      }
+
       .contacts-main-head {
         padding: 0.85rem 1rem 0.65rem;
         border-bottom: 1px solid var(--border);
@@ -1981,6 +2057,15 @@
         }
 
         .app-shell.contacts-mode .contacts-main {
+          flex: 1;
+          width: 100%;
+        }
+
+        .app-shell.notifications-mode .sidebar {
+          display: none;
+        }
+
+        .app-shell.notifications-mode .notifications-main {
           flex: 1;
           width: 100%;
         }
@@ -4704,10 +4789,10 @@
             <span class="nav-item-icon" aria-hidden="true">📇</span>
             <span class="nav-item-label">Danh bạ</span>
           </button>
-          <button type="button" class="nav-item" disabled title="Sắp có">
+          <button type="button" class="nav-item" id="nav-notifications" title="Thông báo">
             <span class="nav-item-icon" aria-hidden="true">🔔</span>
             <span class="nav-item-label">Thông báo</span>
-            <span class="nav-badge">3</span>
+            <span class="nav-badge" id="nav-notify-badge" hidden>0</span>
           </button>
           <button type="button" class="nav-item" id="nav-settings" title="Cài đặt" aria-label="Cài đặt">
             <span class="nav-item-icon" aria-hidden="true">⚙</span>
@@ -4763,9 +4848,30 @@
             <button type="button" disabled title="Sắp có">Lời mời vào nhóm và cộng đồng</button>
           </nav>
         </div>
+        <div id="panel-notifications" hidden>
+          <div class="sidebar-head">
+            <div style="padding:0.5rem 0.75rem;font-size:0.85rem;font-weight:600">Thông báo</div>
+          </div>
+          <nav class="contacts-section-nav" aria-label="Thông báo">
+            <button type="button" class="active" data-notif-filter="all">Tất cả</button>
+            <button type="button" data-notif-filter="friend">Kết bạn</button>
+            <button type="button" data-notif-filter="join">Vào nhóm</button>
+            <button type="button" data-notif-filter="poll">Bình chọn</button>
+          </nav>
+        </div>
       </aside>
 
     <main class="chat" id="chat">
+      <div id="notifications-main" class="notifications-main">
+        <div class="contacts-main-head">
+          <h2>Thông báo</h2>
+          <div class="contacts-main-count" id="notifications-count">0 mục</div>
+          <div class="contacts-toolbar">
+            <button type="button" class="contacts-add-btn" id="btn-mark-notifs-read" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)">Đánh dấu đã đọc</button>
+          </div>
+        </div>
+        <div class="contacts-list-scroll" id="notifications-list"></div>
+      </div>
       <div id="contacts-main" class="contacts-main">
         <div class="contacts-main-head">
           <h2 id="contacts-main-title">Danh sách bạn bè</h2>
@@ -5406,7 +5512,8 @@
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
-      const CLIENT_BUILD = "61";
+      const STORAGE_NOTIFS_READ = "webchat-notifs-read";
+      const CLIENT_BUILD = "62";
       const BASE_DOC_TITLE = "Webchat";
 
       function applyUiTheme(mode) {
@@ -6310,12 +6417,14 @@
         document.getElementById("nav-chats")?.classList.toggle("active", which === "chats");
         document.getElementById("nav-groups")?.classList.toggle("active", which === "groups");
         document.getElementById("nav-contacts")?.classList.toggle("active", which === "contacts");
+        document.getElementById("nav-notifications")?.classList.toggle("active", which === "notifications");
         if (which !== "settings") document.getElementById("nav-settings")?.classList.remove("active");
       }
 
       function showChatsPanel() {
-        appShell.classList.remove("contacts-mode");
+        appShell.classList.remove("contacts-mode", "notifications-mode");
         document.getElementById("panel-contacts").hidden = true;
+        document.getElementById("panel-notifications").hidden = true;
         document.getElementById("panel-chats").hidden = false;
         setNavMenuActive("chats");
         setMobileTab("chats");
@@ -6340,6 +6449,239 @@
       let friendOutgoing = [];
       /** @type {Record<string, string>} */
       let friendStatusMap = {};
+      /** @type {Array<{ id: string, type: string, at: number, title: string, sub: string, meta?: object }>} */
+      let notificationItems = [];
+      let notifFilter = "all";
+      let notifReadIds = new Set();
+
+      function loadNotifReadIds() {
+        try {
+          const arr = JSON.parse(localStorage.getItem(STORAGE_NOTIFS_READ) || "[]");
+          notifReadIds = new Set(Array.isArray(arr) ? arr : []);
+        } catch {
+          notifReadIds = new Set();
+        }
+      }
+
+      function saveNotifReadIds() {
+        try {
+          localStorage.setItem(STORAGE_NOTIFS_READ, JSON.stringify([...notifReadIds].slice(-200)));
+        } catch {
+          /* ignore */
+        }
+      }
+
+      loadNotifReadIds();
+
+      function upsertNotification(item) {
+        const idx = notificationItems.findIndex((n) => n.id === item.id);
+        if (idx >= 0) notificationItems[idx] = { ...notificationItems[idx], ...item };
+        else notificationItems.unshift(item);
+        notificationItems.sort((a, b) => (b.at || 0) - (a.at || 0));
+        if (notificationItems.length > 80) notificationItems.length = 80;
+        updateNotifyBadge();
+        if (appShell.classList.contains("notifications-mode")) renderNotificationsList();
+      }
+
+      function rebuildNotificationsFromServer(friendReqs, joinReqs) {
+        const keepPoll = notificationItems.filter((n) => n.type === "poll");
+        notificationItems = keepPoll;
+        const now = Date.now();
+        for (const f of friendReqs || []) {
+          upsertNotification({
+            id: `friend:${f.name}`,
+            type: "friend",
+            at: now,
+            title: `${f.name} muốn kết bạn`,
+            sub: "Lời mời kết bạn",
+            meta: { name: f.name },
+          });
+        }
+        for (const j of joinReqs || []) {
+          upsertNotification({
+            id: `join:${j.roomId}:${j.userName}`,
+            type: "join",
+            at: now,
+            title: `${j.userName} xin vào nhóm`,
+            sub: j.roomName || j.roomCode || "Nhóm",
+            meta: j,
+          });
+        }
+      }
+
+      function syncNotifications(cb) {
+        if (!socket?.connected || !myName) {
+          if (cb) cb();
+          return;
+        }
+        const codes = getSavedRoomCodes();
+        socket.timeout(15000).emit("sync_notifications", { codes }, (err, res) => {
+          if (!err && res?.ok) {
+            rebuildNotificationsFromServer(res.friendRequests, res.joinRequests);
+          }
+          updateNotifyBadge();
+          if (cb) cb();
+        });
+      }
+
+      function notificationUnreadCount() {
+        return notificationItems.filter((n) => !notifReadIds.has(n.id)).length;
+      }
+
+      function updateNotifyBadge() {
+        const badge = document.getElementById("nav-notify-badge");
+        if (!badge) return;
+        const n = notificationUnreadCount();
+        if (n > 0) {
+          badge.hidden = false;
+          badge.textContent = n > 99 ? "99+" : String(n);
+        } else {
+          badge.hidden = true;
+        }
+      }
+
+      function markAllNotificationsRead() {
+        for (const n of notificationItems) notifReadIds.add(n.id);
+        saveNotifReadIds();
+        updateNotifyBadge();
+        renderNotificationsList();
+      }
+
+      function markNotificationRead(id) {
+        if (id) notifReadIds.add(id);
+        saveNotifReadIds();
+        updateNotifyBadge();
+      }
+
+      function addPollNotification(payload) {
+        if (!payload || payload.actor === myName) return;
+        const room = roomsData.find((r) => Number(r.id) === Number(payload.roomId));
+        const roomLabel = room ? displayNameForRoom(room) : "Phòng chat";
+        const who = payload.actor || "Ai đó";
+        const title =
+          payload.kind === "lock"
+            ? `${who} khóa bình chọn`
+            : `${who} vừa bình chọn`;
+        upsertNotification({
+          id: `poll:${payload.roomId}:${payload.messageId}:${payload.at || Date.now()}`,
+          type: "poll",
+          at: Date.now(),
+          title,
+          sub: `${roomLabel} · ${String(payload.topic || "Bình chọn").slice(0, 60)}`,
+          meta: payload,
+        });
+      }
+
+      function renderNotificationsList() {
+        const listEl = document.getElementById("notifications-list");
+        const countEl = document.getElementById("notifications-count");
+        if (!listEl) return;
+        let items = notificationItems.slice();
+        if (notifFilter !== "all") items = items.filter((n) => n.type === notifFilter);
+        const unread = items.filter((n) => !notifReadIds.has(n.id)).length;
+        countEl.textContent =
+          items.length === 0
+            ? "Không có thông báo"
+            : `${items.length} mục${unread ? ` · ${unread} chưa đọc` : ""}`;
+        listEl.innerHTML = "";
+        if (!items.length) {
+          listEl.innerHTML =
+            '<div class="contacts-empty">Chưa có thông báo.<br/>Lời mời kết bạn, duyệt vào nhóm và hoạt động bình chọn sẽ hiện ở đây.</div>';
+          return;
+        }
+        for (const n of items) {
+          const row = document.createElement("div");
+          row.className = "notif-row" + (notifReadIds.has(n.id) ? "" : " unread");
+          const icon =
+            n.type === "friend" ? "👋" : n.type === "join" ? "🚪" : n.type === "poll" ? "📊" : "🔔";
+          row.innerHTML =
+            `<div class="notif-icon">${icon}</div>` +
+            `<div class="notif-body"><div class="notif-title">${escapeHtml(n.title)}</div>` +
+            `<div class="notif-sub">${escapeHtml(n.sub || "")}</div></div>` +
+            `<div class="notif-time">${formatRoomTime(n.at)}</div>`;
+          if (n.type === "friend" && n.meta?.name) {
+            const actions = document.createElement("div");
+            actions.className = "notif-actions";
+            const ok = document.createElement("button");
+            ok.type = "button";
+            ok.className = "room-member-friend-btn";
+            ok.textContent = "Chấp nhận";
+            ok.addEventListener("click", (e) => {
+              e.stopPropagation();
+              respondFriendRequestFrom(n.meta.name, true);
+              markNotificationRead(n.id);
+            });
+            const no = document.createElement("button");
+            no.type = "button";
+            no.className = "room-member-friend-btn";
+            no.textContent = "Từ chối";
+            no.addEventListener("click", (e) => {
+              e.stopPropagation();
+              respondFriendRequestFrom(n.meta.name, false);
+              markNotificationRead(n.id);
+            });
+            row.querySelector(".notif-body").appendChild(actions);
+          }
+          if (n.type === "join" && n.meta?.roomCode) {
+            const actions = document.createElement("div");
+            actions.className = "notif-actions";
+            const open = document.createElement("button");
+            open.type = "button";
+            open.className = "room-member-friend-btn";
+            open.textContent = "Mở nhóm";
+            open.addEventListener("click", (e) => {
+              e.stopPropagation();
+              markNotificationRead(n.id);
+              showChatsPanel();
+              enterRoom(n.meta.roomCode);
+              toggleMembersPanel(true);
+            });
+            row.querySelector(".notif-body").appendChild(actions);
+          }
+          row.addEventListener("click", () => {
+            markNotificationRead(n.id);
+            row.classList.remove("unread");
+            if (n.type === "friend") {
+              showContactsPanel();
+              setContactsSection("requests");
+            } else if (n.type === "poll" && n.meta?.roomId) {
+              const room = roomsData.find((r) => Number(r.id) === Number(n.meta.roomId));
+              if (room?.code) {
+                showChatsPanel();
+                enterRoom(room.code);
+                if (n.meta.messageId != null) setTimeout(() => scrollToPollMessage(n.meta.messageId), 600);
+              }
+            }
+          });
+          listEl.appendChild(row);
+        }
+      }
+
+      function showNotificationsPanel() {
+        if (!ensureLoggedIn()) return;
+        closeProfilePopover();
+        closeSettingsFlyout();
+        closeChatRightPanels();
+        appShell.classList.remove("show-chat", "contacts-mode");
+        appShell.classList.add("active", "notifications-mode");
+        chat.classList.add("active");
+        document.getElementById("panel-chats").hidden = true;
+        document.getElementById("panel-contacts").hidden = true;
+        document.getElementById("panel-notifications").hidden = false;
+        setNavMenuActive("notifications");
+        syncNotifications(() => {
+          markAllNotificationsRead();
+          renderNotificationsList();
+        });
+      }
+
+      function setNotifFilter(filter) {
+        notifFilter = filter;
+        document.querySelectorAll("[data-notif-filter]").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.notifFilter === filter);
+        });
+        renderNotificationsList();
+      }
 
       function rebuildFriendStatusMap() {
         friendStatusMap = {};
@@ -6380,7 +6722,9 @@
 
       function applyFriendUiAfterChange() {
         rebuildFriendStatusMap();
+        syncNotifications();
         if (appShell.classList.contains("contacts-mode")) renderContactsMain();
+        if (appShell.classList.contains("notifications-mode")) renderNotificationsList();
         renderMembersPanel();
         syncUserProfileFriendButton();
       }
@@ -7142,6 +7486,7 @@
           openMainApp();
           sessionReady = true;
           syncFriends();
+          syncNotifications();
           if (rejoin && currentRoomCode) {
             pendingOpenRecentRoom = false;
             syncMyRooms();
@@ -8335,6 +8680,13 @@
       document.getElementById("nav-contacts").addEventListener("click", () => {
         showContactsPanel();
       });
+      document.getElementById("nav-notifications").addEventListener("click", () => {
+        showNotificationsPanel();
+      });
+      document.querySelectorAll("[data-notif-filter]").forEach((btn) => {
+        btn.addEventListener("click", () => setNotifFilter(btn.dataset.notifFilter));
+      });
+      document.getElementById("btn-mark-notifs-read")?.addEventListener("click", markAllNotificationsRead);
       document.querySelectorAll("[data-contacts-section]").forEach((btn) => {
         btn.addEventListener("click", () => {
           if (btn.disabled) return;
@@ -8546,7 +8898,8 @@
         document.getElementById("room-pins-bar")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
       document.getElementById("room-info-notify")?.addEventListener("click", () => {
-        showProfileToast("Thông báo phòng (sắp có)");
+        showNotificationsPanel();
+        setNotifFilter("all");
       });
 
       document.addEventListener("visibilitychange", () => {
@@ -8583,6 +8936,11 @@
           applyFriendUiAfterChange();
           if (contactsSection === "requests") renderContactsMain();
         });
+        syncNotifications(() => updateNotifyBadge());
+      });
+
+      socket.on("notification_ping", () => {
+        syncNotifications(() => updateNotifyBadge());
       });
 
       socket.on("friend_accepted", () => {
@@ -9273,6 +9631,9 @@
       }
 
       function appendPollActivity(payload) {
+        if (payload && roomsData.some((r) => Number(r.id) === Number(payload.roomId))) {
+          addPollNotification(payload);
+        }
         if (!payload || Number(payload.roomId ?? currentRoomId) !== Number(currentRoomId)) return;
         const { kind, actor, topic, messageId } = payload;
         if (kind === "vote" && actor === myName) return;
@@ -10490,9 +10851,13 @@
       });
 
       socket.on("join_requests", (payload) => {
-        if (Number(payload?.roomId) !== Number(currentRoomId)) return;
+        if (Number(payload?.roomId) !== Number(currentRoomId)) {
+          syncNotifications(() => updateNotifyBadge());
+          return;
+        }
         joinRequests = Array.isArray(payload?.requests) ? payload.requests : [];
         renderJoinRequests();
+        syncNotifications(() => updateNotifyBadge());
       });
 
       socket.on("message_error", (msg) => {

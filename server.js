@@ -63,7 +63,7 @@ import {
   getDbOverview,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "61");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "62");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -622,6 +622,15 @@ io.on("connection", (socket) => {
         await addRoomJoinRequest(room.id, user.name);
         const requests = await listRoomJoinRequests(room.id);
         io.to(roomChannel(room.id)).emit("join_requests", { roomId: room.id, requests });
+        if (room.ownerName) {
+          emitToUserByName(room.ownerName, "notification_ping", {
+            kind: "join_request",
+            roomId: room.id,
+            roomCode: room.code,
+            roomName: room.name,
+            userName: user.name,
+          });
+        }
         const reason = "Đã gửi yêu cầu vào nhóm — chờ trưởng/phó phòng duyệt.";
         socket.emit("room_join_error", reason);
         respond({ ok: false, reason, pendingApproval: true });
@@ -863,6 +872,43 @@ io.on("connection", (socket) => {
     } catch (err) {
       console.error("[friend_respond]", err);
       respond({ ok: false, reason: "Không xử lý được lời mời." });
+    }
+  });
+
+  socket.on("sync_notifications", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user) {
+      respond({ ok: false, reason: "Chưa đăng nhập." });
+      return;
+    }
+    let codes = [];
+    if (Array.isArray(payload?.codes)) codes = payload.codes;
+    const normalized = [...new Set(codes.map(normalizeRoomCode).filter((c) => c.length >= 4))];
+    try {
+      const friendRequests = await listIncomingFriendRequests(user.name);
+      const joinRequests = [];
+      for (const code of normalized) {
+        const room = await getRoomByCode(code);
+        if (!room?.id) continue;
+        const level = await actorManageLevel(room.id, user.name, room.ownerName || "");
+        if (!level) continue;
+        const reqs = await listRoomJoinRequests(room.id);
+        for (const reqName of reqs) {
+          joinRequests.push({
+            roomId: room.id,
+            roomCode: room.code,
+            roomName: room.name || room.code,
+            userName: reqName,
+          });
+        }
+      }
+      respond({ ok: true, friendRequests, joinRequests });
+    } catch (err) {
+      console.error("[sync_notifications]", err);
+      respond({ ok: false, reason: "Không tải được thông báo." });
     }
   });
 
