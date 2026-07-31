@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import multer from "multer";
 import crypto from "crypto";
 import { validateDisplayName } from "./nameFilter.js";
+import { maybeUploadToObjectStorage } from "./storage.js";
 import {
   initDb,
   isPersistent,
@@ -46,10 +47,13 @@ import {
   listRoomJoinRequests,
   addRoomJoinRequest,
   removeRoomJoinRequest,
+  recallMessage,
+  editMessageText,
+  castPollVote,
   getDbOverview,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "42");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "45");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -103,6 +107,10 @@ app.get("/api/status", async (_req, res) => {
   }
 });
 
+app.get("/health", (_req, res) => {
+  res.json({ ok: true, ts: Date.now(), persistent: isPersistent() });
+});
+
 function adminAuthorized(req) {
   const secret = process.env.ADMIN_SECRET;
   if (!secret) return false;
@@ -142,13 +150,21 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-app.post("/api/upload", upload.single("file"), (req, res) => {
+app.post("/api/upload", upload.single("file"), async (req, res) => {
+  if (!rateLimitOk(`upload:${clientIp(req)}`, 40, 60_000)) {
+    res.status(429).json({ error: "Quá nhiều upload — thử lại sau." });
+    return;
+  }
   if (!req.file) {
     res.status(400).json({ error: "No file" });
     return;
   }
+  const localPath = path.join(uploadsDir, req.file.filename);
+  let url = `/uploads/${req.file.filename}`;
+  const remote = await maybeUploadToObjectStorage(localPath, req.file.filename, req.file.mimetype);
+  if (remote) url = remote;
   res.json({
-    url: `/uploads/${req.file.filename}`,
+    url,
     fileName: req.file.originalname.slice(0, 200),
     mime: req.file.mimetype,
   });
@@ -163,6 +179,26 @@ const roomTyping = new Map();
 const TYPING_TTL_MS = 4500;
 
 const ALLOWED_REACTIONS = new Set(["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "👏"]);
+
+/** @type {Map<string, { count: number, reset: number }>} */
+const rateBuckets = new Map();
+
+function rateLimitOk(key, max, windowMs) {
+  const now = Date.now();
+  let b = rateBuckets.get(key);
+  if (!b || b.reset <= now) {
+    b = { count: 0, reset: now + windowMs };
+    rateBuckets.set(key, b);
+  }
+  b.count += 1;
+  return b.count <= max;
+}
+
+function clientIp(req) {
+  return String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "local")
+    .split(",")[0]
+    .trim();
+}
 
 function broadcastUsers(roomId) {
   const names = [...online.values()]
@@ -409,6 +445,10 @@ io.on("connection", (socket) => {
   let joined = false;
 
   socket.on("join", async (raw, ack) => {
+    if (!rateLimitOk(`join:${clientIp(socket.request)}`, 30, 60_000)) {
+      if (typeof ack === "function") ack({ ok: false, reason: "Quá nhiều lần đăng nhập — thử lại sau." });
+      return;
+    }
     const respond = (payload) => {
       if (typeof ack === "function") ack(payload);
     };
@@ -1166,6 +1206,10 @@ io.on("connection", (socket) => {
   socket.on("message", async (payload) => {
     const user = online.get(socket.id);
     if (!user || !user.roomId) return;
+    if (!rateLimitOk(`msg:${user.clientId}`, 80, 60_000)) {
+      socket.emit("message_error", "Gửi tin quá nhanh — chờ vài giây.");
+      return;
+    }
     if (!user.authPolicyOk) {
       socket.emit("upgrade_required", {
         reason: "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v41.",
@@ -1221,6 +1265,11 @@ io.on("connection", (socket) => {
     if (type === "reaction") text = text || "👍";
     if (type === "contact" && !meta.phone && !meta.displayName) return;
     if (type === "payment" && !meta.account) return;
+    if (type === "poll") {
+      const opts = Array.isArray(meta.options) ? meta.options : [];
+      if (!text.trim() || opts.length < 2) return;
+      meta.votes = meta.votes || {};
+    }
 
     meta.clientId = user.clientId;
 
@@ -1233,6 +1282,73 @@ io.on("connection", (socket) => {
       sticker,
       meta,
     });
+  });
+
+  socket.on("recall_message", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user?.roomId) {
+      respond({ ok: false, reason: "Chưa vào phòng." });
+      return;
+    }
+    const messageId = Number(payload?.messageId);
+    try {
+      const result = await recallMessage(messageId, user.name, user.roomId);
+      if (result.ok && result.message) {
+        io.to(roomChannel(user.roomId)).emit("message_updated", result.message);
+      }
+      respond(result);
+    } catch (err) {
+      console.error("[recall_message]", err);
+      respond({ ok: false, reason: "Không thu hồi được." });
+    }
+  });
+
+  socket.on("edit_message", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user?.roomId) {
+      respond({ ok: false, reason: "Chưa vào phòng." });
+      return;
+    }
+    const messageId = Number(payload?.messageId);
+    const text = String(payload?.text ?? "");
+    try {
+      const result = await editMessageText(messageId, user.name, user.roomId, text);
+      if (result.ok && result.message) {
+        const withReact = { ...result.message, reactions: {} };
+        io.to(roomChannel(user.roomId)).emit("message_updated", withReact);
+      }
+      respond(result);
+    } catch (err) {
+      console.error("[edit_message]", err);
+      respond({ ok: false, reason: "Không sửa được tin." });
+    }
+  });
+
+  socket.on("poll_vote", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user?.roomId) {
+      respond({ ok: false, reason: "Chưa vào phòng." });
+      return;
+    }
+    try {
+      const result = await castPollVote(payload?.messageId, user.name, payload?.optionIndex);
+      if (result.ok && result.message) {
+        io.to(roomChannel(user.roomId)).emit("message_updated", result.message);
+      }
+      respond(result);
+    } catch (err) {
+      console.error("[poll_vote]", err);
+      respond({ ok: false, reason: "Không bỏ phiếu được." });
+    }
   });
 
   socket.on("react", async (payload) => {

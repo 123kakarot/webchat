@@ -171,6 +171,9 @@ export async function initDb() {
       requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY (room_id, user_name)
     );
+
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+    ALTER TABLE messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
   `);
 
   await backfillRoomCodesPg();
@@ -208,6 +211,8 @@ function parseMeta(raw) {
 }
 
 function rowToMessage(row) {
+  const deletedAt = row.deleted_at ? new Date(row.deleted_at).getTime() : null;
+  const editedAt = row.edited_at ? new Date(row.edited_at).getTime() : row.editedAt ?? null;
   return {
     id: row.id,
     roomId: row.room_id ?? row.roomId ?? 1,
@@ -220,6 +225,9 @@ function rowToMessage(row) {
     meta: parseMeta(row.meta),
     at: normalizeAt(row),
     reactions: row.reactions ?? {},
+    deleted: Boolean(deletedAt || row.deleted),
+    deletedAt: deletedAt || undefined,
+    editedAt: typeof editedAt === "number" && Number.isFinite(editedAt) ? editedAt : undefined,
   };
 }
 
@@ -1127,7 +1135,7 @@ export async function loadRecentMessages(roomId, limit = 250) {
   }
 
   const { rows } = await pool.query(
-    `SELECT id, room_id, name, type, text, url, file_name, sticker, meta, created_at,
+    `SELECT id, room_id, name, type, text, url, file_name, sticker, meta, created_at, deleted_at, edited_at,
             (EXTRACT(EPOCH FROM created_at) * 1000) AS at
      FROM messages
      WHERE room_id = $1
@@ -1184,6 +1192,134 @@ export async function saveMessage(payload) {
     ]
   );
   return { ...rowToMessage(rows[0]), reactions: {} };
+}
+
+export async function getMessageById(messageId) {
+  const mid = Number(messageId);
+  if (!Number.isFinite(mid)) return null;
+
+  if (useMemory) {
+    const m = memoryMessages.find((x) => x.id === mid);
+    return m ? { ...m } : null;
+  }
+
+  const { rows } = await pool.query(
+    `SELECT id, room_id, name, type, text, url, file_name, sticker, meta, created_at, deleted_at, edited_at,
+            (EXTRACT(EPOCH FROM created_at) * 1000) AS at
+     FROM messages WHERE id = $1`,
+    [mid]
+  );
+  return rows[0] ? rowToMessage(rows[0]) : null;
+}
+
+const RECALL_WINDOW_MS = 15 * 60 * 1000;
+const EDIT_WINDOW_MS = 5 * 60 * 1000;
+
+export async function recallMessage(messageId, userName, roomId) {
+  const mid = Number(messageId);
+  const rid = Number(roomId);
+  const name = String(userName ?? "").trim();
+  if (!Number.isFinite(mid) || !Number.isFinite(rid) || !name) {
+    return { ok: false, reason: "Dữ liệu không hợp lệ." };
+  }
+  const msg = await getMessageById(mid);
+  if (!msg || Number(msg.roomId) !== rid) return { ok: false, reason: "Không tìm thấy tin." };
+  if (msg.name !== name) return { ok: false, reason: "Chỉ thu hồi được tin của bạn." };
+  if (msg.deleted) return { ok: true, message: msg };
+  if (Date.now() - (msg.at || 0) > RECALL_WINDOW_MS) {
+    return { ok: false, reason: "Chỉ thu hồi được trong 15 phút." };
+  }
+
+  if (useMemory) {
+    const m = memoryMessages.find((x) => x.id === mid);
+    if (m) {
+      m.deleted = true;
+      m.deletedAt = Date.now();
+      m.text = "";
+    }
+    return { ok: true, message: { ...m, reactions: {} } };
+  }
+
+  const { rows } = await pool.query(
+    `UPDATE messages SET deleted_at = NOW(), text = '' WHERE id = $1 AND room_id = $2
+     RETURNING id, room_id, name, type, text, url, file_name, sticker, meta, created_at, deleted_at, edited_at,
+               (EXTRACT(EPOCH FROM created_at) * 1000) AS at`,
+    [mid, rid]
+  );
+  const updated = rowToMessage(rows[0]);
+  return { ok: true, message: { ...updated, reactions: msg.reactions || {} } };
+}
+
+export async function editMessageText(messageId, userName, roomId, newText) {
+  const mid = Number(messageId);
+  const rid = Number(roomId);
+  const name = String(userName ?? "").trim();
+  const text = String(newText ?? "").trim().slice(0, 2000);
+  if (!Number.isFinite(mid) || !Number.isFinite(rid) || !name || !text) {
+    return { ok: false, reason: "Dữ liệu không hợp lệ." };
+  }
+  const msg = await getMessageById(mid);
+  if (!msg || Number(msg.roomId) !== rid) return { ok: false, reason: "Không tìm thấy tin." };
+  if (msg.name !== name) return { ok: false, reason: "Chỉ sửa được tin của bạn." };
+  if (msg.deleted) return { ok: false, reason: "Tin đã thu hồi." };
+  if ((msg.type || "text") !== "text") return { ok: false, reason: "Chỉ sửa được tin chữ." };
+  if (Date.now() - (msg.at || 0) > EDIT_WINDOW_MS) {
+    return { ok: false, reason: "Chỉ sửa được trong 5 phút." };
+  }
+
+  if (useMemory) {
+    const m = memoryMessages.find((x) => x.id === mid);
+    if (m) {
+      m.text = text;
+      m.editedAt = Date.now();
+    }
+    return { ok: true, message: { ...m } };
+  }
+
+  const { rows } = await pool.query(
+    `UPDATE messages SET text = $3, edited_at = NOW() WHERE id = $1 AND room_id = $2
+     RETURNING id, room_id, name, type, text, url, file_name, sticker, meta, created_at, deleted_at, edited_at,
+               (EXTRACT(EPOCH FROM created_at) * 1000) AS at`,
+    [mid, rid, text]
+  );
+  return { ok: true, message: rowToMessage(rows[0]) };
+}
+
+export async function castPollVote(messageId, userName, optionIndex) {
+  const mid = Number(messageId);
+  const name = String(userName ?? "").trim().slice(0, 32);
+  const idx = Math.floor(Number(optionIndex));
+  if (!Number.isFinite(mid) || !name || idx < 0) return { ok: false, reason: "Dữ liệu không hợp lệ." };
+
+  const msg = await getMessageById(mid);
+  if (!msg || (msg.type || "") !== "poll") return { ok: false, reason: "Không phải bình chọn." };
+  const meta = { ...(msg.meta || {}) };
+  const options = Array.isArray(meta.options) ? meta.options : [];
+  if (idx >= options.length) return { ok: false, reason: "Lựa chọn không hợp lệ." };
+  const votes =
+    meta.votes && typeof meta.votes === "object" && !Array.isArray(meta.votes)
+      ? { ...meta.votes }
+      : {};
+  for (const k of Object.keys(votes)) {
+    if (Array.isArray(votes[k])) votes[k] = votes[k].filter((n) => n !== name);
+  }
+  const key = String(idx);
+  votes[key] = [...(votes[key] || []), name];
+  meta.votes = votes;
+
+  if (useMemory) {
+    const m = memoryMessages.find((x) => x.id === mid);
+    if (m) m.meta = meta;
+    return { ok: true, message: { ...m, meta } };
+  }
+
+  const { rows } = await pool.query(
+    `UPDATE messages SET meta = $2::jsonb WHERE id = $1
+     RETURNING id, room_id, name, type, text, url, file_name, sticker, meta, created_at, deleted_at, edited_at,
+               (EXTRACT(EPOCH FROM created_at) * 1000) AS at`,
+    [mid, JSON.stringify(meta)]
+  );
+  return { ok: true, message: rowToMessage(rows[0]) };
 }
 
 export async function messageExists(id) {

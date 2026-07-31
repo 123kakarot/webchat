@@ -1,0 +1,17 @@
+---
+description: Sau mỗi giai đoạn roadmap — commit và push Render để user test
+alwaysApply: true
+---
+
+# Deploy sau mỗi giai đoạn
+
+Khi hoàn thành một **giai đoạn** (phase) roadmap hoặc user yêu cầu triển khai xong một mốc tính năng:
+
+1. Chạy kiểm tra nhanh nếu có (`npm run test:flow` khi đụng server/socket).
+2. **Commit** thay đổi liên quan (không commit file secrets; không amend trừ khi user yêu cầu).
+3. **Push `origin main`** để Render auto-deploy repo `123kakarot/webchat` → https://webchat-56en.onrender.com/
+4. Báo user: chờ deploy Live trên Render Dashboard, sau đó **Ctrl+F5**; nhắc bump `CLIENT_BUILD` / `MIN_CLIENT_BUILD` nếu có đổi build.
+
+Push lên `main` = deploy production — chỉ làm khi giai đoạn đã xong hoặc user nói rõ “đưa lên Render” / “deploy”.
+
+Không push nếu chưa có thay đổi commit được. Dùng author từ `git log -1` nếu commit fail vì thiếu identity (không sửa `git config` global).

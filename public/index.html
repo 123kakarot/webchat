@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Phòng chat</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0f172a" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -1932,6 +1934,48 @@
         outline-color: #fbbf24;
       }
 
+      .msg-bubble.msg-recalled {
+        font-style: italic;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .msg-edited-tag {
+        font-size: 0.65rem;
+        color: var(--muted);
+        margin-left: 0.35rem;
+      }
+
+      .poll-bubble {
+        min-width: 200px;
+      }
+
+      .poll-bubble .poll-q {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .poll-bubble button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        margin: 0.25rem 0;
+        padding: 0.4rem 0.55rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+
+      .poll-bubble .poll-count {
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin-left: 0.35rem;
+      }
+
       .room-search-bar {
         display: flex;
         align-items: center;
@@ -2770,8 +2814,9 @@
 
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v42</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v45</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
+        <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
           <input id="name" autocomplete="nickname" placeholder="Ví dụ: Lan, Minh…" maxlength="32" required />
@@ -2832,7 +2877,7 @@
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <button type="button" class="room-head-avatar" id="room-head-avatar" title="Ảnh nhóm"><span id="room-head-avatar-letter">?</span></button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v42</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v45</span></div>
           <button type="button" class="room-member-count" id="btn-room-members">0 thành viên</button>
           <div class="you" id="you-label" style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
@@ -2902,6 +2947,7 @@
           <button type="button" data-more="capture-chat">Chụp khung chat</button>
           <button type="button" data-more="edit-quick">Sửa tin nhắn nhanh</button>
           <button type="button" data-more="edit-wallet">Lưu TK chuyển khoản</button>
+          <button type="button" data-more="create-poll">Tạo bình chọn</button>
         </div>
 
         <div class="picker" id="picker-sticker">
@@ -3298,7 +3344,7 @@
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
-      const CLIENT_BUILD = "42";
+      const CLIENT_BUILD = "45";
       const BASE_DOC_TITLE = "Webchat";
 
       function joinPayload(name, rejoin) {
@@ -6003,8 +6049,31 @@
             document.getElementById("wallet-pref-holder").value = w.holder || "";
             openModal("modal-edit-wallet");
           }
+          if (action === "create-poll") {
+            document.getElementById("more-menu").classList.remove("open");
+            const question = prompt("Câu hỏi bình chọn:", "");
+            if (question == null) return;
+            const q = question.trim();
+            if (!q) return;
+            const raw = prompt("Các lựa chọn (mỗi dòng một ý):", "Có\nKhông");
+            if (raw == null) return;
+            const options = raw
+              .split("\n")
+              .map((s) => s.trim())
+              .filter(Boolean)
+              .slice(0, 8);
+            if (options.length < 2) {
+              alert("Cần ít nhất 2 lựa chọn.");
+              return;
+            }
+            emitChatMessage({ type: "poll", text: q, meta: { options, votes: {} } });
+          }
         });
       });
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      }
 
       document.querySelectorAll("[data-close]").forEach((btn) => {
         btn.addEventListener("click", () => closeModal(btn.dataset.close));
@@ -6385,6 +6454,37 @@
         bar.hidden = false;
       }
 
+      function applyMessageUpdate(msg) {
+        if (msg?.id == null) return;
+        const node = messageNodes.get(Number(msg.id));
+        if (!node?.row) return;
+        node.msg = { ...node.msg, ...msg };
+        const bubble = node.row.querySelector(".msg-bubble");
+        if (bubble) fillBubble(bubble, node.msg);
+      }
+
+      function recallMessageClient(msg) {
+        if (!msg?.id) return;
+        if (!confirm("Thu hồi tin nhắn này?")) return;
+        socket.timeout(12000).emit("recall_message", { messageId: msg.id }, (err, res) => {
+          if (err || !res?.ok) alert(res?.reason || "Không thu hồi được.");
+        });
+      }
+
+      function editMessageClient(msg) {
+        if (!msg?.id || (msg.type || "text") !== "text") return;
+        const next = prompt("Sửa tin nhắn:", msg.text || "");
+        if (next == null) return;
+        const trimmed = next.trim();
+        if (!trimmed) {
+          alert("Nội dung không được trống.");
+          return;
+        }
+        socket.timeout(12000).emit("edit_message", { messageId: msg.id, text: trimmed }, (err, res) => {
+          if (err || !res?.ok) alert(res?.reason || "Không sửa được.");
+        });
+      }
+
       function setPendingReply(msg) {
         pendingReply = {
           id: msg.id,
@@ -6470,6 +6570,12 @@
 
         if (replyMeta) appendReplyQuote(bubble, replyMeta);
 
+        if (msg.deleted) {
+          bubble.classList.add("msg-recalled");
+          bubble.textContent = "Tin nhắn đã thu hồi";
+          return;
+        }
+
         if (type === "sticker") {
           bubble.classList.add("sticker-only");
           bubble.textContent = sticker;
@@ -6520,11 +6626,37 @@
             (meta.amount ? '<div class="card-row">Số tiền: ' + escapeHtml(meta.amount) + "</div>" : "") +
             (meta.note ? '<div class="card-row">ND: ' + escapeHtml(meta.note) + "</div>" : "");
           bubble.appendChild(card);
+        } else if (type === "poll") {
+          bubble.classList.add("poll-bubble");
+          const q = document.createElement("div");
+          q.className = "poll-q";
+          q.textContent = "📊 " + (text || "Bình chọn");
+          bubble.appendChild(q);
+          const options = Array.isArray(meta.options) ? meta.options : [];
+          const votes = meta.votes && typeof meta.votes === "object" ? meta.votes : {};
+          options.forEach((opt, i) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            const count = Array.isArray(votes[String(i)]) ? votes[String(i)].length : 0;
+            btn.innerHTML = escapeHtml(String(opt)) + '<span class="poll-count">' + count + " phiếu</span>";
+            btn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              if (msg.id == null) return;
+              socket.emit("poll_vote", { messageId: msg.id, optionIndex: i });
+            });
+            bubble.appendChild(btn);
+          });
         } else {
           const body = document.createElement("div");
           body.className = "msg-text-body";
           body.innerHTML = formatTextHtml(text);
           bubble.appendChild(body);
+          if (msg.editedAt) {
+            const tag = document.createElement("span");
+            tag.className = "msg-edited-tag";
+            tag.textContent = "· đã sửa";
+            bubble.appendChild(tag);
+          }
         }
 
         if (type !== "sticker" && type !== "reaction") {
@@ -6730,6 +6862,29 @@
           setPendingReply(msg);
         });
 
+        if (isMyMessage(msg) && (type || "text") === "text" && !msg.deleted) {
+          const btnEdit = document.createElement("button");
+          btnEdit.type = "button";
+          btnEdit.className = "msg-action-btn";
+          btnEdit.title = "Sửa (5 phút)";
+          btnEdit.textContent = "✎";
+          btnEdit.addEventListener("click", (e) => {
+            e.stopPropagation();
+            editMessageClient(msg);
+          });
+          const btnRecall = document.createElement("button");
+          btnRecall.type = "button";
+          btnRecall.className = "msg-action-btn";
+          btnRecall.title = "Thu hồi (15 phút)";
+          btnRecall.textContent = "↩";
+          btnRecall.addEventListener("click", (e) => {
+            e.stopPropagation();
+            recallMessageClient(msg);
+          });
+          actions.appendChild(btnEdit);
+          actions.appendChild(btnRecall);
+        }
+
         if (isRoomLeader()) {
           const btnPin = document.createElement("button");
           btnPin.type = "button";
@@ -6852,6 +7007,11 @@
       });
       socket.on("message_reactions", ({ messageId, reactions }) => {
         updateMessageReactions(messageId, reactions);
+      });
+
+      socket.on("message_updated", (msg) => {
+        if (Number(msg.roomId) !== Number(currentRoomId)) return;
+        applyMessageUpdate(msg);
       });
 
       socket.on("room_roster", (roster) => {
