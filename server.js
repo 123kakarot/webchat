@@ -35,10 +35,14 @@ import {
   upsertRoomRead,
   getRoomReads,
   messageBelongsToRoom,
+  listRoomPins,
+  pinRoomMessage,
+  unpinRoomMessage,
+  listCommonGroupRooms,
   getDbOverview,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "40");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "41");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -429,7 +433,7 @@ io.on("connection", (socket) => {
 
     if (authPolicy !== AUTH_POLICY || clientBuild !== MIN_CLIENT_BUILD) {
       const reason =
-        "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v40 — sau đó nhập lại tên.";
+        "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v41 — sau đó nhập lại tên.";
       socket.emit("join_error", reason);
       socket.emit("upgrade_required", { reason });
       respond({ ok: false, reason });
@@ -550,9 +554,6 @@ io.on("connection", (socket) => {
         await removeRoomReadStateForUser(room.id, previousName);
       }
 
-      const prevRid = user.roomId;
-      const enteringFresh = Number(prevRid) !== Number(room.id);
-
       if (user.roomId) {
         clearUserTyping(user);
         socket.leave(roomChannel(user.roomId));
@@ -564,13 +565,10 @@ io.on("connection", (socket) => {
 
       await addRoomMember(room.id, user.name);
 
-      if (enteringFresh) {
-        await postRoomSystem(room.id, room.code, `${user.name} đã online`);
-      }
-
       const history = await loadRecentMessages(room.id, 250);
       const roster = await buildRoomRoster(room.id);
       const readers = await getRoomReads(room.id);
+      const pins = await listRoomPins(room.id);
       const data = {
         ok: true,
         roomId: room.id,
@@ -581,6 +579,7 @@ io.on("connection", (socket) => {
         roster,
         readers,
         history,
+        pins,
       };
       socket.emit("room_joined", data);
       respond(data);
@@ -649,6 +648,93 @@ io.on("connection", (socket) => {
     } catch (err) {
       console.error("[open_direct_chat]", err);
       respond({ ok: false, reason: "Không mở được chat riêng." });
+    }
+  });
+
+  socket.on("common_rooms", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user) {
+      respond({ ok: false, reason: "Chưa đăng nhập." });
+      return;
+    }
+    const target = String(payload?.targetName ?? "").trim().slice(0, 32);
+    if (!target) {
+      respond({ ok: false, reason: "Thiếu tên." });
+      return;
+    }
+    try {
+      const rooms = await listCommonGroupRooms(user.name, target);
+      respond({ ok: true, rooms });
+    } catch (err) {
+      console.error("[common_rooms]", err);
+      respond({ ok: false, reason: "Không tải được nhóm chung." });
+    }
+  });
+
+  socket.on("pin_message", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user?.roomId) {
+      respond({ ok: false, reason: "Chưa vào phòng." });
+      return;
+    }
+    const roomMeta = await getRoomById(user.roomId);
+    const owner = roomMeta?.ownerName || "";
+    if (!owner || user.name !== owner) {
+      respond({ ok: false, reason: "Chỉ trưởng nhóm mới được ghim tin." });
+      return;
+    }
+    const messageId = Number(payload?.messageId);
+    if (!Number.isInteger(messageId) || messageId < 1) {
+      respond({ ok: false, reason: "Tin không hợp lệ." });
+      return;
+    }
+    try {
+      const result = await pinRoomMessage(user.roomId, messageId, user.name);
+      if (result.ok) {
+        io.to(roomChannel(user.roomId)).emit("room_pins", { roomId: user.roomId, pins: result.pins });
+      }
+      respond(result);
+    } catch (err) {
+      console.error("[pin_message]", err);
+      respond({ ok: false, reason: "Không ghim được tin." });
+    }
+  });
+
+  socket.on("unpin_message", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user?.roomId) {
+      respond({ ok: false, reason: "Chưa vào phòng." });
+      return;
+    }
+    const roomMeta = await getRoomById(user.roomId);
+    const owner = roomMeta?.ownerName || "";
+    if (!owner || user.name !== owner) {
+      respond({ ok: false, reason: "Chỉ trưởng nhóm mới được bỏ ghim." });
+      return;
+    }
+    const messageId = Number(payload?.messageId);
+    if (!Number.isInteger(messageId) || messageId < 1) {
+      respond({ ok: false, reason: "Tin không hợp lệ." });
+      return;
+    }
+    try {
+      const result = await unpinRoomMessage(user.roomId, messageId);
+      if (result.ok) {
+        io.to(roomChannel(user.roomId)).emit("room_pins", { roomId: user.roomId, pins: result.pins });
+      }
+      respond(result);
+    } catch (err) {
+      console.error("[unpin_message]", err);
+      respond({ ok: false, reason: "Không bỏ ghim được." });
     }
   });
 
@@ -966,7 +1052,7 @@ io.on("connection", (socket) => {
     if (!user || !user.roomId) return;
     if (!user.authPolicyOk) {
       socket.emit("upgrade_required", {
-        reason: "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v40.",
+        reason: "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v41.",
       });
       socket.disconnect(true);
       return;
@@ -1048,12 +1134,10 @@ io.on("connection", (socket) => {
     const user = online.get(socket.id);
     if (user) {
       const rid = user.roomId;
-      const code = user.roomCode;
       const name = user.name;
       clearUserTyping(user);
       online.delete(socket.id);
       if (rid && name) {
-        await postRoomSystem(rid, code || "", `${name} đã offline`);
         broadcastRoomRoster(rid);
       }
     }

@@ -19,7 +19,11 @@ const memoryRooms = [];
 const memoryRoomMembers = new Map();
 /** @type {Map<number, Map<string, { lastMessageId: number, avatarUrl: string }>>} */
 const memoryRoomReads = new Map();
+/** @type {Map<number, Array<{ messageId: number, pinnedBy: string, pinnedAt: number, sortOrder: number }>>} */
+const memoryRoomPins = new Map();
 let memoryNextRoomId = 1;
+
+const MAX_ROOM_PINS = 3;
 
 export function generateRoomCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -136,6 +140,16 @@ export async function initDb() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY (room_id, user_name)
     );
+
+    CREATE TABLE IF NOT EXISTS room_pins (
+      room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+      pinned_by VARCHAR(32) NOT NULL,
+      pinned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      sort_order SMALLINT NOT NULL DEFAULT 0,
+      PRIMARY KEY (room_id, message_id)
+    );
+    CREATE INDEX IF NOT EXISTS room_pins_room_idx ON room_pins (room_id, sort_order);
   `);
 
   await backfillRoomCodesPg();
@@ -265,6 +279,179 @@ function roomRowToClient(row) {
     ownerName: row.owner_name ?? row.ownerName ?? "",
     avatarUrl: row.avatar_url ?? row.avatarUrl ?? "",
   };
+}
+
+function pinEntryFromMessage(pinMeta, msg) {
+  const p = previewFromMessage(msg);
+  return {
+    messageId: pinMeta.messageId,
+    pinnedBy: pinMeta.pinnedBy,
+    pinnedAt: pinMeta.pinnedAt,
+    preview: p.preview,
+    name: msg.name || "",
+    type: msg.type || "text",
+  };
+}
+
+async function loadMessageForPin(roomId, messageId) {
+  const mid = Number(messageId);
+  const rid = Number(roomId);
+  if (useMemory) {
+    const m = memoryMessages.find((x) => x.id === mid && x.roomId === rid);
+    return m ? { ...m } : null;
+  }
+  const { rows } = await pool.query(
+    `SELECT id, room_id, name, type, text, url, file_name, sticker, meta, created_at,
+            (EXTRACT(EPOCH FROM created_at) * 1000) AS at
+     FROM messages WHERE id = $1 AND room_id = $2`,
+    [mid, rid]
+  );
+  return rows[0] ? rowToMessage(rows[0]) : null;
+}
+
+export async function listRoomPins(roomId) {
+  const rid = Number(roomId);
+  if (!Number.isFinite(rid)) return [];
+
+  if (useMemory) {
+    const list = memoryRoomPins.get(rid) ?? [];
+    const sorted = [...list].sort((a, b) => a.sortOrder - b.sortOrder || a.pinnedAt - b.pinnedAt);
+    const out = [];
+    for (const p of sorted) {
+      const msg = await loadMessageForPin(rid, p.messageId);
+      if (!msg) continue;
+      out.push(
+        pinEntryFromMessage(
+          { messageId: p.messageId, pinnedBy: p.pinnedBy, pinnedAt: p.pinnedAt },
+          msg
+        )
+      );
+    }
+    return out;
+  }
+
+  const { rows } = await pool.query(
+    `SELECT p.message_id, p.pinned_by, p.pinned_at, p.sort_order,
+            m.id, m.room_id, m.name, m.type, m.text, m.url, m.file_name, m.sticker, m.meta,
+            (EXTRACT(EPOCH FROM m.created_at) * 1000) AS at
+     FROM room_pins p
+     JOIN messages m ON m.id = p.message_id AND m.room_id = p.room_id
+     WHERE p.room_id = $1
+     ORDER BY p.sort_order ASC, p.pinned_at ASC`,
+    [rid]
+  );
+  return rows.map((r) => {
+    const msg = rowToMessage(r);
+    return pinEntryFromMessage(
+      {
+        messageId: r.message_id,
+        pinnedBy: r.pinned_by,
+        pinnedAt: r.pinned_at ? new Date(r.pinned_at).getTime() : Date.now(),
+      },
+      msg
+    );
+  });
+}
+
+export async function pinRoomMessage(roomId, messageId, pinnedBy) {
+  const rid = Number(roomId);
+  const mid = Number(messageId);
+  const who = String(pinnedBy ?? "").trim().slice(0, 32);
+  if (!Number.isFinite(rid) || !Number.isFinite(mid) || !who) {
+    return { ok: false, reason: "Dữ liệu không hợp lệ." };
+  }
+  if (!(await messageBelongsToRoom(mid, rid))) {
+    return { ok: false, reason: "Tin nhắn không thuộc phòng này." };
+  }
+
+  if (useMemory) {
+    if (!memoryRoomPins.has(rid)) memoryRoomPins.set(rid, []);
+    const list = memoryRoomPins.get(rid);
+    if (list.some((p) => p.messageId === mid)) {
+      return { ok: true, pins: await listRoomPins(rid) };
+    }
+    if (list.length >= MAX_ROOM_PINS) {
+      return { ok: false, reason: `Chỉ ghim tối đa ${MAX_ROOM_PINS} tin.` };
+    }
+    const sortOrder = list.length ? Math.max(...list.map((p) => p.sortOrder)) + 1 : 0;
+    list.push({ messageId: mid, pinnedBy: who, pinnedAt: Date.now(), sortOrder });
+    return { ok: true, pins: await listRoomPins(rid) };
+  }
+
+  const { rows: existing } = await pool.query(
+    `SELECT 1 FROM room_pins WHERE room_id = $1 AND message_id = $2`,
+    [rid, mid]
+  );
+  if (existing.length) return { ok: true, pins: await listRoomPins(rid) };
+
+  const { rows: cnt } = await pool.query(
+    `SELECT COUNT(*)::int AS c FROM room_pins WHERE room_id = $1`,
+    [rid]
+  );
+  if ((cnt[0]?.c ?? 0) >= MAX_ROOM_PINS) {
+    return { ok: false, reason: `Chỉ ghim tối đa ${MAX_ROOM_PINS} tin.` };
+  }
+
+  const { rows: ord } = await pool.query(
+    `SELECT COALESCE(MAX(sort_order), -1)::int AS m FROM room_pins WHERE room_id = $1`,
+    [rid]
+  );
+  const sortOrder = (ord[0]?.m ?? -1) + 1;
+  await pool.query(
+    `INSERT INTO room_pins (room_id, message_id, pinned_by, sort_order) VALUES ($1, $2, $3, $4)`,
+    [rid, mid, who, sortOrder]
+  );
+  return { ok: true, pins: await listRoomPins(rid) };
+}
+
+export async function unpinRoomMessage(roomId, messageId) {
+  const rid = Number(roomId);
+  const mid = Number(messageId);
+  if (!Number.isFinite(rid) || !Number.isFinite(mid)) {
+    return { ok: false, reason: "Dữ liệu không hợp lệ." };
+  }
+
+  if (useMemory) {
+    const list = memoryRoomPins.get(rid);
+    if (!list) return { ok: true, pins: [] };
+    const next = list.filter((p) => p.messageId !== mid);
+    if (next.length) memoryRoomPins.set(rid, next);
+    else memoryRoomPins.delete(rid);
+    return { ok: true, pins: await listRoomPins(rid) };
+  }
+
+  await pool.query(`DELETE FROM room_pins WHERE room_id = $1 AND message_id = $2`, [rid, mid]);
+  return { ok: true, pins: await listRoomPins(rid) };
+}
+
+export async function listCommonGroupRooms(nameA, nameB) {
+  const a = String(nameA ?? "").trim().slice(0, 32);
+  const b = String(nameB ?? "").trim().slice(0, 32);
+  if (!a || !b || a.toLowerCase() === b.toLowerCase()) return [];
+
+  if (useMemory) {
+    const out = [];
+    for (const r of memoryRooms) {
+      if (r.kind === "direct") continue;
+      const map = memoryRoomMembers.get(r.id);
+      if (!map) continue;
+      if (map.has(a) && map.has(b)) out.push(roomRowToClient(r));
+    }
+    return out.sort((x, y) => (x.name || "").localeCompare(y.name || "", "vi"));
+  }
+
+  const { rows } = await pool.query(
+    `
+    SELECT r.id, r.name, r.kind, r.code, r.owner_name, r.avatar_url
+    FROM rooms r
+    WHERE COALESCE(r.kind, 'group') <> 'direct'
+      AND EXISTS (SELECT 1 FROM room_members m WHERE m.room_id = r.id AND m.user_name = $1)
+      AND EXISTS (SELECT 1 FROM room_members m WHERE m.room_id = r.id AND m.user_name = $2)
+    ORDER BY r.name ASC
+    `,
+    [a, b]
+  );
+  return rows.map(roomRowToClient).filter(Boolean);
 }
 
 export async function messageBelongsToRoom(messageId, roomId) {
@@ -575,6 +762,7 @@ export async function deleteRoomById(roomId) {
     memoryRooms.splice(idx, 1);
     memoryRoomMembers.delete(rid);
     memoryRoomReads.delete(rid);
+    memoryRoomPins.delete(rid);
     for (let j = memoryMessages.length - 1; j >= 0; j--) {
       if (memoryMessages[j].roomId === rid) memoryMessages.splice(j, 1);
     }

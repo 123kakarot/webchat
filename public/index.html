@@ -1914,6 +1914,141 @@
         font-weight: 500;
       }
 
+      .msg-row.continuation .msg-name {
+        display: none;
+      }
+
+      .msg-avatar-spacer {
+        width: 36px;
+        flex-shrink: 0;
+      }
+
+      .msg-row.search-hit .msg-bubble {
+        outline: 2px solid var(--accent, #3b82f6);
+        outline-offset: 2px;
+      }
+
+      .msg-row.search-hit-active .msg-bubble {
+        outline-color: #fbbf24;
+      }
+
+      .room-search-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.4rem 0.75rem;
+        background: var(--surface2);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .room-search-bar[hidden] {
+        display: none !important;
+      }
+
+      .room-search-bar input {
+        flex: 1;
+        min-width: 0;
+        padding: 0.4rem 0.55rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.85rem;
+      }
+
+      .room-search-bar .room-search-meta {
+        font-size: 0.75rem;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      .room-pins-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        padding: 0.45rem 0.75rem;
+        background: var(--surface2);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .room-pins-bar[hidden] {
+        display: none !important;
+      }
+
+      .room-pin-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        max-width: min(100%, 280px);
+        padding: 0.25rem 0.5rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.72rem;
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .room-pin-unpin {
+        flex-shrink: 0;
+        opacity: 0.65;
+        padding: 0 0.15rem;
+        font-weight: 700;
+      }
+
+      .mention-list button.active {
+        background: rgba(59, 130, 246, 0.2);
+      }
+
+      .user-profile-section {
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border);
+      }
+
+      .user-profile-section-title {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .user-profile-common-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .user-profile-common-list li {
+        margin: 0.25rem 0;
+      }
+
+      .user-profile-common-list button {
+        width: 100%;
+        text-align: left;
+        padding: 0.45rem 0.5rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+
+      .user-profile-common-list .muted {
+        color: var(--muted);
+        font-size: 0.85rem;
+        padding: 0.25rem 0;
+      }
+
       .composer-wrap {
         border-top: 1px solid var(--border);
         background: var(--surface2);
@@ -2592,7 +2727,7 @@
 
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v40</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v41</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -2654,17 +2789,26 @@
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <button type="button" class="room-head-avatar" id="room-head-avatar" title="Ảnh nhóm"><span id="room-head-avatar-letter">?</span></button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v40</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v41</span></div>
           <button type="button" class="room-member-count" id="btn-room-members">0 thành viên</button>
           <div class="you" id="you-label" style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
           </div>
         </div>
         <div style="display:flex;gap:0.35rem;align-items:center">
+          <button type="button" class="online-toggle" id="btn-room-search" title="Tìm trong phòng">🔍</button>
           <button type="button" class="online-toggle" id="change-name-btn" title="Đổi tên hiển thị của bạn">Tên của bạn</button>
           <button type="button" class="online-toggle" id="btn-room-rename-head" title="Đổi tên nhóm" hidden>Đổi tên nhóm</button>
         </div>
       </header>
+      <div class="room-search-bar" id="room-search-bar" hidden>
+        <input type="search" id="room-inchat-search" placeholder="Tìm tin trong phòng…" autocomplete="off" />
+        <span class="room-search-meta" id="room-search-meta"></span>
+        <button type="button" class="online-toggle" id="room-search-prev" title="Trước">↑</button>
+        <button type="button" class="online-toggle" id="room-search-next" title="Sau">↓</button>
+        <button type="button" class="online-toggle" id="room-search-close" title="Đóng">×</button>
+      </div>
+      <div class="room-pins-bar" id="room-pins-bar" hidden></div>
       <div class="online-panel" id="online-panel" hidden></div>
       <div id="messages" role="log"></div>
 
@@ -2844,6 +2988,10 @@
           <div class="user-profile-actions">
             <button type="button" data-close="modal-user-profile">Đóng</button>
             <button type="button" class="primary" id="user-profile-dm">Nhắn tin</button>
+          </div>
+          <div class="user-profile-section" id="user-profile-common-section">
+            <div class="user-profile-section-title">Nhóm chung</div>
+            <ul class="user-profile-common-list" id="user-profile-common"></ul>
           </div>
         </div>
       </div>
@@ -3087,13 +3235,21 @@
       let sessionReady = false;
       let sidebarTab = "all";
       let profileSuffix = "";
+      /** @type {Array<{ messageId: number, preview: string, name: string, pinnedBy?: string }>} */
+      let roomPins = [];
+      let mentionHits = [];
+      let mentionPickIndex = 0;
+      let inChatSearchQuery = "";
+      let inChatSearchHits = [];
+      let inChatSearchIndex = -1;
       const STORAGE_NAME = "webchat-name";
       const STORAGE_ROOM_CODES = "webchat-room-codes";
       const STORAGE_LAST_CODE = "webchat-last-code";
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
-      const CLIENT_BUILD = "40";
+      const CLIENT_BUILD = "41";
+      const BASE_DOC_TITLE = "Webchat";
 
       function joinPayload(name, rejoin) {
         return {
@@ -3427,10 +3583,11 @@
           .slice(0, 8);
       }
 
-      function applyRoomJoined({ roomId, code, name, history, ownerName, avatarUrl, roster, readers }) {
+      function applyRoomJoined({ roomId, code, name, history, ownerName, avatarUrl, roster, readers, pins }) {
         clearPendingReply();
         clearPendingImages();
         lastMarkReadSent = 0;
+        toggleInChatSearch(false);
         const sameRoom = Number(roomId) === Number(currentRoomId);
         currentRoomId = roomId;
         currentRoomOwnerName = ownerName || roster?.ownerName || "";
@@ -3451,6 +3608,7 @@
         renderRoomList();
         renderMembersPanel();
         syncRoomLeaderActionsUi();
+        setRoomPins(pins || []);
         if (!sameRoom) {
           messagesEl.innerHTML = "";
           messageNodes.clear();
@@ -3460,7 +3618,11 @@
         if (!sameRoom || messagesEl.childElementCount === 0) {
           messagesEl.innerHTML = "";
           messageNodes.clear();
-          for (const item of list) appendMessage(item);
+          let prevChatMsg = null;
+          for (const item of list) {
+            appendMessage(item, prevChatMsg);
+            if ((item.type || "text") !== "system") prevChatMsg = item;
+          }
         }
         applyRoomReads(readers);
         renderTypingBar([]);
@@ -4450,6 +4612,173 @@
         const v = Math.max(0, Math.floor(Number(n) || 0));
         if (v <= 0) localStorage.removeItem(`webchat-unread-${roomId}`);
         else localStorage.setItem(`webchat-unread-${roomId}`, String(v));
+        updateDocumentTitle();
+      }
+
+      function totalUnreadCount() {
+        let total = 0;
+        for (const room of roomsData) {
+          total += roomUnreadDisplay(room).count;
+        }
+        return total;
+      }
+
+      function updateDocumentTitle() {
+        const n = totalUnreadCount();
+        document.title = n > 0 ? `(${n > 99 ? "99+" : n}) ${BASE_DOC_TITLE}` : BASE_DOC_TITLE;
+      }
+
+      function isRoomLeader() {
+        return Boolean(myName && currentRoomOwnerName && myName === currentRoomOwnerName);
+      }
+
+      function messageSearchableText(msg) {
+        if (!msg) return "";
+        const type = msg.type || "text";
+        if (type === "text") return msg.text || "";
+        if (type === "sticker") return msg.sticker || "";
+        if (type === "file") return msg.fileName || "";
+        if (type === "image") return msg.fileName || "hình ảnh";
+        if (type === "contact") {
+          const meta = msg.meta && typeof msg.meta === "object" ? msg.meta : {};
+          return [meta.displayName, meta.phone, meta.note].filter(Boolean).join(" ");
+        }
+        if (type === "payment") {
+          const meta = msg.meta && typeof msg.meta === "object" ? msg.meta : {};
+          return [meta.account, meta.bank, meta.note].filter(Boolean).join(" ");
+        }
+        return msg.text || "";
+      }
+
+      function clearInChatSearchUi() {
+        inChatSearchQuery = "";
+        inChatSearchHits = [];
+        inChatSearchIndex = -1;
+        document.querySelectorAll(".msg-row.search-hit, .msg-row.search-hit-active").forEach((el) => {
+          el.classList.remove("search-hit", "search-hit-active");
+        });
+        const meta = document.getElementById("room-search-meta");
+        if (meta) meta.textContent = "";
+      }
+
+      function runInChatSearch() {
+        const input = document.getElementById("room-inchat-search");
+        const q = (input?.value || "").trim().toLowerCase();
+        clearInChatSearchUi();
+        inChatSearchQuery = q;
+        if (!q) return;
+        for (const [id, node] of messageNodes) {
+          const hay = messageSearchableText(node.msg).toLowerCase();
+          if (hay.includes(q)) inChatSearchHits.push(Number(id));
+        }
+        inChatSearchHits.sort((a, b) => a - b);
+        if (!inChatSearchHits.length) {
+          const meta = document.getElementById("room-search-meta");
+          if (meta) meta.textContent = "0 kết quả";
+          return;
+        }
+        inChatSearchIndex = 0;
+        highlightInChatSearchMatch();
+      }
+
+      function highlightInChatSearchMatch() {
+        document.querySelectorAll(".msg-row.search-hit-active").forEach((el) => {
+          el.classList.remove("search-hit-active");
+        });
+        for (const id of inChatSearchHits) {
+          const row = messageNodes.get(id)?.row;
+          if (row) row.classList.add("search-hit");
+        }
+        const id = inChatSearchHits[inChatSearchIndex];
+        const row = id != null ? messageNodes.get(id)?.row : null;
+        if (row) {
+          row.classList.add("search-hit-active");
+          row.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        const meta = document.getElementById("room-search-meta");
+        if (meta && inChatSearchHits.length) {
+          meta.textContent = `${inChatSearchIndex + 1}/${inChatSearchHits.length}`;
+        }
+      }
+
+      function stepInChatSearch(delta) {
+        if (!inChatSearchHits.length) return;
+        inChatSearchIndex = (inChatSearchIndex + delta + inChatSearchHits.length) % inChatSearchHits.length;
+        highlightInChatSearchMatch();
+      }
+
+      function toggleInChatSearch(open) {
+        const bar = document.getElementById("room-search-bar");
+        const input = document.getElementById("room-inchat-search");
+        if (!bar) return;
+        const wantOpen = open ?? bar.hidden;
+        bar.hidden = !wantOpen;
+        if (!wantOpen) {
+          clearInChatSearchUi();
+          if (input) input.value = "";
+        } else {
+          input?.focus();
+        }
+      }
+
+      function renderRoomPinsBar() {
+        const bar = document.getElementById("room-pins-bar");
+        if (!bar) return;
+        const room = roomsData.find((r) => r.id === currentRoomId);
+        if (!roomPins.length || room?.kind === "direct") {
+          bar.hidden = true;
+          bar.innerHTML = "";
+          return;
+        }
+        bar.hidden = false;
+        bar.innerHTML = "";
+        for (const p of roomPins) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "room-pin-chip";
+          const label = (p.preview || "Tin nhắn").slice(0, 72);
+          btn.textContent = "📌 " + label;
+          btn.title = (p.name ? p.name + ": " : "") + (p.preview || "");
+          btn.addEventListener("click", () => scrollToMessage(p.messageId));
+          if (isRoomLeader()) {
+            const x = document.createElement("span");
+            x.className = "room-pin-unpin";
+            x.textContent = "×";
+            x.title = "Bỏ ghim";
+            x.addEventListener("click", (e) => {
+              e.stopPropagation();
+              socket.timeout(12000).emit("unpin_message", { messageId: p.messageId }, (err, res) => {
+                if (err || !res?.ok) alert(res?.reason || "Không bỏ ghim được.");
+              });
+            });
+            btn.appendChild(x);
+          }
+          bar.appendChild(btn);
+        }
+      }
+
+      function setRoomPins(pins) {
+        roomPins = Array.isArray(pins) ? pins : [];
+        renderRoomPinsBar();
+      }
+
+      function isMessagePinned(messageId) {
+        const mid = Number(messageId);
+        return roomPins.some((p) => Number(p.messageId) === mid);
+      }
+
+      function togglePinMessage(msg) {
+        if (!msg?.id || !isRoomLeader()) return;
+        const mid = Number(msg.id);
+        if (isMessagePinned(mid)) {
+          socket.timeout(12000).emit("unpin_message", { messageId: mid }, (err, res) => {
+            if (err || !res?.ok) alert(res?.reason || "Không bỏ ghim được.");
+          });
+        } else {
+          socket.timeout(12000).emit("pin_message", { messageId: mid }, (err, res) => {
+            if (err || !res?.ok) alert(res?.reason || "Không ghim được tin.");
+          });
+        }
       }
 
       function bumpUnread(roomId) {
@@ -4568,6 +4897,40 @@
         if (avatarUrl) memberAvatarByName.set(n, avatarUrl);
         fillAvatarElement(document.getElementById("user-profile-avatar"), n, avatarUrl);
         document.getElementById("user-profile-name").textContent = n;
+        const commonEl = document.getElementById("user-profile-common");
+        if (commonEl) {
+          commonEl.innerHTML = '<li class="muted">Đang tải…</li>';
+          socket.timeout(12000).emit("common_rooms", { targetName: n }, (err, res) => {
+            if (!commonEl.isConnected) return;
+            if (err || !res?.ok) {
+              commonEl.innerHTML = '<li class="muted">Không tải được</li>';
+              return;
+            }
+            const rooms = res.rooms || [];
+            if (!rooms.length) {
+              commonEl.innerHTML = '<li class="muted">Không có nhóm chung</li>';
+              return;
+            }
+            commonEl.innerHTML = "";
+            for (const r of rooms) {
+              const li = document.createElement("li");
+              const btn = document.createElement("button");
+              btn.type = "button";
+              btn.textContent =
+                displayNameForRoom(r) + (r.code ? " · " + r.code : "");
+              btn.addEventListener("click", () => {
+                if (!r.code) return;
+                closeModal("modal-user-profile");
+                saveRoomCode(r.code);
+                saveRoomMeta(r.code, r.name, r.id);
+                syncMyRooms();
+                joinRoomWithAck(r.code, { force: true });
+              });
+              li.appendChild(btn);
+              commonEl.appendChild(li);
+            }
+          });
+        }
         openModal("modal-user-profile");
       }
 
@@ -4624,6 +4987,7 @@
           empty.innerHTML =
             "Chưa có phòng nào.<br/>Bấm <strong>➕ Tạo phòng</strong> hoặc <strong>🔑 Vào mã</strong> để bắt đầu.";
           roomListEl.appendChild(empty);
+          updateDocumentTitle();
           return;
         }
 
@@ -4657,11 +5021,7 @@
           });
           roomListEl.appendChild(item);
         }
-      }
-
-      function selectRoom(roomId) {
-        const room = roomsData.find((r) => r.id === roomId);
-        if (room?.code) enterRoom(room.code);
+        updateDocumentTitle();
       }
 
       function setRoomRoster(roster) {
@@ -5186,6 +5546,27 @@
         if (code && code !== "—") navigator.clipboard?.writeText(code);
       });
 
+      document.getElementById("btn-room-search")?.addEventListener("click", () => {
+        const bar = document.getElementById("room-search-bar");
+        toggleInChatSearch(bar?.hidden);
+      });
+      document.getElementById("room-search-close")?.addEventListener("click", () => toggleInChatSearch(false));
+      document.getElementById("room-search-prev")?.addEventListener("click", () => stepInChatSearch(-1));
+      document.getElementById("room-search-next")?.addEventListener("click", () => stepInChatSearch(1));
+      document.getElementById("room-inchat-search")?.addEventListener("input", () => runInChatSearch());
+      document.getElementById("room-inchat-search")?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (e.shiftKey) stepInChatSearch(-1);
+          else stepInChatSearch(1);
+        }
+        if (e.key === "Escape") toggleInChatSearch(false);
+      });
+
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) updateDocumentTitle();
+      });
+
       document.getElementById("btn-back-rooms").addEventListener("click", () => {
         appShell.classList.remove("show-chat");
       });
@@ -5235,6 +5616,8 @@
         chat.classList.remove("active");
         messagesEl.innerHTML = "";
         messageNodes.clear();
+        setRoomPins([]);
+        toggleInChatSearch(false);
         renderRoomList();
         renderRoomHeader();
         stopTypingEmit();
@@ -5317,7 +5700,8 @@
       function getMentionNames() {
         const fromChat = [...messageNodes.values()].map((n) => n.msg?.name).filter(Boolean);
         const fromReply = pendingReply?.name ? [pendingReply.name] : [];
-        return [...new Set([myName, ...onlineNames, ...fromChat, ...fromReply])]
+        const fromRoster = (roomRoster?.members || []).map((m) => m.name).filter(Boolean);
+        return [...new Set([myName, ...onlineNames, ...fromRoster, ...fromChat, ...fromReply])]
           .filter(Boolean)
           .sort((a, b) => b.length - a.length);
       }
@@ -5340,7 +5724,9 @@
           const re = new RegExp(`@${pattern}(?=\\s|$|[.,!?;:])`, "gi");
           s = s.replace(re, (full) => ph(`<span class="mention">${escapeHtml(full)}</span>`));
         }
-        s = s.replace(/@([\w\u00C0-\u1EF9]+)/g, (m) => ph(`<span class="mention">${escapeHtml(m)}</span>`));
+        s = s.replace(/@([\w\u00C0-\u1EF9]+(?:\s+[\w\u00C0-\u1EF9]+)*)/g, (m) =>
+          ph(`<span class="mention">${escapeHtml(m)}</span>`)
+        );
         placeholders.forEach((html, i) => {
           s = s.replaceAll(`\uE000m${i}\uE001`, html);
         });
@@ -5660,6 +6046,23 @@
         stopTypingEmit();
       });
 
+      function applyMentionPick(name) {
+        const val = messageInput.value;
+        const pos = messageInput.selectionStart;
+        const before = val.slice(0, pos);
+        const newBefore = before.replace(/@[^@\n]*$/, "@" + name + " ");
+        messageInput.value = newBefore + val.slice(pos);
+        mentionList.classList.remove("open");
+        mentionHits = [];
+        messageInput.focus();
+      }
+
+      function refreshMentionListActive() {
+        mentionList.querySelectorAll("button").forEach((btn, i) => {
+          btn.classList.toggle("active", i === mentionPickIndex);
+        });
+      }
+
       function updateMentionList() {
         const val = messageInput.value;
         const pos = messageInput.selectionStart;
@@ -5667,32 +6070,55 @@
         const match = before.match(/@([^@\n]*)$/);
         if (!match) {
           mentionList.classList.remove("open");
+          mentionHits = [];
           return;
         }
         const q = match[1].toLowerCase();
         const pool = [...new Set([...onlineNames, ...getMentionNames()])].filter((n) => n && n !== myName);
-        const hits = pool.filter((n) => n.toLowerCase().startsWith(q));
+        const hits = pool.filter((n) => n.toLowerCase().includes(q));
         if (!hits.length) {
           mentionList.classList.remove("open");
+          mentionHits = [];
           return;
         }
+        mentionHits = hits.slice(0, 8);
+        mentionPickIndex = 0;
         mentionList.innerHTML = "";
-        hits.slice(0, 8).forEach((name) => {
+        mentionHits.forEach((name, i) => {
           const btn = document.createElement("button");
           btn.type = "button";
           btn.textContent = "@" + name;
-          btn.addEventListener("click", () => {
-            const newBefore = before.replace(/@[^@\n]*$/, "@" + name + " ");
-            messageInput.value = newBefore + val.slice(pos);
-            mentionList.classList.remove("open");
-            messageInput.focus();
-          });
+          btn.classList.toggle("active", i === 0);
+          btn.addEventListener("click", () => applyMentionPick(name));
           mentionList.appendChild(btn);
         });
         mentionList.classList.add("open");
       }
 
       messageInput.addEventListener("keydown", (e) => {
+        if (mentionList.classList.contains("open") && mentionHits.length) {
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            mentionPickIndex = (mentionPickIndex + 1) % mentionHits.length;
+            refreshMentionListActive();
+            return;
+          }
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            mentionPickIndex = (mentionPickIndex - 1 + mentionHits.length) % mentionHits.length;
+            refreshMentionListActive();
+            return;
+          }
+          if (e.key === "Enter" || e.key === "Tab") {
+            e.preventDefault();
+            applyMentionPick(mentionHits[mentionPickIndex]);
+            return;
+          }
+          if (e.key === "Escape") {
+            mentionList.classList.remove("open");
+            return;
+          }
+        }
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
           sendForm.requestSubmit();
@@ -6055,7 +6481,26 @@
         return btn;
       }
 
-      function appendMessage(msg) {
+      function buildMsgAvatarSpacer() {
+        const el = document.createElement("div");
+        el.className = "msg-avatar-spacer";
+        el.setAttribute("aria-hidden", "true");
+        return el;
+      }
+
+      function shouldGroupWithPrevious(prevMsg, msg) {
+        if (!prevMsg || !msg) return false;
+        if ((prevMsg.type || "text") === "system" || (msg.type || "text") === "system") return false;
+        if (isMyMessage(msg) !== isMyMessage(prevMsg)) return false;
+        const gap = Math.abs((msg.at || 0) - (prevMsg.at || 0));
+        if (gap > 5 * 60 * 1000) return false;
+        const a = messageSenderId(msg);
+        const b = messageSenderId(prevMsg);
+        if (a && b && a === b) return true;
+        return msg.name === prevMsg.name;
+      }
+
+      function appendMessage(msg, prevMsg = null) {
         const { id, name, reactions = {}, type } = msg;
         if (id == null) {
           return;
@@ -6065,8 +6510,19 @@
           return;
         }
 
+        let prev = prevMsg;
+        if (!prev) {
+          const lastRow = messagesEl.lastElementChild;
+          if (lastRow?.classList.contains("msg-row")) {
+            const prevId = lastRow.dataset.msgId;
+            const node = messageNodes.get(Number(prevId));
+            if (node?.msg) prev = node.msg;
+          }
+        }
+        const grouped = shouldGroupWithPrevious(prev, msg);
+
         const row = document.createElement("div");
-        row.className = "msg-row" + (isMyMessage(msg) ? " self" : "");
+        row.className = "msg-row" + (isMyMessage(msg) ? " self" : "") + (grouped ? " continuation" : "");
         row.dataset.msgId = String(id);
 
         const nameEl = document.createElement("div");
@@ -6114,6 +6570,19 @@
           e.stopPropagation();
           setPendingReply(msg);
         });
+
+        if (isRoomLeader()) {
+          const btnPin = document.createElement("button");
+          btnPin.type = "button";
+          btnPin.className = "msg-action-btn";
+          btnPin.title = isMessagePinned(id) ? "Bỏ ghim" : "Ghim tin";
+          btnPin.textContent = isMessagePinned(id) ? "📌" : "📍";
+          btnPin.addEventListener("click", (e) => {
+            e.stopPropagation();
+            togglePinMessage(msg);
+          });
+          actions.appendChild(btnPin);
+        }
 
         const wrap = document.createElement("div");
         wrap.className = "msg-bubble-wrap";
@@ -6182,12 +6651,22 @@
         body.appendChild(nameEl);
         body.appendChild(stack);
 
-        row.appendChild(buildMsgAvatarEl(msg));
+        if (grouped) row.appendChild(buildMsgAvatarSpacer());
+        else row.appendChild(buildMsgAvatarEl(msg));
         row.appendChild(body);
         messagesEl.appendChild(row);
 
         messageNodes.set(id, { row, reactionsEl, seenEl: showSeen ? seenEl : null, msg: { ...msg } });
         if (showSeen) renderSeenAvatars(seenEl, id, name);
+
+        if (inChatSearchQuery) {
+          const hay = messageSearchableText(msg).toLowerCase();
+          if (hay.includes(inChatSearchQuery)) {
+            inChatSearchHits.push(Number(id));
+            inChatSearchHits.sort((a, b) => a - b);
+            row.classList.add("search-hit");
+          }
+        }
 
         scheduleMarkRead();
 
@@ -6225,6 +6704,11 @@
         applyRoomUpdate(room);
       });
 
+      socket.on("room_pins", (payload) => {
+        if (Number(payload?.roomId) !== Number(currentRoomId)) return;
+        setRoomPins(payload?.pins || []);
+      });
+
       socket.on("room_deleted", (payload) => {
         const code = payload?.code;
         if (code) removeSavedRoom(code);
@@ -6238,6 +6722,8 @@
           chat.classList.remove("active");
           messagesEl.innerHTML = "";
           messageNodes.clear();
+          setRoomPins([]);
+          toggleInChatSearch(false);
         }
         syncMyRooms();
         renderRoomList();
