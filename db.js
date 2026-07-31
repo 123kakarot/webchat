@@ -174,6 +174,17 @@ export async function initDb() {
 
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
     ALTER TABLE messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
+    CREATE TABLE IF NOT EXISTS reaction_scores (
+      message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+      user_name VARCHAR(32) NOT NULL,
+      emoji VARCHAR(8) NOT NULL,
+      qty INTEGER NOT NULL DEFAULT 1 CHECK (qty > 0),
+      PRIMARY KEY (message_id, user_name, emoji)
+    );
+
+    INSERT INTO reaction_scores (message_id, user_name, emoji, qty)
+    SELECT message_id, user_name, emoji, 1 FROM reactions
+    ON CONFLICT (message_id, user_name, emoji) DO NOTHING;
   `);
 
   await backfillRoomCodesPg();
@@ -231,37 +242,83 @@ function rowToMessage(row) {
   };
 }
 
-function reactionsMapToObject(map) {
+function reactionsMapToClient(map) {
   if (!map) return {};
   const out = {};
-  for (const [emoji, users] of map) {
-    if (users.size) out[emoji] = [...users];
+  for (const [emoji, userMap] of map) {
+    const users = {};
+    let total = 0;
+    if (userMap instanceof Map) {
+      for (const [name, qty] of userMap) {
+        const q = Math.max(0, Number(qty) || 0);
+        if (!q) continue;
+        users[name] = q;
+        total += q;
+      }
+    } else if (userMap instanceof Set) {
+      for (const name of userMap) {
+        users[name] = 1;
+        total += 1;
+      }
+    }
+    if (total > 0) out[emoji] = { total, users };
   }
   return out;
+}
+
+export function normalizeReactionsClient(raw) {
+  if (!raw || typeof raw !== "object") return {};
+  const keys = Object.keys(raw);
+  if (!keys.length) return {};
+  const sample = raw[keys[0]];
+  if (sample && typeof sample === "object" && !Array.isArray(sample) && "users" in sample) {
+    return raw;
+  }
+  const out = {};
+  for (const [emoji, arr] of Object.entries(raw)) {
+    if (!Array.isArray(arr)) continue;
+    const users = {};
+    for (const name of arr) {
+      if (!name) continue;
+      users[name] = (users[name] || 0) + 1;
+    }
+    let total = 0;
+    for (const q of Object.values(users)) total += q;
+    if (total > 0) out[emoji] = { total, users };
+  }
+  return out;
+}
+
+async function fetchReactionsForMessageIds(ids) {
+  if (!ids.length) return {};
+  if (useMemory) {
+    const byMsg = {};
+    for (const id of ids) {
+      byMsg[id] = reactionsMapToClient(memoryReactions.get(id));
+    }
+    return byMsg;
+  }
+  const { rows } = await pool.query(
+    `SELECT message_id, emoji, user_name, qty FROM reaction_scores WHERE message_id = ANY($1::int[])`,
+    [ids]
+  );
+  /** @type {Record<number, Record<string, { total: number, users: Record<string, number> }>>} */
+  const byMsg = {};
+  for (const r of rows) {
+    if (!byMsg[r.message_id]) byMsg[r.message_id] = {};
+    const emoji = r.emoji;
+    if (!byMsg[r.message_id][emoji]) byMsg[r.message_id][emoji] = { total: 0, users: {} };
+    const q = Number(r.qty) || 1;
+    byMsg[r.message_id][emoji].users[r.user_name] = q;
+    byMsg[r.message_id][emoji].total += q;
+  }
+  return byMsg;
 }
 
 async function attachReactions(messages) {
   if (!messages.length) return messages;
   const ids = messages.map((m) => m.id);
-
-  if (useMemory) {
-    return messages.map((m) => ({
-      ...m,
-      reactions: reactionsMapToObject(memoryReactions.get(m.id)),
-    }));
-  }
-
-  const { rows } = await pool.query(
-    `SELECT message_id, emoji, user_name FROM reactions WHERE message_id = ANY($1::int[])`,
-    [ids]
-  );
-  /** @type {Record<number, Record<string, string[]>>} */
-  const byMsg = {};
-  for (const r of rows) {
-    if (!byMsg[r.message_id]) byMsg[r.message_id] = {};
-    if (!byMsg[r.message_id][r.emoji]) byMsg[r.message_id][r.emoji] = [];
-    byMsg[r.message_id][r.emoji].push(r.user_name);
-  }
+  const byMsg = await fetchReactionsForMessageIds(ids);
   return messages.map((m) => ({ ...m, reactions: byMsg[m.id] ?? {} }));
 }
 
@@ -1347,7 +1404,7 @@ export async function lockPollMessage(messageId, userName) {
   const msg = await getMessageById(mid);
   if (!msg || (msg.type || "") !== "poll") return { ok: false, reason: "Không phải bình chọn." };
   if (msg.name !== name) return { ok: false, reason: "Chỉ người tạo mới khóa được." };
-  const meta = { ...(msg.meta || {}), locked: true };
+  const meta = { ...(msg.meta || {}), locked: true, lockedAt: Date.now() };
 
   if (useMemory) {
     const m = memoryMessages.find((x) => x.id === mid);
@@ -1370,65 +1427,66 @@ export async function messageExists(id) {
   return rows.length > 0;
 }
 
-export async function toggleReaction(messageId, userName, emoji) {
+export async function incrementReaction(messageId, userName, emoji) {
+  const mid = Number(messageId);
+  const name = String(userName ?? "").trim().slice(0, 32);
+  const em = String(emoji ?? "").slice(0, 8);
+  if (!Number.isFinite(mid) || !name || !em) return null;
+
   if (useMemory) {
-    const map = memoryReactions.get(messageId);
-    if (!map) return null;
+    if (!memoryReactions.has(mid)) memoryReactions.set(mid, new Map());
+    const map = memoryReactions.get(mid);
+    if (!map.has(em)) map.set(em, new Map());
+    const userMap = map.get(em);
+    userMap.set(name, (userMap.get(name) || 0) + 1);
+    return reactionsMapToClient(map);
+  }
 
-    let users = map.get(emoji);
-    if (users?.has(userName)) {
-      users.delete(userName);
-      if (!users.size) map.delete(emoji);
-    } else {
-      for (const set of map.values()) set.delete(userName);
-      for (const [e, set] of [...map.entries()]) {
-        if (!set.size) map.delete(e);
+  await pool.query(
+    `INSERT INTO reaction_scores (message_id, user_name, emoji, qty) VALUES ($1, $2, $3, 1)
+     ON CONFLICT (message_id, user_name, emoji) DO UPDATE SET qty = reaction_scores.qty + 1`,
+    [mid, name, em]
+  );
+  const byMsg = await fetchReactionsForMessageIds([mid]);
+  return byMsg[mid] ?? {};
+}
+
+export async function clearUserReactions(messageId, userName) {
+  const mid = Number(messageId);
+  const name = String(userName ?? "").trim().slice(0, 32);
+  if (!Number.isFinite(mid) || !name) return null;
+
+  if (useMemory) {
+    const map = memoryReactions.get(mid);
+    if (map) {
+      for (const userMap of map.values()) {
+        userMap.delete(name);
       }
-      users = map.get(emoji) ?? new Set();
-      users.add(userName);
-      map.set(emoji, users);
+      for (const [e, userMap] of [...map.entries()]) {
+        if (!userMap.size) map.delete(e);
+      }
     }
-    return reactionsMapToObject(map);
+    return reactionsMapToClient(map);
   }
 
-  const { rows: existing } = await pool.query(
-    `SELECT emoji FROM reactions WHERE message_id = $1 AND user_name = $2`,
-    [messageId, userName]
-  );
+  await pool.query(`DELETE FROM reaction_scores WHERE message_id = $1 AND user_name = $2`, [mid, name]);
+  const byMsg = await fetchReactionsForMessageIds([mid]);
+  return byMsg[mid] ?? {};
+}
 
-  if (existing.length && existing[0].emoji === emoji) {
-    await pool.query(`DELETE FROM reactions WHERE message_id = $1 AND user_name = $2`, [
-      messageId,
-      userName,
-    ]);
-  } else {
-    await pool.query(
-      `INSERT INTO reactions (message_id, user_name, emoji)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (message_id, user_name) DO UPDATE SET emoji = EXCLUDED.emoji`,
-      [messageId, userName, emoji]
-    );
-  }
-
-  const { rows } = await pool.query(
-    `SELECT emoji, user_name FROM reactions WHERE message_id = $1`,
-    [messageId]
-  );
-  /** @type {Record<string, string[]>} */
-  const out = {};
-  for (const r of rows) {
-    if (!out[r.emoji]) out[r.emoji] = [];
-    out[r.emoji].push(r.user_name);
-  }
-  return out;
+/** @deprecated use incrementReaction */
+export async function toggleReaction(messageId, userName, emoji) {
+  return incrementReaction(messageId, userName, emoji);
 }
 
 export async function hydrateReactionCache(messages) {
   if (!useMemory) return;
   for (const m of messages) {
     const map = new Map();
-    for (const [emoji, users] of Object.entries(m.reactions ?? {})) {
-      map.set(emoji, new Set(users));
+    const norm = normalizeReactionsClient(m.reactions ?? {});
+    for (const [emoji, block] of Object.entries(norm)) {
+      const userMap = new Map(Object.entries(block.users || {}));
+      if (userMap.size) map.set(emoji, userMap);
     }
     memoryReactions.set(m.id, map);
     if (m.id >= memoryNextId) memoryNextId = m.id + 1;

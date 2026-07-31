@@ -1257,6 +1257,104 @@
         color: var(--system);
       }
 
+      .msg-system.poll-activity-wrap {
+        display: flex;
+        justify-content: center;
+        padding: 0.2rem 0.5rem;
+      }
+
+      .poll-activity-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        max-width: min(100%, 420px);
+        padding: 0.4rem 0.65rem;
+        border-radius: 999px;
+        background: rgba(30, 35, 45, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 0.74rem;
+        color: var(--text);
+        line-height: 1.35;
+        text-align: left;
+      }
+
+      .poll-activity-pill .poll-activity-icon {
+        flex-shrink: 0;
+        font-size: 0.85rem;
+      }
+
+      .poll-activity-pill .poll-activity-text {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .poll-activity-pill .poll-activity-view {
+        flex-shrink: 0;
+        border: none;
+        background: none;
+        color: #60a5fa;
+        font: inherit;
+        font-size: 0.74rem;
+        cursor: pointer;
+        padding: 0;
+      }
+
+      .poll-activity-pill .poll-activity-view:hover {
+        text-decoration: underline;
+      }
+
+      .msg-row.poll-msg {
+        align-self: center;
+        max-width: min(100%, 340px);
+        width: 100%;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .msg-row.poll-msg .msg-avatar,
+      .msg-row.poll-msg .msg-avatar-spacer,
+      .msg-row.poll-msg .msg-name,
+      .msg-row.poll-msg .msg-actions,
+      .msg-row.poll-msg .msg-react-trigger,
+      .msg-row.poll-msg .reaction-picker,
+      .msg-row.poll-msg .msg-reactions {
+        display: none !important;
+      }
+
+      .msg-row.poll-msg .msg-body {
+        width: 100%;
+        align-items: center;
+      }
+
+      .msg-row.poll-msg .msg-stack {
+        width: 100%;
+        align-items: center;
+      }
+
+      .msg-row.poll-msg .msg-bubble-wrap {
+        width: 100%;
+      }
+
+      .msg-row.poll-msg .msg-bubble {
+        background: rgba(28, 32, 42, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .poll-msg-time {
+        display: block;
+        width: 100%;
+        text-align: center;
+        font-size: 0.68rem;
+        color: var(--muted);
+        margin-top: 0.35rem;
+      }
+
       .msg-row {
         position: relative;
         overflow: visible;
@@ -1473,7 +1571,7 @@
         z-index: 25;
       }
 
-      .msg-bubble-wrap:has(.reaction-chip) {
+      .msg-bubble-wrap:has(.reaction-bar) {
         padding-bottom: 14px;
       }
 
@@ -1635,7 +1733,7 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.2rem;
-        max-width: 140px;
+        max-width: 200px;
         justify-content: flex-end;
       }
 
@@ -1665,6 +1763,195 @@
 
       .reaction-chip.mine {
         border-color: var(--accent);
+      }
+
+      .reaction-bar {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        flex-wrap: wrap;
+        justify-content: inherit;
+      }
+
+      .reaction-summary-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.2rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.08rem 0.45rem 0.08rem 0.35rem;
+        font-size: 0.72rem;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        position: relative;
+        line-height: 1.2;
+      }
+
+      .reaction-summary-pill:hover {
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .reaction-summary-pill .reaction-score {
+        color: var(--text);
+        font-size: 0.68rem;
+        font-weight: 600;
+        margin-left: 0.05rem;
+      }
+
+      .reaction-tooltip {
+        position: absolute;
+        bottom: calc(100% + 6px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #2563eb;
+        color: #fff;
+        font-size: 0.72rem;
+        padding: 0.35rem 0.55rem;
+        border-radius: 6px;
+        white-space: nowrap;
+        z-index: 40;
+        pointer-events: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+        line-height: 1.45;
+        text-align: left;
+      }
+
+      .reaction-tooltip::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 6px solid transparent;
+        border-top-color: #2563eb;
+      }
+
+      .reaction-add-btn,
+      .reaction-clear-btn {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 0.85rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        flex-shrink: 0;
+        padding: 0;
+        line-height: 1;
+      }
+
+      .reaction-add-btn:hover,
+      .reaction-clear-btn:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+      }
+
+      .reaction-picker .reaction-picker-clear {
+        font-size: 1rem;
+        color: var(--muted);
+        min-width: 2rem;
+      }
+
+      .reactions-modal {
+        max-width: 440px;
+        width: calc(100% - 2rem);
+        padding: 0;
+        overflow: hidden;
+      }
+
+      .reactions-modal-split {
+        display: flex;
+        min-height: 220px;
+        max-height: min(70vh, 480px);
+      }
+
+      .reactions-modal-tabs {
+        width: 88px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border);
+        overflow-y: auto;
+        padding: 0.35rem 0;
+      }
+
+      .reactions-tab {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.15rem;
+        width: 100%;
+        border: none;
+        background: none;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.72rem;
+        padding: 0.45rem 0.25rem;
+        cursor: pointer;
+      }
+
+      .reactions-tab.active {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+      }
+
+      .reactions-tab-emoji {
+        font-size: 1.15rem;
+        line-height: 1;
+      }
+
+      .reactions-modal-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.35rem 0.65rem 0.75rem;
+      }
+
+      .reactions-user-row {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.45rem 0.15rem;
+      }
+
+      .reactions-user-row .reactions-user-emoji {
+        margin-left: auto;
+        font-size: 0.85rem;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      .reactions-user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #475569, #334155);
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .reactions-user-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .reactions-user-name {
+        font-size: 0.88rem;
+        font-weight: 500;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .msg-seen {
@@ -1948,8 +2235,8 @@
 
       .poll-bubble {
         min-width: min(100%, 280px);
-        max-width: 320px;
-        padding: 0.65rem 0.75rem 0.55rem;
+        max-width: 100%;
+        padding: 0.75rem 0.85rem 0.65rem;
       }
 
       .poll-bubble .poll-title {
@@ -2013,6 +2300,83 @@
         color: var(--muted);
         min-width: 1.25rem;
         text-align: right;
+        flex-shrink: 0;
+      }
+
+      .poll-modal-option-row {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        margin: 0.5rem 0;
+        cursor: pointer;
+      }
+
+      .poll-modal-radio {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.35);
+        flex-shrink: 0;
+        box-sizing: border-box;
+        position: relative;
+      }
+
+      .poll-modal-option-row.selected .poll-modal-radio {
+        border-color: #3b82f6;
+      }
+
+      .poll-modal-option-row.selected .poll-modal-radio::after {
+        content: "";
+        position: absolute;
+        inset: 4px;
+        border-radius: 50%;
+        background: #3b82f6;
+      }
+
+      .poll-modal-option-bar {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        min-height: 42px;
+        box-sizing: border-box;
+      }
+
+      .poll-modal-option-label {
+        flex: 1;
+        min-width: 0;
+        font-size: 0.88rem;
+        text-align: left;
+      }
+
+      .poll-modal-option-count {
+        flex-shrink: 0;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .poll-opt-input-inline {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        font-size: 0.88rem;
+        outline: none;
+      }
+
+      .poll-opt-input-inline::placeholder {
+        color: var(--muted);
+      }
+
+      .poll-vote-option {
+        display: none;
       }
 
       .poll-vote-cta {
@@ -2185,32 +2549,6 @@
 
       .poll-modal-foot-wrap {
         position: relative;
-      }
-
-      .poll-vote-option {
-        display: flex;
-        align-items: center;
-        gap: 0.55rem;
-        padding: 0.55rem 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-        cursor: pointer;
-      }
-
-      .poll-vote-option:last-child {
-        border-bottom: none;
-      }
-
-      .poll-vote-option input {
-        flex-shrink: 0;
-      }
-
-      .poll-vote-option span {
-        flex: 1;
-      }
-
-      .poll-vote-option .poll-opt-votes {
-        color: var(--muted);
-        font-size: 0.85rem;
       }
 
       .poll-details-block {
@@ -3382,6 +3720,19 @@
       </div>
     </div>
 
+    <div class="modal-backdrop" id="modal-reactions">
+      <div class="modal reactions-modal">
+        <div class="poll-modal-head">
+          <span>Biểu cảm</span>
+          <button type="button" data-close="modal-reactions" aria-label="Đóng">×</button>
+        </div>
+        <div class="reactions-modal-split">
+          <div class="reactions-modal-tabs" id="reactions-modal-tabs"></div>
+          <div class="reactions-modal-list" id="reactions-modal-list"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="modal-backdrop" id="modal-room-action">
       <div class="modal">
         <h2>Phòng chat</h2>
@@ -3685,7 +4036,7 @@
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
-      const CLIENT_BUILD = "48";
+      const CLIENT_BUILD = "50";
       const BASE_DOC_TITLE = "Webchat";
 
       function joinPayload(name, rejoin) {
@@ -6401,7 +6752,7 @@
       });
       document.getElementById("poll-create-add")?.addEventListener("click", () => {
         const wrap = document.getElementById("poll-create-options");
-        const inputs = wrap?.querySelectorAll(".poll-opt-input") || [];
+        const inputs = wrap?.querySelectorAll(".poll-opt-input-inline") || [];
         if (inputs.length >= 8) return;
         const vals = [...inputs].map((i) => i.value);
         vals.push("");
@@ -6414,7 +6765,7 @@
       });
       document.getElementById("poll-create-submit")?.addEventListener("click", () => {
         const topic = document.getElementById("poll-create-topic").value.trim();
-        const inputs = [...document.querySelectorAll("#poll-create-options .poll-opt-input")];
+        const inputs = [...document.querySelectorAll("#poll-create-options .poll-opt-input-inline")];
         const options = inputs.map((i) => i.value.trim()).filter(Boolean);
         if (!topic) {
           alert("Nhập chủ đề bình chọn.");
@@ -6802,6 +7153,49 @@
         messagesEl.scrollTop = messagesEl.scrollHeight;
       }
 
+      function scrollToPollMessage(messageId) {
+        const node = messageNodes.get(Number(messageId));
+        const row = node?.row;
+        if (!row) return;
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+        row.classList.add("search-hit-active");
+        setTimeout(() => row.classList.remove("search-hit-active"), 1800);
+      }
+
+      function appendPollActivity(payload) {
+        if (!payload || Number(payload.roomId ?? currentRoomId) !== Number(currentRoomId)) return;
+        const { kind, actor, topic, messageId } = payload;
+        if (kind === "vote" && actor === myName) return;
+
+        const who = actor === myName ? "Bạn" : actor || "Ai đó";
+        const title = String(topic || "Bình chọn").slice(0, 80);
+        const text =
+          kind === "lock" ? `${who} khóa bình chọn: ${title}` : `${who} đã bình chọn: ${title}`;
+
+        const wrap = document.createElement("div");
+        wrap.className = "msg-system poll-activity-wrap";
+
+        const pill = document.createElement("div");
+        pill.className = "poll-activity-pill";
+        pill.innerHTML =
+          '<span class="poll-activity-icon" aria-hidden="true">📊</span>' +
+          '<span class="poll-activity-text"></span>';
+
+        const view = document.createElement("button");
+        view.type = "button";
+        view.className = "poll-activity-view";
+        view.textContent = "Xem";
+        view.addEventListener("click", () => {
+          if (messageId != null) scrollToPollMessage(messageId);
+        });
+
+        pill.querySelector(".poll-activity-text").textContent = text;
+        pill.appendChild(view);
+        wrap.appendChild(pill);
+        messagesEl.appendChild(wrap);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
       function formatMessageTime(at) {
         if (at == null || at === "") return "";
         const n = Number(at);
@@ -6944,6 +7338,14 @@
         return d.toLocaleDateString("vi-VN");
       }
 
+      function formatPollDateTime(at) {
+        if (!at) return "";
+        const d = new Date(Number(at));
+        if (Number.isNaN(d.getTime())) return "";
+        const time = d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+        return time + " " + formatPollWhen(at);
+      }
+
       function renderPollBubble(bubble, msg) {
         bubble.className = "msg-bubble poll-bubble";
         bubble.innerHTML = "";
@@ -6962,8 +7364,18 @@
 
         const sub = document.createElement("div");
         sub.className = "poll-sub";
-        sub.textContent = allowMultiple ? "Chọn nhiều phương án" : "Chọn một phương án";
+        if (meta.locked) {
+          const endAt = meta.lockedAt || msg.at;
+          sub.textContent = "Kết thúc lúc " + formatPollDateTime(endAt);
+        } else {
+          sub.textContent = allowMultiple ? "Chọn nhiều phương án" : "Chọn một phương án";
+        }
         bubble.appendChild(sub);
+
+        const modeLine = document.createElement("div");
+        modeLine.className = "poll-sub";
+        modeLine.textContent = allowMultiple ? "Chọn nhiều phương án" : "Chọn một phương án";
+        bubble.appendChild(modeLine);
 
         if (voterN > 0) {
           const link = document.createElement("button");
@@ -7003,10 +7415,20 @@
           const cta = document.createElement("button");
           cta.type = "button";
           cta.className = "poll-vote-cta";
-          cta.textContent = voted ? "Đổi lựa chọn" : "Bình chọn";
+          cta.textContent = voted ? "Xem lựa chọn" : "Bình chọn";
           cta.addEventListener("click", (e) => {
             e.stopPropagation();
             openPollVoteModal(msg);
+          });
+          bubble.appendChild(cta);
+        } else if (voted) {
+          const cta = document.createElement("button");
+          cta.type = "button";
+          cta.className = "poll-vote-cta";
+          cta.textContent = "Xem lựa chọn";
+          cta.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openPollDetailsModal(msg);
           });
           bubble.appendChild(cta);
         } else {
@@ -7022,13 +7444,27 @@
         if (!wrap) return;
         wrap.innerHTML = "";
         values.forEach((v, i) => {
+          const row = document.createElement("div");
+          row.className = "poll-modal-option-row";
+          const radio = document.createElement("span");
+          radio.className = "poll-modal-radio";
+          radio.setAttribute("aria-hidden", "true");
+          const bar = document.createElement("div");
+          bar.className = "poll-modal-option-bar";
           const inp = document.createElement("input");
           inp.type = "text";
-          inp.className = "poll-opt-input";
+          inp.className = "poll-opt-input-inline";
           inp.placeholder = "Lựa chọn " + (i + 1);
           inp.maxLength = 120;
           inp.value = v;
-          wrap.appendChild(inp);
+          const count = document.createElement("span");
+          count.className = "poll-modal-option-count";
+          count.textContent = "0";
+          bar.appendChild(inp);
+          bar.appendChild(count);
+          row.appendChild(radio);
+          row.appendChild(bar);
+          wrap.appendChild(row);
         });
       }
 
@@ -7062,22 +7498,43 @@
           '<div class="poll-mode-line">' +
           (allowMultiple ? "☑ Chọn nhiều phương án" : "○ Chọn một phương án") +
           "</div>";
+
+        const syncSelected = () => {
+          body.querySelectorAll(".poll-modal-option-row").forEach((row) => {
+            const inp = row.querySelector('input[name="poll-vote-opt"]');
+            row.classList.toggle("selected", inp?.checked);
+          });
+        };
+
         options.forEach((opt, i) => {
           const row = document.createElement("label");
-          row.className = "poll-vote-option";
+          row.className = "poll-modal-option-row" + (pre.includes(i) ? " selected" : "");
           const input = document.createElement("input");
           input.type = allowMultiple ? "checkbox" : "radio";
           input.name = "poll-vote-opt";
           input.value = String(i);
+          input.hidden = true;
           if (pre.includes(i)) input.checked = true;
-          const span = document.createElement("span");
-          span.textContent = String(opt);
+          input.addEventListener("change", () => {
+            if (!allowMultiple) syncSelected();
+            else row.classList.toggle("selected", input.checked);
+          });
+          const radio = document.createElement("span");
+          radio.className = "poll-modal-radio";
+          radio.setAttribute("aria-hidden", "true");
+          const bar = document.createElement("div");
+          bar.className = "poll-modal-option-bar";
+          const label = document.createElement("span");
+          label.className = "poll-modal-option-label";
+          label.textContent = String(opt);
           const vc = document.createElement("span");
-          vc.className = "poll-opt-votes";
+          vc.className = "poll-modal-option-count";
           vc.textContent = String(Array.isArray(votes[String(i)]) ? votes[String(i)].length : 0);
+          bar.appendChild(label);
+          bar.appendChild(vc);
           row.appendChild(input);
-          row.appendChild(span);
-          row.appendChild(vc);
+          row.appendChild(radio);
+          row.appendChild(bar);
           body.appendChild(row);
         });
         openModal("modal-poll-vote");
@@ -7253,7 +7710,7 @@
           }
         }
 
-        if (type !== "sticker" && type !== "reaction") {
+        if (type !== "sticker" && type !== "reaction" && type !== "poll") {
           const timeEl = document.createElement("span");
           timeEl.className = "msg-time";
           timeEl.textContent = formatMessageTime(at);
@@ -7271,25 +7728,244 @@
         });
       }
 
+      function normalizeReactionsClient(raw) {
+        if (!raw || typeof raw !== "object") return {};
+        const keys = Object.keys(raw);
+        if (!keys.length) return {};
+        const sample = raw[keys[0]];
+        if (sample && typeof sample === "object" && !Array.isArray(sample) && sample.users) {
+          return raw;
+        }
+        const out = {};
+        for (const [emoji, arr] of Object.entries(raw)) {
+          if (!Array.isArray(arr)) continue;
+          const users = {};
+          for (const name of arr) {
+            if (!name) continue;
+            users[name] = (users[name] || 0) + 1;
+          }
+          let total = 0;
+          for (const q of Object.values(users)) total += q;
+          if (total > 0) out[emoji] = { total, users };
+        }
+        return out;
+      }
+
+      function myReactionQty(reactions) {
+        const norm = normalizeReactionsClient(reactions);
+        let n = 0;
+        for (const block of Object.values(norm)) {
+          n += block.users?.[myName] || 0;
+        }
+        return n;
+      }
+
+      function reactionTooltipLines(reactions, emojiFilter) {
+        const norm = normalizeReactionsClient(reactions);
+        const lines = [];
+        const seen = new Set();
+        const emojis = emojiFilter ? [emojiFilter] : Object.keys(norm);
+        for (const emoji of emojis) {
+          const block = norm[emoji];
+          if (!block?.users) continue;
+          for (const name of Object.keys(block.users)) {
+            const key = emojiFilter ? name : name + emoji;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            lines.push(name === myName ? "Bạn" : name);
+          }
+        }
+        return lines;
+      }
+
+      let reactionsModalState = { messageId: null, reactions: {}, tab: "all" };
+
+      function buildReactionsUserRows(reactions, filterEmoji) {
+        const norm = normalizeReactionsClient(reactions);
+        /** @type {{ name: string, emoji: string, qty: number }[]} */
+        const rows = [];
+        for (const [emoji, block] of Object.entries(norm)) {
+          if (filterEmoji && filterEmoji !== emoji) continue;
+          for (const [name, qty] of Object.entries(block.users || {})) {
+            const q = Number(qty) || 0;
+            if (q <= 0) continue;
+            rows.push({ name, emoji, qty: q });
+          }
+        }
+        rows.sort((a, b) => {
+          const la = a.name === myName ? "" : a.name;
+          const lb = b.name === myName ? "" : b.name;
+          return la.localeCompare(lb, "vi");
+        });
+        return rows;
+      }
+
+      function renderReactionsModalList() {
+        const listEl = document.getElementById("reactions-modal-list");
+        if (!listEl) return;
+        listEl.innerHTML = "";
+        const { reactions, tab } = reactionsModalState;
+        const filter = tab === "all" ? null : tab;
+        const rows = buildReactionsUserRows(reactions, filter);
+        for (const row of rows) {
+          const el = document.createElement("div");
+          el.className = "reactions-user-row";
+          const av = document.createElement("div");
+          av.className = "reactions-user-avatar";
+          const url =
+            row.name === myName
+              ? loadProfile().avatarUrl || memberAvatarByName.get(myName) || ""
+              : memberAvatarByName.get(row.name) || "";
+          const letter = roomInitials(row.name);
+          if (url) {
+            const img = document.createElement("img");
+            img.src = url;
+            img.alt = "";
+            img.addEventListener("error", () => {
+              img.remove();
+              av.textContent = letter;
+            });
+            av.appendChild(img);
+          } else {
+            av.textContent = letter;
+          }
+          const nm = document.createElement("div");
+          nm.className = "reactions-user-name";
+          nm.textContent = row.name === myName ? "Bạn" : row.name;
+          const em = document.createElement("div");
+          em.className = "reactions-user-emoji";
+          em.textContent = row.emoji + (row.qty > 1 ? " " + row.qty : "");
+          el.appendChild(av);
+          el.appendChild(nm);
+          el.appendChild(em);
+          listEl.appendChild(el);
+        }
+      }
+
+      function renderReactionsModalTabs() {
+        const tabsEl = document.getElementById("reactions-modal-tabs");
+        if (!tabsEl) return;
+        tabsEl.innerHTML = "";
+        const norm = normalizeReactionsClient(reactionsModalState.reactions);
+        let totalAll = 0;
+        for (const b of Object.values(norm)) totalAll += b.total || 0;
+
+        const mkTab = (id, label, emojiChar, count) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "reactions-tab" + (reactionsModalState.tab === id ? " active" : "");
+          if (emojiChar) {
+            const sp = document.createElement("span");
+            sp.className = "reactions-tab-emoji";
+            sp.textContent = emojiChar;
+            btn.appendChild(sp);
+          } else {
+            const sp = document.createElement("span");
+            sp.style.fontSize = "0.62rem";
+            sp.style.fontWeight = "600";
+            sp.textContent = "Tất cả";
+            btn.appendChild(sp);
+          }
+          const c = document.createElement("span");
+          c.textContent = String(count);
+          btn.appendChild(c);
+          btn.addEventListener("click", () => {
+            reactionsModalState.tab = id;
+            renderReactionsModalTabs();
+            renderReactionsModalList();
+          });
+          tabsEl.appendChild(btn);
+        };
+
+        mkTab("all", "Tất cả", null, totalAll);
+        for (const [emoji, block] of Object.entries(norm)) {
+          mkTab(emoji, emoji, emoji, block.total || 0);
+        }
+      }
+
+      function openReactionsModal(messageId, reactions, tab) {
+        reactionsModalState = {
+          messageId,
+          reactions: normalizeReactionsClient(reactions),
+          tab: tab || "all",
+        };
+        renderReactionsModalTabs();
+        renderReactionsModalList();
+        openModal("modal-reactions");
+      }
+
       function renderReactionsBar(container, messageId, reactions) {
         container.innerHTML = "";
-        const entries = Object.entries(reactions || {});
+        const norm = normalizeReactionsClient(reactions);
+        const entries = Object.entries(norm).filter(([, b]) => (b.total || 0) > 0);
         if (!entries.length) return;
 
-        for (const [emoji, users] of entries) {
-          if (!users?.length) continue;
-          const chip = document.createElement("button");
-          chip.type = "button";
-          chip.className = "reaction-chip" + (users.includes(myName) ? " mine" : "");
-          chip.title = users.join(", ");
-          chip.innerHTML =
-            emoji + (users.length > 1 ? '<span class="count">' + users.length + "</span>" : "");
-          chip.addEventListener("click", (e) => {
-            e.stopPropagation();
-            socket.emit("react", { messageId, emoji });
-          });
-          container.appendChild(chip);
+        const bar = document.createElement("div");
+        bar.className = "reaction-bar";
+
+        let totalAll = 0;
+        const emojiChars = [];
+        for (const [emoji, block] of entries) {
+          totalAll += block.total || 0;
+          emojiChars.push(emoji);
         }
+
+        const pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = "reaction-summary-pill";
+        pill.innerHTML =
+          emojiChars.join("") + '<span class="reaction-score">' + totalAll + "</span>";
+
+        const tip = document.createElement("div");
+        tip.className = "reaction-tooltip";
+        tip.hidden = true;
+        const tipLines = reactionTooltipLines(norm, null);
+        tip.innerHTML = tipLines.map((l) => escapeHtml(l)).join("<br>");
+        pill.appendChild(tip);
+
+        pill.addEventListener("mouseenter", () => {
+          if (tipLines.length) tip.hidden = false;
+        });
+        pill.addEventListener("mouseleave", () => {
+          tip.hidden = true;
+        });
+        pill.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openReactionsModal(messageId, norm, "all");
+        });
+
+        bar.appendChild(pill);
+
+        const addBtn = document.createElement("button");
+        addBtn.type = "button";
+        addBtn.className = "reaction-add-btn";
+        addBtn.title = "Thêm cảm xúc";
+        addBtn.textContent = "👍";
+        addBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const wrap = container.closest(".msg-bubble-wrap");
+          const picker = wrap?.querySelector(".reaction-picker");
+          if (picker && wrap) {
+            if (picker.classList.contains("open")) closeAllReactionPickers();
+            else openReactionPicker(picker, wrap);
+          }
+        });
+        bar.appendChild(addBtn);
+
+        if (myReactionQty(norm) > 0) {
+          const clearBtn = document.createElement("button");
+          clearBtn.type = "button";
+          clearBtn.className = "reaction-clear-btn";
+          clearBtn.title = "Gỡ cảm xúc của bạn";
+          clearBtn.textContent = "×";
+          clearBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            socket.emit("react", { messageId, clear: true });
+          });
+          bar.appendChild(clearBtn);
+        }
+
+        container.appendChild(bar);
       }
 
       function updateMessageReactions(messageId, reactions) {
@@ -7395,8 +8071,10 @@
           return;
         }
 
+        const isPoll = (type || "text") === "poll";
+
         let prev = prevMsg;
-        if (!prev) {
+        if (!prev && !isPoll) {
           const lastRow = messagesEl.lastElementChild;
           if (lastRow?.classList.contains("msg-row")) {
             const prevId = lastRow.dataset.msgId;
@@ -7404,10 +8082,13 @@
             if (node?.msg) prev = node.msg;
           }
         }
-        const grouped = shouldGroupWithPrevious(prev, msg);
+        const grouped = !isPoll && shouldGroupWithPrevious(prev, msg);
 
         const row = document.createElement("div");
-        row.className = "msg-row" + (isMyMessage(msg) ? " self" : "") + (grouped ? " continuation" : "");
+        row.className =
+          "msg-row" +
+          (isPoll ? " poll-msg" : isMyMessage(msg) ? " self" : "") +
+          (grouped ? " continuation" : "");
         row.dataset.msgId = String(id);
 
         const nameEl = document.createElement("div");
@@ -7508,6 +8189,17 @@
           });
           picker.appendChild(b);
         });
+        const btnPickClear = document.createElement("button");
+        btnPickClear.type = "button";
+        btnPickClear.className = "reaction-picker-clear";
+        btnPickClear.textContent = "×";
+        btnPickClear.title = "Gỡ cảm xúc của bạn";
+        btnPickClear.addEventListener("click", (e) => {
+          e.stopPropagation();
+          socket.emit("react", { messageId: id, clear: true });
+          closeAllReactionPickers();
+        });
+        picker.appendChild(btnPickClear);
 
         const btnReactTrigger = document.createElement("button");
         btnReactTrigger.type = "button";
@@ -7560,8 +8252,16 @@
         body.appendChild(stack);
 
         if (grouped) row.appendChild(buildMsgAvatarSpacer());
-        else row.appendChild(buildMsgAvatarEl(msg));
+        else if (!isPoll) row.appendChild(buildMsgAvatarEl(msg));
         row.appendChild(body);
+
+        if (isPoll) {
+          const pollTime = document.createElement("div");
+          pollTime.className = "poll-msg-time";
+          pollTime.textContent = formatPollDateTime(msg.at);
+          stack.appendChild(pollTime);
+        }
+
         messagesEl.appendChild(row);
 
         messageNodes.set(id, { row, reactionsEl, seenEl: showSeen ? seenEl : null, msg: { ...msg } });
@@ -7591,6 +8291,7 @@
       document.addEventListener("click", () => closeAllReactionPickers());
 
       socket.on("system", appendSystem);
+      socket.on("poll_activity", appendPollActivity);
       socket.on("message", (msg) => {
         if (Number(msg.roomId) !== Number(currentRoomId)) {
           return;
@@ -7601,6 +8302,14 @@
       });
       socket.on("message_reactions", ({ messageId, reactions }) => {
         updateMessageReactions(messageId, reactions);
+        if (
+          reactionsModalState.messageId === messageId &&
+          document.getElementById("modal-reactions")?.classList.contains("open")
+        ) {
+          reactionsModalState.reactions = normalizeReactionsClient(reactions);
+          renderReactionsModalTabs();
+          renderReactionsModalList();
+        }
       });
 
       socket.on("message_updated", (msg) => {

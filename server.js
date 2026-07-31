@@ -14,7 +14,8 @@ import {
   loadRecentMessages,
   saveMessage,
   messageExists,
-  toggleReaction,
+  incrementReaction,
+  clearUserReactions,
   hydrateReactionCache,
   listRoomsByCodes,
   countMessagesSince,
@@ -54,7 +55,7 @@ import {
   getDbOverview,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "48");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "50");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1363,6 +1364,13 @@ io.on("connection", (socket) => {
       );
       if (result.ok && result.message) {
         io.to(roomChannel(user.roomId)).emit("message_updated", result.message);
+        io.to(roomChannel(user.roomId)).emit("poll_activity", {
+          kind: "vote",
+          roomId: user.roomId,
+          messageId: result.message.id,
+          actor: user.name,
+          topic: result.message.text || "Bình chọn",
+        });
       }
       respond(result);
     } catch (err) {
@@ -1384,6 +1392,13 @@ io.on("connection", (socket) => {
       const result = await lockPollMessage(payload?.messageId, user.name);
       if (result.ok && result.message) {
         io.to(roomChannel(user.roomId)).emit("message_updated", result.message);
+        io.to(roomChannel(user.roomId)).emit("poll_activity", {
+          kind: "lock",
+          roomId: user.roomId,
+          messageId: result.message.id,
+          actor: user.name,
+          topic: result.message.text || "Bình chọn",
+        });
       }
       respond(result);
     } catch (err) {
@@ -1397,12 +1412,20 @@ io.on("connection", (socket) => {
     if (!user || !payload) return;
 
     const messageId = Number(payload.messageId);
-    const emoji = String(payload.emoji ?? "").slice(0, 8);
     if (!Number.isInteger(messageId) || messageId < 1) return;
-    if (!ALLOWED_REACTIONS.has(emoji)) return;
     if (!(await messageExists(messageId))) return;
 
-    const reactions = await toggleReaction(messageId, user.name, emoji);
+    if (payload.clear) {
+      const reactions = await clearUserReactions(messageId, user.name);
+      if (reactions === null) return;
+      io.emit("message_reactions", { messageId, reactions });
+      return;
+    }
+
+    const emoji = String(payload.emoji ?? "").slice(0, 8);
+    if (!ALLOWED_REACTIONS.has(emoji)) return;
+
+    const reactions = await incrementReaction(messageId, user.name, emoji);
     if (!reactions) return;
 
     io.emit("message_reactions", { messageId, reactions });
