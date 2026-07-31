@@ -2147,6 +2147,16 @@
           display: none;
         }
 
+        .app-shell.show-chat .chat {
+          display: flex !important;
+          flex: 1;
+          min-height: 0;
+        }
+
+        .app-shell.active:not(.show-chat):not(.contacts-mode):not(.notifications-mode) .chat {
+          display: none !important;
+        }
+
         .app-shell.show-chat .mobile-bottom-nav {
           display: none;
         }
@@ -9515,6 +9525,8 @@
 
       document.getElementById("btn-back-rooms").addEventListener("click", () => {
         appShell.classList.remove("show-chat");
+        closeChatRightPanels();
+        showChatsPanel();
       });
 
       socket.on("rooms_list", (rooms) => {
