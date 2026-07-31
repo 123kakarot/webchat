@@ -8928,6 +8928,7 @@
         renderRoomList();
         renderRoomHeader();
         if (appShell.classList.contains("contacts-mode")) renderContactsMain();
+        syncNotifications(() => updateNotifyBadge());
         maybeAutoEnterRecentRoom();
       });
 
