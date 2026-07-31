@@ -1414,6 +1414,18 @@
         margin-bottom: 1rem;
       }
 
+      .settings-tab-panel {
+        display: none;
+      }
+
+      .settings-tab-panel.active {
+        display: block;
+      }
+
+      .settings-tab-panel[hidden] {
+        display: none !important;
+      }
+
       .settings-row {
         margin-bottom: 1.25rem;
       }
@@ -5604,8 +5616,8 @@
     </div>
 
     <div id="settings-flyout" class="settings-flyout" role="menu" aria-label="Menu cài đặt">
-      <button type="button" data-flyout="account">Thông tin tài khoản</button>
-      <button type="button" data-flyout="settings">Cài đặt</button>
+      <button type="button" data-flyout="account">Thông tin cá nhân</button>
+      <button type="button" data-flyout="settings">Cài đặt chung</button>
       <button type="button" data-flyout="appearance">Giao diện <span class="chev">›</span></button>
       <div class="flyout-divider"></div>
       <button type="button" class="danger" data-flyout="logout">Đăng xuất</button>
@@ -5623,7 +5635,7 @@
         </aside>
         <div class="settings-main">
           <div class="settings-body">
-            <div class="settings-tab-panel" id="settings-panel-general">
+            <div class="settings-tab-panel active" id="settings-panel-general">
               <h3>Cài đặt chung</h3>
               <div class="settings-row">
                 <label>Danh sách phòng</label>
@@ -5633,10 +5645,6 @@
             </div>
             <div class="settings-tab-panel" id="settings-panel-appearance" hidden>
               <h3>Giao diện</h3>
-              <div class="settings-row" style="text-align:center">
-                <div class="profile-avatar-lg" id="profile-avatar-preview"><span id="profile-avatar-letter">?</span></div>
-                <button type="button" class="app-btn secondary block" id="btn-upload-avatar" style="max-width:280px;margin:0 auto">Đổi ảnh đại diện</button>
-              </div>
               <div class="settings-row">
                 <label>Màu nền khung chat</label>
                 <div class="color-swatches" id="bg-colors"></div>
@@ -5651,7 +5659,11 @@
               </div>
             </div>
             <div class="settings-tab-panel" id="settings-panel-account" hidden>
-              <h3>Tài khoản</h3>
+              <h3>Thông tin cá nhân</h3>
+              <div class="settings-row" style="text-align:center">
+                <div class="profile-avatar-lg" id="profile-avatar-preview"><span id="profile-avatar-letter">?</span></div>
+                <button type="button" class="app-btn secondary block" id="btn-upload-avatar" style="max-width:280px;margin:0 auto">Đổi ảnh đại diện</button>
+              </div>
               <div class="settings-row">
                 <label for="profile-name">Tên hiển thị trong phòng chat</label>
                 <input id="profile-name" type="text" maxlength="32" autocomplete="nickname" />
@@ -7733,6 +7745,7 @@
         const p = loadProfile();
         profileDraft = {
           avatarUrl: p.avatarUrl || "",
+          avatarDataUrl: p.avatarDataUrl || "",
           bgColor: p.bgColor || "",
           bgImage: p.bgImage || "",
         };
@@ -7747,11 +7760,14 @@
       }
 
       function setSettingsTab(tab) {
-        document.querySelectorAll("[data-settings-tab]").forEach((b) => {
-          b.classList.toggle("active", b.dataset.settingsTab === tab);
+        const key = String(tab || "general").trim();
+        document.querySelectorAll("#modal-settings .settings-nav [data-settings-tab]").forEach((b) => {
+          b.classList.toggle("active", b.dataset.settingsTab === key);
         });
-        document.querySelectorAll(".settings-tab-panel").forEach((p) => {
-          p.hidden = p.id !== "settings-panel-" + tab;
+        document.querySelectorAll("#modal-settings .settings-tab-panel").forEach((p) => {
+          const on = p.id === "settings-panel-" + key;
+          p.classList.toggle("active", on);
+          p.hidden = !on;
         });
       }
 
@@ -9444,8 +9460,12 @@
         });
       });
 
-      document.querySelectorAll("[data-settings-tab]").forEach((btn) => {
-        btn.addEventListener("click", () => setSettingsTab(btn.dataset.settingsTab));
+      document.querySelectorAll("#modal-settings [data-settings-tab]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setSettingsTab(btn.dataset.settingsTab);
+        });
       });
 
       document.getElementById("settings-close").addEventListener("click", () => closeModal("modal-settings"));
