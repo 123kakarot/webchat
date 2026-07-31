@@ -364,12 +364,6 @@
         .app-shell.info-dock .room-info-panel.open #room-info-panel-close {
           display: none;
         }
-
-        .app-shell.info-dock .room-members-panel.open,
-        .app-shell.info-dock .room-search-panel.open {
-          position: absolute;
-          right: var(--info-dock-width);
-        }
       }
 
       .nav-section-label {
@@ -5448,7 +5442,7 @@
 
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v70</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v71</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
@@ -6331,7 +6325,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "70";
+      const CLIENT_BUILD = "71";
       const BASE_DOC_TITLE = "Webchat";
 
       function applyUiTheme(mode) {
