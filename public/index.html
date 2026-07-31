@@ -1308,8 +1308,8 @@
 
       .msg-row.poll-msg {
         align-self: center;
-        max-width: min(calc(100% - 1rem), 320px);
-        width: auto;
+        max-width: min(calc(100% - 0.5rem), 380px);
+        width: min(calc(100% - 0.5rem), 380px);
         flex-direction: column;
         align-items: stretch;
         margin-left: auto;
@@ -1345,12 +1345,12 @@
       }
 
       .msg-row.poll-msg .msg-bubble {
-        background: #1a1d24;
-        border: none;
+        background: #252a33;
+        border: 1px solid rgba(255, 255, 255, 0.06);
         border-radius: 16px;
         width: 100%;
         box-sizing: border-box;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
       }
 
       .msg-row.poll-msg .poll-bubble {
@@ -2246,9 +2246,9 @@
       }
 
       .poll-bubble {
-        min-width: min(100%, 260px);
+        min-width: min(100%, 300px);
         max-width: 100%;
-        padding: 1rem 1rem 0.85rem;
+        padding: 1rem 1.05rem 0.9rem;
       }
 
       .poll-bubble .poll-title {
@@ -2311,8 +2311,8 @@
         gap: 0.5rem;
         padding: 0.5rem 0.65rem;
         border-radius: 10px;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
         font-size: 0.88rem;
         min-height: 40px;
         box-sizing: border-box;
@@ -4098,7 +4098,7 @@
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
-      const CLIENT_BUILD = "52";
+      const CLIENT_BUILD = "53";
       const BASE_DOC_TITLE = "Webchat";
 
       function joinPayload(name, rejoin) {
