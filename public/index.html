@@ -5058,9 +5058,47 @@
       .toolbar {
         display: flex;
         align-items: center;
+        gap: 0;
+        padding: 0.45rem 0.5rem 0.25rem 0.65rem;
+        overflow: visible;
+      }
+
+      .toolbar-scroll {
+        display: flex;
+        align-items: center;
         gap: 0.15rem;
-        padding: 0.45rem 0.65rem 0.25rem;
+        flex: 1;
+        min-width: 0;
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        padding-right: 0.25rem;
+      }
+
+      .toolbar-more-anchor {
+        position: relative;
+        display: inline-flex;
+        flex-shrink: 0;
+        padding-left: 0.35rem;
+        margin-left: 0.1rem;
+        border-left: 1px solid var(--border);
+      }
+
+      .tool-btn.btn-more-active {
+        background: rgba(99, 102, 241, 0.22);
+        color: var(--accent);
+      }
+
+      .more-menu-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 498;
+        background: rgba(0, 0, 0, 0.25);
+      }
+
+      .more-menu-backdrop.open {
+        display: block;
       }
 
       .tool-btn {
@@ -5503,23 +5541,18 @@
         color: #fff;
       }
 
-      .toolbar-more-anchor {
-        position: relative;
-        display: inline-flex;
-        flex-shrink: 0;
-      }
-
       .more-menu {
         display: none;
         position: fixed;
         background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: 10px;
-        min-width: 200px;
-        max-width: min(280px, calc(100vw - 16px));
+        border-radius: 12px;
+        min-width: 240px;
+        max-width: min(300px, calc(100vw - 16px));
         z-index: 500;
-        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
         overflow: hidden;
+        padding: 0.35rem 0;
       }
 
       .more-menu.open {
@@ -5527,16 +5560,25 @@
       }
 
       .more-menu button {
-        display: block;
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
         width: 100%;
         text-align: left;
-        padding: 0.65rem 0.85rem;
+        padding: 0.72rem 0.95rem;
         border: none;
         background: transparent;
         color: var(--text);
         font: inherit;
-        font-size: 0.85rem;
+        font-size: 0.88rem;
         cursor: pointer;
+      }
+
+      .more-menu button .more-menu-ico {
+        width: 1.35rem;
+        text-align: center;
+        flex-shrink: 0;
+        opacity: 0.95;
       }
 
       .more-menu button:hover {
@@ -5592,7 +5634,7 @@
 
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v74</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v75</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
@@ -5796,6 +5838,7 @@
 
       <div class="composer-wrap">
         <div class="toolbar">
+          <div class="toolbar-scroll">
           <button type="button" class="tool-btn" id="btn-sticker" title="Sticker">
             <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
           </button>
@@ -5823,17 +5866,19 @@
           <button type="button" class="tool-btn" id="btn-wallet" title="Thông tin chuyển khoản">
             <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
           </button>
+          </div>
           <div class="toolbar-more-anchor">
             <button type="button" class="tool-btn" id="btn-more" title="Thêm">
               <svg viewBox="0 0 24 24"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
             </button>
-            <div class="more-menu" id="more-menu">
-              <button type="button" data-more="capture-chat">Chụp khung chat</button>
-              <button type="button" data-more="edit-quick">Sửa tin nhắn nhanh</button>
-              <button type="button" data-more="edit-wallet">Lưu TK chuyển khoản</button>
-              <button type="button" data-more="create-poll">Tạo bình chọn</button>
-            </div>
           </div>
+        </div>
+        <div class="more-menu-backdrop" id="more-menu-backdrop" hidden aria-hidden="true"></div>
+        <div class="more-menu" id="more-menu" role="menu" aria-label="Thêm tính năng">
+          <button type="button" data-more="create-poll" role="menuitem"><span class="more-menu-ico" aria-hidden="true">📊</span> Tạo bình chọn</button>
+          <button type="button" data-more="capture-chat" role="menuitem"><span class="more-menu-ico" aria-hidden="true">📷</span> Chụp khung chat</button>
+          <button type="button" data-more="edit-quick" role="menuitem"><span class="more-menu-ico" aria-hidden="true">⚡</span> Sửa tin nhắn nhanh</button>
+          <button type="button" data-more="edit-wallet" role="menuitem"><span class="more-menu-ico" aria-hidden="true">💳</span> Lưu TK chuyển khoản</button>
         </div>
 
         <div class="picker" id="picker-sticker">
@@ -6487,7 +6532,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "74";
+      const CLIENT_BUILD = "75";
       const BASE_DOC_TITLE = "Webchat";
 
       function applyUiTheme(mode) {
@@ -10668,7 +10713,7 @@
       function togglePicker(name) {
         const el = pickers[name];
         if (!el) return;
-        document.getElementById("more-menu")?.classList.remove("open");
+        closeMoreMenu();
         const open = !el.classList.contains("open");
         Object.values(pickers).forEach((p) => p.classList.remove("open"));
         document.querySelectorAll(".toolbar .tool-btn").forEach((b) => b.classList.remove("active"));
@@ -10686,7 +10731,7 @@
 
       function openModal(id) {
         document.getElementById(id)?.classList.add("open");
-        document.getElementById("more-menu")?.classList.remove("open");
+        closeMoreMenu();
         Object.values(pickers).forEach((p) => p.classList.remove("open"));
       }
 
@@ -10757,27 +10802,53 @@
         openModal("modal-wallet");
       });
 
-      document.getElementById("btn-more").addEventListener("click", (e) => {
-        e.stopPropagation();
-        e.preventDefault();
+      function closeMoreMenu() {
+        document.getElementById("more-menu")?.classList.remove("open");
+        const backdrop = document.getElementById("more-menu-backdrop");
+        backdrop?.classList.remove("open");
+        backdrop?.setAttribute("hidden", "");
+        document.getElementById("btn-more")?.classList.remove("btn-more-active");
+      }
+
+      function openMoreMenu() {
         Object.values(pickers).forEach((p) => p.classList.remove("open"));
         document.querySelectorAll(".toolbar .tool-btn").forEach((b) => b.classList.remove("active"));
         const menu = document.getElementById("more-menu");
-        menu.classList.toggle("open");
-        if (menu.classList.contains("open")) syncMoreMenuPosition();
+        const backdrop = document.getElementById("more-menu-backdrop");
+        menu?.classList.add("open");
+        backdrop?.classList.add("open");
+        backdrop?.removeAttribute("hidden");
+        document.getElementById("btn-more")?.classList.add("btn-more-active");
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => syncMoreMenuPosition());
+        });
+      }
+
+      function toggleMoreMenu() {
+        const menu = document.getElementById("more-menu");
+        if (menu?.classList.contains("open")) closeMoreMenu();
+        else openMoreMenu();
+      }
+
+      document.getElementById("btn-more").addEventListener("click", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        toggleMoreMenu();
       });
+
+      document.getElementById("more-menu-backdrop")?.addEventListener("click", () => closeMoreMenu());
 
       function syncMoreMenuPosition() {
         const btn = document.getElementById("btn-more");
         const menu = document.getElementById("more-menu");
         if (!btn || !menu || !menu.classList.contains("open")) return;
         const r = btn.getBoundingClientRect();
-        const menuW = menu.offsetWidth || 200;
-        const menuH = menu.offsetHeight || 160;
+        const menuW = menu.offsetWidth || 240;
+        const menuH = menu.offsetHeight || 200;
         let left = r.right - menuW;
         left = Math.max(8, Math.min(left, window.innerWidth - menuW - 8));
-        let top = r.top - menuH - 8;
-        if (top < 8) top = r.bottom + 8;
+        let top = r.top - menuH - 10;
+        if (top < 8) top = Math.min(r.bottom + 10, window.innerHeight - menuH - 8);
         menu.style.left = `${left}px`;
         menu.style.top = `${top}px`;
         menu.style.bottom = "auto";
@@ -10794,9 +10865,8 @@
       );
 
       document.addEventListener("click", (e) => {
-        if (!e.target.closest(".toolbar-more-anchor")) {
-          document.getElementById("more-menu")?.classList.remove("open");
-        }
+        if (e.target.closest("#btn-more") || e.target.closest("#more-menu")) return;
+        closeMoreMenu();
       });
 
       document.querySelectorAll("#more-menu [data-more]").forEach((btn) => {
@@ -10816,9 +10886,11 @@
             openModal("modal-edit-wallet");
           }
           if (action === "create-poll") {
-            document.getElementById("more-menu").classList.remove("open");
+            closeMoreMenu();
             openCreatePollModal();
+            return;
           }
+          closeMoreMenu();
         });
       });
 
@@ -10990,7 +11062,7 @@
       }
 
       async function captureChatArea() {
-        document.getElementById("more-menu").classList.remove("open");
+        closeMoreMenu();
         try {
           const html2canvas = await import("https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm");
           const target = document.getElementById("messages");
