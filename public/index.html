@@ -2460,19 +2460,23 @@
       }
 
       .poll-modal {
-        max-width: 420px;
+        max-width: 400px;
         width: calc(100% - 2rem);
         padding: 0;
         overflow: hidden;
+        background: #242b38;
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
 
       .poll-modal-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.85rem 1rem;
-        border-bottom: 1px solid var(--border);
+        padding: 0.9rem 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         font-weight: 600;
+        font-size: 0.95rem;
+        color: #f3f4f6;
       }
 
       .poll-modal-head button {
@@ -2485,9 +2489,107 @@
       }
 
       .poll-modal-body {
-        padding: 0.85rem 1rem 1rem;
+        padding: 1rem 1rem 0.85rem;
         max-height: min(70vh, 520px);
         overflow-y: auto;
+      }
+
+      .poll-modal-divider {
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        margin: 0.75rem 0;
+      }
+
+      .poll-modal-body .poll-modal-heading {
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin: 0 0 0.35rem;
+        line-height: 1.35;
+        color: #fff;
+      }
+
+      .poll-create-body .poll-topic-wrap textarea {
+        border: none;
+        background: transparent;
+        padding: 0 0 1.25rem;
+        min-height: 48px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        resize: none;
+      }
+
+      .poll-create-body .poll-topic-wrap textarea:focus {
+        outline: none;
+        border: none;
+      }
+
+      .poll-vote-choices {
+        margin-top: 0.35rem;
+      }
+
+      .poll-vote-choice {
+        display: flex;
+        align-items: stretch;
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 8px;
+        margin: 0.45rem 0;
+        overflow: hidden;
+        cursor: pointer;
+        min-height: 46px;
+        background: rgba(0, 0, 0, 0.2);
+        box-sizing: border-box;
+      }
+
+      .poll-vote-choice.selected {
+        border-color: rgba(37, 99, 235, 0.55);
+        background: rgba(37, 99, 235, 0.08);
+      }
+
+      .poll-vote-choice-accent {
+        width: 4px;
+        flex-shrink: 0;
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .poll-vote-choice.selected .poll-vote-choice-accent {
+        background: #2563eb;
+      }
+
+      .poll-vote-choice-inner {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.55rem 0.85rem;
+        min-width: 0;
+      }
+
+      .poll-vote-choice-label {
+        flex: 1;
+        text-align: left;
+        font-size: 0.92rem;
+        color: #f3f4f6;
+        line-height: 1.35;
+      }
+
+      .poll-vote-choice-count {
+        flex-shrink: 0;
+        font-size: 0.92rem;
+        color: #e5e7eb;
+        font-weight: 500;
+      }
+
+      .poll-create-body .poll-modal-option-row {
+        margin: 0.55rem 0;
+      }
+
+      .poll-create-body .poll-modal-option-bar {
+        background: #2b3039;
+        border-color: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        min-height: 44px;
       }
 
       .poll-label {
@@ -2558,7 +2660,7 @@
         align-items: center;
         justify-content: space-between;
         padding: 0.65rem 1rem;
-        border-top: 1px solid var(--border);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
       }
 
       .poll-gear {
@@ -2575,19 +2677,21 @@
       }
 
       .poll-foot-actions button {
-        padding: 0.4rem 0.85rem;
+        padding: 0.45rem 1rem;
         border-radius: 8px;
-        border: 1px solid var(--border);
-        background: var(--bg);
-        color: var(--text);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: #2b3039;
+        color: #f3f4f6;
         font: inherit;
+        font-size: 0.88rem;
         cursor: pointer;
       }
 
       .poll-foot-actions button.primary {
-        background: #2563eb;
-        border-color: #2563eb;
+        background: #1e6fd9;
+        border-color: #1e6fd9;
         color: #fff;
+        min-width: 5.5rem;
       }
 
       .poll-settings-menu {
@@ -2636,15 +2740,15 @@
       }
 
       .poll-meta-line {
-        font-size: 0.75rem;
-        color: var(--muted);
-        margin-bottom: 0.65rem;
+        font-size: 0.76rem;
+        color: #9ca3af;
+        margin: 0 0 0.35rem;
       }
 
       .poll-mode-line {
         font-size: 0.78rem;
-        color: var(--muted);
-        margin-bottom: 0.75rem;
+        color: #9ca3af;
+        margin: 0 0 0.25rem;
       }
 
       .room-search-bar {
@@ -3715,16 +3819,16 @@
     <div class="modal-backdrop" id="modal-create-poll">
       <div class="modal poll-modal">
         <div class="poll-modal-head">
-          <span>Tạo bình chọn</span>
+          <span>Bình chọn</span>
           <button type="button" data-close="modal-create-poll" aria-label="Đóng">×</button>
         </div>
-        <div class="poll-modal-body">
-          <label class="poll-label" for="poll-create-topic">Chủ đề bình chọn</label>
+        <div class="poll-modal-body poll-create-body">
           <div class="poll-topic-wrap">
             <textarea id="poll-create-topic" maxlength="200" placeholder="Đặt câu hỏi bình chọn"></textarea>
             <span class="poll-char-count" id="poll-create-count">0/200</span>
           </div>
-          <label class="poll-label">Các lựa chọn</label>
+          <div class="poll-mode-line" id="poll-create-mode-hint">○ Chọn một phương án</div>
+          <hr class="poll-modal-divider" />
           <div id="poll-create-options"></div>
           <button type="button" class="poll-add-opt" id="poll-create-add">+ Thêm lựa chọn</button>
         </div>
@@ -3736,7 +3840,7 @@
             <button type="button" class="poll-gear" id="poll-create-settings" title="Cài đặt">⚙</button>
             <div class="poll-foot-actions">
               <button type="button" data-close="modal-create-poll">Hủy</button>
-              <button type="button" class="primary" id="poll-create-submit">Tạo bình chọn</button>
+              <button type="button" class="primary" id="poll-create-submit">Xác nhận</button>
             </div>
           </div>
         </div>
@@ -3751,7 +3855,7 @@
         </div>
         <div class="poll-modal-body" id="poll-vote-body"></div>
         <div class="poll-modal-foot">
-          <span></span>
+          <button type="button" class="poll-gear poll-gear-spacer" hidden aria-hidden="true"></button>
           <div class="poll-foot-actions">
             <button type="button" data-close="modal-poll-vote">Hủy</button>
             <button type="button" class="primary" id="poll-vote-confirm">Xác nhận</button>
@@ -4098,7 +4202,7 @@
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
-      const CLIENT_BUILD = "53";
+      const CLIENT_BUILD = "54";
       const BASE_DOC_TITLE = "Webchat";
 
       function joinPayload(name, rejoin) {
@@ -6825,6 +6929,7 @@
         const menu = document.getElementById("poll-create-settings-menu");
         if (menu) menu.hidden = !menu.hidden;
       });
+      document.getElementById("poll-create-multi")?.addEventListener("change", updatePollCreateModeHint);
       document.getElementById("poll-create-submit")?.addEventListener("click", () => {
         const topic = document.getElementById("poll-create-topic").value.trim();
         const inputs = [...document.querySelectorAll("#poll-create-options .poll-opt-input-inline")];
@@ -7532,11 +7637,19 @@
         });
       }
 
+      function updatePollCreateModeHint() {
+        const el = document.getElementById("poll-create-mode-hint");
+        const multi = document.getElementById("poll-create-multi")?.checked;
+        if (!el) return;
+        el.textContent = multi ? "☰ Chọn nhiều phương án" : "○ Chọn một phương án";
+      }
+
       function openCreatePollModal() {
         document.getElementById("poll-create-topic").value = "";
         document.getElementById("poll-create-count").textContent = "0/200";
         document.getElementById("poll-create-multi").checked = false;
         document.getElementById("poll-create-settings-menu").hidden = true;
+        updatePollCreateModeHint();
         syncPollCreateOptionInputs(["", ""]);
         openModal("modal-create-poll");
       }
@@ -7551,7 +7664,7 @@
         const votes = pollVotesOf(meta);
         const pre = pollUserIndices(msg, myName);
         body.innerHTML =
-          '<div class="poll-title">' +
+          '<div class="poll-modal-heading">' +
           escapeHtml(msg.text || "") +
           "</div>" +
           '<div class="poll-meta-line">Tạo bởi ' +
@@ -7560,19 +7673,20 @@
           escapeHtml(formatPollWhen(msg.at)) +
           "</div>" +
           '<div class="poll-mode-line">' +
-          (allowMultiple ? "☑ Chọn nhiều phương án" : "○ Chọn một phương án") +
-          "</div>";
+          (allowMultiple ? "☰ Chọn nhiều phương án" : "○ Chọn một phương án") +
+          '</div><hr class="poll-modal-divider" /><div class="poll-vote-choices"></div>';
+        const list = body.querySelector(".poll-vote-choices");
 
         const syncSelected = () => {
-          body.querySelectorAll(".poll-modal-option-row").forEach((row) => {
+          list.querySelectorAll(".poll-vote-choice").forEach((row) => {
             const inp = row.querySelector('input[name="poll-vote-opt"]');
-            row.classList.toggle("selected", inp?.checked);
+            row.classList.toggle("selected", Boolean(inp?.checked));
           });
         };
 
         options.forEach((opt, i) => {
           const row = document.createElement("label");
-          row.className = "poll-modal-option-row" + (pre.includes(i) ? " selected" : "");
+          row.className = "poll-vote-choice" + (pre.includes(i) ? " selected" : "");
           const input = document.createElement("input");
           input.type = allowMultiple ? "checkbox" : "radio";
           input.name = "poll-vote-opt";
@@ -7583,23 +7697,23 @@
             if (!allowMultiple) syncSelected();
             else row.classList.toggle("selected", input.checked);
           });
-          const radio = document.createElement("span");
-          radio.className = "poll-modal-radio";
-          radio.setAttribute("aria-hidden", "true");
-          const bar = document.createElement("div");
-          bar.className = "poll-modal-option-bar";
+          const accent = document.createElement("span");
+          accent.className = "poll-vote-choice-accent";
+          accent.setAttribute("aria-hidden", "true");
+          const inner = document.createElement("div");
+          inner.className = "poll-vote-choice-inner";
           const label = document.createElement("span");
-          label.className = "poll-modal-option-label";
+          label.className = "poll-vote-choice-label";
           label.textContent = String(opt);
           const vc = document.createElement("span");
-          vc.className = "poll-modal-option-count";
+          vc.className = "poll-vote-choice-count";
           vc.textContent = String(Array.isArray(votes[String(i)]) ? votes[String(i)].length : 0);
-          bar.appendChild(label);
-          bar.appendChild(vc);
+          inner.appendChild(label);
+          inner.appendChild(vc);
           row.appendChild(input);
-          row.appendChild(radio);
-          row.appendChild(bar);
-          body.appendChild(row);
+          row.appendChild(accent);
+          row.appendChild(inner);
+          list.appendChild(row);
         });
         openModal("modal-poll-vote");
       }
