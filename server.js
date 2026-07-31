@@ -65,7 +65,7 @@ import {
   getUserAvatarCache,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "68");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "69");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

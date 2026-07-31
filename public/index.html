@@ -1819,6 +1819,40 @@
         font-size: 0.85rem;
       }
 
+      .sidebar-search-wrap input,
+      .sidebar-search-row input {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid var(--border);
+        background: var(--input-bg);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 0.52rem 0.75rem 0.52rem 2.05rem;
+        font: inherit;
+        font-size: 0.85rem;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      .sidebar-search-wrap input::placeholder {
+        color: var(--muted);
+        opacity: 0.85;
+      }
+
+      .sidebar-search-wrap input:focus {
+        outline: 2px solid rgba(99, 102, 241, 0.4);
+        outline-offset: 0;
+        border-color: rgba(99, 102, 241, 0.35);
+      }
+
+      html[data-theme="light"] .sidebar-search-wrap input {
+        background: var(--surface2);
+      }
+
+      .sidebar-head .sidebar-tabs {
+        padding: 0.55rem 0 0.1rem;
+      }
+
       .sidebar-search-wrap {
         position: relative;
         flex: 1;
@@ -5102,6 +5136,113 @@
         border-color: var(--accent);
       }
 
+      .room-action-modal {
+        max-width: 400px;
+        padding: 0;
+        overflow: hidden;
+        border-radius: 16px;
+        box-shadow: var(--shadow-soft);
+      }
+
+      .room-action-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 1rem 1.1rem 0.35rem;
+      }
+
+      .room-action-head h2 {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+
+      .room-action-sub {
+        margin: 0;
+        padding: 0 1.1rem 0.85rem;
+        font-size: 0.82rem;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .room-action-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+        padding: 0 1rem 1rem;
+      }
+
+      .room-action-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        padding: 0.75rem 0.85rem;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+      }
+
+      html[data-theme="light"] .room-action-item {
+        background: var(--surface2);
+      }
+
+      .room-action-item:hover {
+        border-color: rgba(99, 102, 241, 0.35);
+        background: rgba(99, 102, 241, 0.08);
+      }
+
+      .room-action-item.primary {
+        border-color: rgba(99, 102, 241, 0.45);
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.22) 0%, rgba(124, 58, 237, 0.14) 100%);
+        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15);
+      }
+
+      .room-action-item.primary:hover {
+        filter: brightness(1.06);
+      }
+
+      .room-action-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        flex-shrink: 0;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .room-action-item.primary .room-action-icon {
+        background: var(--accent-gradient);
+        box-shadow: 0 4px 12px var(--accent-glow);
+      }
+
+      .room-action-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.12rem;
+        min-width: 0;
+      }
+
+      .room-action-text strong {
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .room-action-text small {
+        font-size: 0.72rem;
+        color: var(--muted);
+        font-weight: 400;
+      }
+
       .modal-backdrop {
         display: none;
         position: fixed;
@@ -5265,7 +5406,7 @@
 
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v68</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v69</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
@@ -5726,12 +5867,28 @@
     </div>
 
     <div class="modal-backdrop" id="modal-room-action">
-      <div class="modal">
-        <h2>Phòng chat</h2>
-        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem">Chọn tham gia bằng mã hoặc tạo phòng mới.</p>
-        <button type="button" class="gate-btn" id="modal-join-code" style="width:100%;margin-bottom:0.5rem">🔑 Tham gia bằng mã</button>
-        <button type="button" class="gate-btn secondary" id="modal-create-room" style="width:100%">➕ Tạo phòng mới</button>
-        <button type="button" data-close="modal-room-action" class="gate-btn secondary" style="width:100%;margin-top:0.5rem">Đóng</button>
+      <div class="modal room-action-modal">
+        <div class="room-action-head">
+          <h2>Tin nhắn mới</h2>
+          <button type="button" class="user-profile-close" data-close="modal-room-action" aria-label="Đóng">×</button>
+        </div>
+        <p class="room-action-sub">Tham gia phòng có sẵn hoặc tạo nhóm mới.</p>
+        <div class="room-action-list">
+          <button type="button" class="room-action-item" id="modal-join-code">
+            <span class="room-action-icon" aria-hidden="true">🔑</span>
+            <span class="room-action-text">
+              <strong>Tham gia bằng mã</strong>
+              <small>Nhập mã phòng 4–8 ký tự</small>
+            </span>
+          </button>
+          <button type="button" class="room-action-item primary" id="modal-create-room">
+            <span class="room-action-icon" aria-hidden="true">➕</span>
+            <span class="room-action-text">
+              <strong>Tạo nhóm mới</strong>
+              <small>Đặt tên và mời thành viên</small>
+            </span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -6122,7 +6279,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "68";
+      const CLIENT_BUILD = "69";
       const BASE_DOC_TITLE = "Webchat";
 
       function applyUiTheme(mode) {
