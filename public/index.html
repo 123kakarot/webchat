@@ -5511,16 +5511,14 @@
 
       .more-menu {
         display: none;
-        position: absolute;
-        bottom: calc(100% + 6px);
-        left: 0;
-        right: auto;
+        position: fixed;
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 10px;
-        min-width: 180px;
-        z-index: 30;
-        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
+        min-width: 200px;
+        max-width: min(280px, calc(100vw - 16px));
+        z-index: 500;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
         overflow: hidden;
       }
 
@@ -5594,7 +5592,7 @@
 
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v73</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v74</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
@@ -6489,7 +6487,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "73";
+      const CLIENT_BUILD = "74";
       const BASE_DOC_TITLE = "Webchat";
 
       function applyUiTheme(mode) {
@@ -10761,10 +10759,39 @@
 
       document.getElementById("btn-more").addEventListener("click", (e) => {
         e.stopPropagation();
+        e.preventDefault();
         Object.values(pickers).forEach((p) => p.classList.remove("open"));
         document.querySelectorAll(".toolbar .tool-btn").forEach((b) => b.classList.remove("active"));
-        document.getElementById("more-menu").classList.toggle("open");
+        const menu = document.getElementById("more-menu");
+        menu.classList.toggle("open");
+        if (menu.classList.contains("open")) syncMoreMenuPosition();
       });
+
+      function syncMoreMenuPosition() {
+        const btn = document.getElementById("btn-more");
+        const menu = document.getElementById("more-menu");
+        if (!btn || !menu || !menu.classList.contains("open")) return;
+        const r = btn.getBoundingClientRect();
+        const menuW = menu.offsetWidth || 200;
+        const menuH = menu.offsetHeight || 160;
+        let left = r.right - menuW;
+        left = Math.max(8, Math.min(left, window.innerWidth - menuW - 8));
+        let top = r.top - menuH - 8;
+        if (top < 8) top = r.bottom + 8;
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+        menu.style.bottom = "auto";
+        menu.style.right = "auto";
+      }
+
+      window.addEventListener("resize", () => syncMoreMenuPosition());
+      window.addEventListener(
+        "scroll",
+        () => {
+          if (document.getElementById("more-menu")?.classList.contains("open")) syncMoreMenuPosition();
+        },
+        true
+      );
 
       document.addEventListener("click", (e) => {
         if (!e.target.closest(".toolbar-more-anchor")) {
@@ -10773,7 +10800,8 @@
       });
 
       document.querySelectorAll("#more-menu [data-more]").forEach((btn) => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
           const action = btn.dataset.more;
           if (action === "capture-chat") captureChatArea();
           if (action === "edit-quick") {
