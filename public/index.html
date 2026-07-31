@@ -2049,6 +2049,49 @@
         padding: 0.25rem 0;
       }
 
+      .room-join-requests {
+        padding: 0.5rem 0.75rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .room-join-requests[hidden] {
+        display: none !important;
+      }
+
+      .room-join-requests h4 {
+        margin: 0 0 0.35rem;
+        font-size: 0.78rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .room-join-request-row {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin: 0.25rem 0;
+      }
+
+      .room-join-request-row span {
+        flex: 1;
+        font-size: 0.85rem;
+      }
+
+      .room-join-request-row button {
+        font: inherit;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.45rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      #messages.hide-system-log .msg-system {
+        display: none;
+      }
+
       .composer-wrap {
         border-top: 1px solid var(--border);
         background: var(--surface2);
@@ -2727,7 +2770,7 @@
 
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v41</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v42</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
           <label for="name">Tên của bạn</label>
@@ -2789,7 +2832,7 @@
           <button type="button" class="online-toggle btn-back-rooms" id="btn-back-rooms">←</button>
           <button type="button" class="room-head-avatar" id="room-head-avatar" title="Ảnh nhóm"><span id="room-head-avatar-letter">?</span></button>
           <div style="min-width:0">
-          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v41</span></div>
+          <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span> <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v42</span></div>
           <button type="button" class="room-member-count" id="btn-room-members">0 thành viên</button>
           <div class="you" id="you-label" style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
           <div style="font-size:0.75rem;color:var(--muted)">Mã: <code id="room-code-label">—</code> <button type="button" class="online-toggle" id="copy-room-code" style="padding:0.15rem 0.4rem;margin-left:0.25rem">Copy</button></div>
@@ -2797,6 +2840,7 @@
         </div>
         <div style="display:flex;gap:0.35rem;align-items:center">
           <button type="button" class="online-toggle" id="btn-room-search" title="Tìm trong phòng">🔍</button>
+          <button type="button" class="online-toggle" id="btn-toggle-system-log" title="Ẩn/hiện nhật ký hệ thống">📋</button>
           <button type="button" class="online-toggle" id="change-name-btn" title="Đổi tên hiển thị của bạn">Tên của bạn</button>
           <button type="button" class="online-toggle" id="btn-room-rename-head" title="Đổi tên nhóm" hidden>Đổi tên nhóm</button>
         </div>
@@ -2924,7 +2968,10 @@
         </div>
         <div class="room-members-sub" id="room-members-sub">Danh sách thành viên</div>
         <div class="room-members-list" id="room-members-list"></div>
+        <div class="room-join-requests" id="room-join-requests" hidden></div>
         <div class="room-members-actions" id="room-members-actions" hidden>
+          <button type="button" class="app-btn secondary block" id="btn-room-invite">➕ Thêm thành viên</button>
+          <button type="button" class="app-btn secondary block" id="btn-room-approval-toggle">Duyệt vào nhóm: Tắt</button>
           <button type="button" class="app-btn secondary block" id="btn-room-rename">Đổi tên nhóm</button>
           <button type="button" class="app-btn secondary block" id="btn-room-avatar">Đổi ảnh nhóm</button>
           <button type="button" class="app-btn block" id="btn-delete-room" style="background:#dc2626">Xóa nhóm</button>
@@ -3242,13 +3289,16 @@
       let inChatSearchQuery = "";
       let inChatSearchHits = [];
       let inChatSearchIndex = -1;
+      let joinRequests = [];
+      let currentRequireApproval = false;
+      let hideSystemLog = localStorage.getItem("webchat-hide-system") === "1";
       const STORAGE_NAME = "webchat-name";
       const STORAGE_ROOM_CODES = "webchat-room-codes";
       const STORAGE_LAST_CODE = "webchat-last-code";
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
-      const CLIENT_BUILD = "41";
+      const CLIENT_BUILD = "42";
       const BASE_DOC_TITLE = "Webchat";
 
       function joinPayload(name, rejoin) {
@@ -3583,11 +3633,13 @@
           .slice(0, 8);
       }
 
-      function applyRoomJoined({ roomId, code, name, history, ownerName, avatarUrl, roster, readers, pins }) {
+      function applyRoomJoined({ roomId, code, name, history, ownerName, avatarUrl, roster, readers, pins, joinRequests: jr, requireApproval }) {
         clearPendingReply();
         clearPendingImages();
         lastMarkReadSent = 0;
         toggleInChatSearch(false);
+        joinRequests = Array.isArray(jr) ? jr : [];
+        currentRequireApproval = Boolean(requireApproval);
         const sameRoom = Number(roomId) === Number(currentRoomId);
         currentRoomId = roomId;
         currentRoomOwnerName = ownerName || roster?.ownerName || "";
@@ -3609,6 +3661,9 @@
         renderMembersPanel();
         syncRoomLeaderActionsUi();
         setRoomPins(pins || []);
+        renderJoinRequests();
+        syncApprovalToggleUi();
+        applySystemLogVisibility();
         if (!sameRoom) {
           messagesEl.innerHTML = "";
           messageNodes.clear();
@@ -4781,6 +4836,59 @@
         }
       }
 
+      function applySystemLogVisibility() {
+        messagesEl.classList.toggle("hide-system-log", hideSystemLog);
+      }
+
+      function syncApprovalToggleUi() {
+        const btn = document.getElementById("btn-room-approval-toggle");
+        if (!btn) return;
+        btn.textContent = currentRequireApproval
+          ? "Duyệt vào nhóm: Bật"
+          : "Duyệt vào nhóm: Tắt";
+      }
+
+      function renderJoinRequests() {
+        const box = document.getElementById("room-join-requests");
+        if (!box) return;
+        const level = myRoomManageLevel();
+        if (!level || !joinRequests.length) {
+          box.hidden = true;
+          box.innerHTML = "";
+          return;
+        }
+        box.hidden = false;
+        box.innerHTML = "<h4>Yêu cầu vào nhóm</h4>";
+        for (const name of joinRequests) {
+          const row = document.createElement("div");
+          row.className = "room-join-request-row";
+          const label = document.createElement("span");
+          label.textContent = name;
+          const ok = document.createElement("button");
+          ok.type = "button";
+          ok.textContent = "Duyệt";
+          ok.addEventListener("click", () => runMemberManage("approve_join", name));
+          const no = document.createElement("button");
+          no.type = "button";
+          no.textContent = "Từ chối";
+          no.addEventListener("click", () => runMemberManage("deny_join", name));
+          row.appendChild(label);
+          row.appendChild(ok);
+          row.appendChild(no);
+          box.appendChild(row);
+        }
+      }
+
+      function avatarUrlForRoom(room) {
+        if (!room) return "";
+        if (room.avatarUrl) return room.avatarUrl;
+        if (room.kind === "direct") {
+          const peer = peerNameFromDirectRoom(room);
+          if (peer) return avatarUrlForUserName(peer);
+        }
+        return "";
+      }
+
       function bumpUnread(roomId) {
         if (roomId == null || Number(roomId) === Number(currentRoomId)) return;
         setUnreadCount(roomId, getUnreadCount(roomId) + 1);
@@ -5002,7 +5110,12 @@
               : room.preview || "Chưa có tin nhắn";
           const avHtml = room.avatarUrl
             ? `<img src="${String(room.avatarUrl).replace(/"/g, "&quot;")}" alt="" />`
-            : escapeHtml(roomInitials(room.name));
+            : (() => {
+                const av = avatarUrlForRoom(room);
+                return av
+                  ? `<img src="${String(av).replace(/"/g, "&quot;")}" alt="" />`
+                  : escapeHtml(roomInitials(displayNameForRoom(room)));
+              })();
           item.innerHTML =
             `<div class="room-avatar">${avHtml}</div>` +
             `<div class="room-meta">` +
@@ -5070,14 +5183,15 @@
         return null;
       }
 
-      function runMemberManage(action, targetName) {
+      function runMemberManage(action, targetName, extra = {}) {
         closeAllMemberMenus();
-        socket.timeout(20000).emit("room_member_manage", { action, targetName }, (err, res) => {
+        socket.timeout(20000).emit("room_member_manage", { action, targetName, ...extra }, (err, res) => {
           if (err || !res?.ok) {
             alert(res?.reason || "Không thực hiện được.");
             return;
           }
           if (res.room) applyRoomUpdate(res.room);
+          renderJoinRequests();
           showProfileToast("Đã cập nhật");
         });
       }
@@ -5151,6 +5265,18 @@
                   runMemberManage("kick", m.name);
                   return;
                 }
+                if (action === "mute_15") {
+                  runMemberManage("mute", m.name, { minutes: 15 });
+                  return;
+                }
+                if (action === "mute_60") {
+                  runMemberManage("mute", m.name, { minutes: 60 });
+                  return;
+                }
+                if (action === "unmute") {
+                  runMemberManage("unmute", m.name);
+                  return;
+                }
                 if (action === "transfer_owner") {
                   if (!confirm(`Chuyển quyền trưởng nhóm cho ${m.name}?`)) return;
                   runMemberManage("transfer_owner", m.name);
@@ -5162,6 +5288,9 @@
             };
 
             addItem("Mời ra khỏi nhóm", "kick", true);
+            addItem("Cấm chat 15 phút", "mute_15");
+            addItem("Cấm chat 1 giờ", "mute_60");
+            addItem("Bỏ cấm chat", "unmute");
             if (manageLevel === "owner") {
               if (m.isDeputy) addItem("Bỏ chức phó phòng", "unset_deputy");
               else addItem("Bổ nhiệm phó phòng", "set_deputy");
@@ -5182,7 +5311,10 @@
           listEl.appendChild(row);
         }
         const isOwner = Boolean(myName && currentRoomOwnerName && myName === currentRoomOwnerName);
-        document.getElementById("room-members-actions").hidden = !isOwner;
+        const manageLevel = myRoomManageLevel();
+        document.getElementById("room-members-actions").hidden = !manageLevel;
+        renderJoinRequests();
+        syncApprovalToggleUi();
         syncRoomLeaderActionsUi();
       }
 
@@ -5269,9 +5401,11 @@
         }
         if (room.avatarUrl != null) currentRoomAvatarUrl = room.avatarUrl;
         if (room.ownerName) currentRoomOwnerName = room.ownerName;
+        if (room.requireApproval != null) currentRequireApproval = Boolean(room.requireApproval);
         renderRoomHeader();
         renderRoomList();
         renderMembersPanel();
+        syncApprovalToggleUi();
       }
 
       function syncRoomLeaderActionsUi() {
@@ -5371,6 +5505,31 @@
       document.getElementById("btn-delete-room").addEventListener("click", deleteCurrentRoom);
       document.getElementById("btn-room-rename").addEventListener("click", promptRenameRoom);
       document.getElementById("btn-room-rename-head").addEventListener("click", promptRenameRoom);
+      document.getElementById("btn-room-invite")?.addEventListener("click", () => {
+        const name = prompt("Tên hiển thị thành viên cần thêm vào nhóm:", "");
+        if (name == null) return;
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        runMemberManage("add_member", trimmed);
+      });
+      document.getElementById("btn-room-approval-toggle")?.addEventListener("click", () => {
+        if (!isRoomLeader()) return;
+        const next = !currentRequireApproval;
+        socket.timeout(15000).emit("update_room", { requireApproval: next }, (err, res) => {
+          if (err || !res?.ok) {
+            alert(res?.reason || "Không đổi được cài đặt.");
+            return;
+          }
+          applyRoomUpdate(res.room);
+          showProfileToast(next ? "Đã bật duyệt vào nhóm" : "Đã tắt duyệt vào nhóm");
+        });
+      });
+      document.getElementById("btn-toggle-system-log")?.addEventListener("click", () => {
+        hideSystemLog = !hideSystemLog;
+        localStorage.setItem("webchat-hide-system", hideSystemLog ? "1" : "0");
+        applySystemLogVisibility();
+      });
+      applySystemLogVisibility();
       document.getElementById("btn-room-avatar").addEventListener("click", () => {
         document.getElementById("file-group-avatar-room").click();
       });
@@ -6707,6 +6866,16 @@
       socket.on("room_pins", (payload) => {
         if (Number(payload?.roomId) !== Number(currentRoomId)) return;
         setRoomPins(payload?.pins || []);
+      });
+
+      socket.on("join_requests", (payload) => {
+        if (Number(payload?.roomId) !== Number(currentRoomId)) return;
+        joinRequests = Array.isArray(payload?.requests) ? payload.requests : [];
+        renderJoinRequests();
+      });
+
+      socket.on("message_error", (msg) => {
+        if (typeof msg === "string" && msg) alert(msg);
       });
 
       socket.on("room_deleted", (payload) => {

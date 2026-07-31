@@ -21,6 +21,10 @@ const memoryRoomMembers = new Map();
 const memoryRoomReads = new Map();
 /** @type {Map<number, Array<{ messageId: number, pinnedBy: string, pinnedAt: number, sortOrder: number }>>} */
 const memoryRoomPins = new Map();
+/** @type {Map<number, Map<string, { until: number, mutedBy: string }>>} */
+const memoryRoomMutes = new Map();
+/** @type {Map<number, Set<string>>} */
+const memoryJoinRequests = new Map();
 let memoryNextRoomId = 1;
 
 const MAX_ROOM_PINS = 3;
@@ -150,6 +154,23 @@ export async function initDb() {
       PRIMARY KEY (room_id, message_id)
     );
     CREATE INDEX IF NOT EXISTS room_pins_room_idx ON room_pins (room_id, sort_order);
+
+    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS require_approval BOOLEAN NOT NULL DEFAULT false;
+
+    CREATE TABLE IF NOT EXISTS room_mutes (
+      room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      user_name VARCHAR(32) NOT NULL,
+      muted_until TIMESTAMPTZ NOT NULL,
+      muted_by VARCHAR(32) NOT NULL,
+      PRIMARY KEY (room_id, user_name)
+    );
+
+    CREATE TABLE IF NOT EXISTS room_join_requests (
+      room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      user_name VARCHAR(32) NOT NULL,
+      requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (room_id, user_name)
+    );
   `);
 
   await backfillRoomCodesPg();
@@ -278,6 +299,7 @@ function roomRowToClient(row) {
     code: row.code,
     ownerName: row.owner_name ?? row.ownerName ?? "",
     avatarUrl: row.avatar_url ?? row.avatarUrl ?? "",
+    requireApproval: Boolean(row.require_approval ?? row.requireApproval),
   };
 }
 
@@ -452,6 +474,124 @@ export async function listCommonGroupRooms(nameA, nameB) {
     [a, b]
   );
   return rows.map(roomRowToClient).filter(Boolean);
+}
+
+export async function isRegisteredRoomMember(roomId, userName) {
+  const list = await listRegisteredRoomMemberNames(roomId);
+  const key = normalizeMemberKey(userName);
+  return list.some((n) => normalizeMemberKey(n) === key);
+}
+
+export async function setRoomMute(roomId, userName, minutes, mutedBy) {
+  const rid = Number(roomId);
+  const name = String(userName ?? "").trim().slice(0, 32);
+  const who = String(mutedBy ?? "").trim().slice(0, 32);
+  const mins = Math.min(10080, Math.max(1, Math.floor(Number(minutes) || 15)));
+  if (!Number.isFinite(rid) || !name || !who) return false;
+  const until = Date.now() + mins * 60 * 1000;
+
+  if (useMemory) {
+    if (!memoryRoomMutes.has(rid)) memoryRoomMutes.set(rid, new Map());
+    memoryRoomMutes.get(rid).set(name, { until, mutedBy: who });
+    return true;
+  }
+
+  await pool.query(
+    `INSERT INTO room_mutes (room_id, user_name, muted_until, muted_by)
+     VALUES ($1, $2, to_timestamp($3 / 1000.0), $4)
+     ON CONFLICT (room_id, user_name) DO UPDATE SET
+       muted_until = EXCLUDED.muted_until,
+       muted_by = EXCLUDED.muted_by`,
+    [rid, name, until, who]
+  );
+  return true;
+}
+
+export async function clearRoomMute(roomId, userName) {
+  const rid = Number(roomId);
+  const name = String(userName ?? "").trim().slice(0, 32);
+  if (!Number.isFinite(rid) || !name) return;
+
+  if (useMemory) {
+    memoryRoomMutes.get(rid)?.delete(name);
+    return;
+  }
+  await pool.query(`DELETE FROM room_mutes WHERE room_id = $1 AND user_name = $2`, [rid, name]);
+}
+
+export async function isUserMutedInRoom(roomId, userName) {
+  const rid = Number(roomId);
+  const name = String(userName ?? "").trim().slice(0, 32);
+  if (!Number.isFinite(rid) || !name) return false;
+  const now = Date.now();
+
+  if (useMemory) {
+    const entry = memoryRoomMutes.get(rid)?.get(name);
+    if (!entry) return false;
+    if (entry.until <= now) {
+      memoryRoomMutes.get(rid)?.delete(name);
+      return false;
+    }
+    return true;
+  }
+
+  const { rows } = await pool.query(
+    `SELECT muted_until FROM room_mutes WHERE room_id = $1 AND user_name = $2`,
+    [rid, name]
+  );
+  if (!rows.length) return false;
+  const until = new Date(rows[0].muted_until).getTime();
+  if (!Number.isFinite(until) || until <= now) {
+    await clearRoomMute(rid, name);
+    return false;
+  }
+  return true;
+}
+
+export async function listRoomJoinRequests(roomId) {
+  const rid = Number(roomId);
+  if (!Number.isFinite(rid)) return [];
+
+  if (useMemory) {
+    const set = memoryJoinRequests.get(rid);
+    return set ? [...set].sort((a, b) => a.localeCompare(b, "vi")) : [];
+  }
+
+  const { rows } = await pool.query(
+    `SELECT user_name, requested_at FROM room_join_requests WHERE room_id = $1 ORDER BY requested_at ASC`,
+    [rid]
+  );
+  return rows.map((r) => r.user_name).filter(Boolean);
+}
+
+export async function addRoomJoinRequest(roomId, userName) {
+  const rid = Number(roomId);
+  const name = String(userName ?? "").trim().slice(0, 32);
+  if (!Number.isFinite(rid) || !name) return false;
+
+  if (useMemory) {
+    if (!memoryJoinRequests.has(rid)) memoryJoinRequests.set(rid, new Set());
+    memoryJoinRequests.get(rid).add(name);
+    return true;
+  }
+
+  await pool.query(
+    `INSERT INTO room_join_requests (room_id, user_name) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+    [rid, name]
+  );
+  return true;
+}
+
+export async function removeRoomJoinRequest(roomId, userName) {
+  const rid = Number(roomId);
+  const name = String(userName ?? "").trim().slice(0, 32);
+  if (!Number.isFinite(rid) || !name) return;
+
+  if (useMemory) {
+    memoryJoinRequests.get(rid)?.delete(name);
+    return;
+  }
+  await pool.query(`DELETE FROM room_join_requests WHERE room_id = $1 AND user_name = $2`, [rid, name]);
 }
 
 export async function messageBelongsToRoom(messageId, roomId) {
@@ -709,13 +849,13 @@ export async function getRoomById(roomId) {
   }
 
   const { rows } = await pool.query(
-    `SELECT id, name, kind, code, owner_name, avatar_url FROM rooms WHERE id = $1`,
+    `SELECT id, name, kind, code, owner_name, avatar_url, require_approval FROM rooms WHERE id = $1`,
     [rid]
   );
   return roomRowToClient(rows[0]);
 }
 
-export async function updateRoomFields(roomId, { name, avatarUrl, ownerName } = {}) {
+export async function updateRoomFields(roomId, { name, avatarUrl, ownerName, requireApproval } = {}) {
   const rid = Number(roomId);
   if (!Number.isFinite(rid)) return null;
 
@@ -725,6 +865,7 @@ export async function updateRoomFields(roomId, { name, avatarUrl, ownerName } = 
     if (name != null) room.name = String(name).trim().slice(0, 64) || room.name;
     if (avatarUrl != null) room.avatar_url = String(avatarUrl).slice(0, 500);
     if (ownerName != null) room.owner_name = String(ownerName).trim().slice(0, 32);
+    if (requireApproval != null) room.require_approval = Boolean(requireApproval);
     return roomRowToClient(room);
   }
 
@@ -743,10 +884,14 @@ export async function updateRoomFields(roomId, { name, avatarUrl, ownerName } = 
     sets.push(`owner_name = $${i++}`);
     vals.push(String(ownerName).trim().slice(0, 32));
   }
+  if (requireApproval != null) {
+    sets.push(`require_approval = $${i++}`);
+    vals.push(Boolean(requireApproval));
+  }
   if (!sets.length) return getRoomById(rid);
   vals.push(rid);
   const { rows } = await pool.query(
-    `UPDATE rooms SET ${sets.join(", ")} WHERE id = $${i} RETURNING id, name, kind, code, owner_name, avatar_url`,
+    `UPDATE rooms SET ${sets.join(", ")} WHERE id = $${i} RETURNING id, name, kind, code, owner_name, avatar_url, require_approval`,
     vals
   );
   return roomRowToClient(rows[0]);
@@ -763,6 +908,8 @@ export async function deleteRoomById(roomId) {
     memoryRoomMembers.delete(rid);
     memoryRoomReads.delete(rid);
     memoryRoomPins.delete(rid);
+    memoryRoomMutes.delete(rid);
+    memoryJoinRequests.delete(rid);
     for (let j = memoryMessages.length - 1; j >= 0; j--) {
       if (memoryMessages[j].roomId === rid) memoryMessages.splice(j, 1);
     }
@@ -856,7 +1003,7 @@ export async function getRoomByCode(rawCode) {
   }
 
   const { rows } = await pool.query(
-    `SELECT id, name, kind, code, owner_name, avatar_url FROM rooms WHERE code = $1`,
+    `SELECT id, name, kind, code, owner_name, avatar_url, require_approval FROM rooms WHERE code = $1`,
     [code]
   );
   return roomRowToClient(rows[0]);

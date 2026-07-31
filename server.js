@@ -39,10 +39,17 @@ import {
   pinRoomMessage,
   unpinRoomMessage,
   listCommonGroupRooms,
+  isRegisteredRoomMember,
+  setRoomMute,
+  clearRoomMute,
+  isUserMutedInRoom,
+  listRoomJoinRequests,
+  addRoomJoinRequest,
+  removeRoomJoinRequest,
   getDbOverview,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "41");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "42");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -549,6 +556,20 @@ io.on("connection", (socket) => {
         return;
       }
 
+      const owner = room.ownerName || "";
+      const onList = await isRegisteredRoomMember(room.id, user.name);
+      const isOwner =
+        owner && user.name.trim().toLowerCase() === owner.trim().toLowerCase();
+      if (room.requireApproval && !onList && !isOwner) {
+        await addRoomJoinRequest(room.id, user.name);
+        const requests = await listRoomJoinRequests(room.id);
+        io.to(roomChannel(room.id)).emit("join_requests", { roomId: room.id, requests });
+        const reason = "Đã gửi yêu cầu vào nhóm — chờ trưởng/phó phòng duyệt.";
+        socket.emit("room_join_error", reason);
+        respond({ ok: false, reason, pendingApproval: true });
+        return;
+      }
+
       if (previousName && previousName.toLowerCase() !== user.name.toLowerCase()) {
         await removeRoomMember(room.id, previousName);
         await removeRoomReadStateForUser(room.id, previousName);
@@ -569,6 +590,10 @@ io.on("connection", (socket) => {
       const roster = await buildRoomRoster(room.id);
       const readers = await getRoomReads(room.id);
       const pins = await listRoomPins(room.id);
+      const joinRequests =
+        (await actorManageLevel(room.id, user.name, room.ownerName || ""))
+          ? await listRoomJoinRequests(room.id)
+          : [];
       const data = {
         ok: true,
         roomId: room.id,
@@ -576,10 +601,12 @@ io.on("connection", (socket) => {
         name: room.name,
         ownerName: room.ownerName || "",
         avatarUrl: room.avatarUrl || "",
+        requireApproval: Boolean(room.requireApproval),
         roster,
         readers,
         history,
         pins,
+        joinRequests,
       };
       socket.emit("room_joined", data);
       respond(data);
@@ -836,6 +863,8 @@ io.on("connection", (socket) => {
     }
     const nextName = payload?.name != null ? String(payload.name).trim().slice(0, 64) : undefined;
     const nextAvatar = payload?.avatarUrl != null ? String(payload.avatarUrl).slice(0, 500) : undefined;
+    const nextRequireApproval =
+      payload?.requireApproval != null ? Boolean(payload.requireApproval) : undefined;
     if (nextName !== undefined && !nextName) {
       respond({ ok: false, reason: "Tên nhóm không được trống." });
       return;
@@ -844,6 +873,7 @@ io.on("connection", (socket) => {
       const updated = await updateRoomFields(user.roomId, {
         name: nextName,
         avatarUrl: nextAvatar,
+        requireApproval: nextRequireApproval,
       });
       if (!updated) {
         respond({ ok: false, reason: "Không cập nhật được." });
@@ -1040,6 +1070,92 @@ io.on("connection", (socket) => {
         return;
       }
 
+      if (action === "add_member") {
+        const check = validateDisplayName(target);
+        if (!check.ok) {
+          respond({ ok: false, reason: check.reason });
+          return;
+        }
+        if (registered.includes(target)) {
+          respond({ ok: false, reason: "Thành viên đã có trong nhóm." });
+          return;
+        }
+        await addRoomMember(user.roomId, target);
+        await removeRoomJoinRequest(user.roomId, target);
+        await postRoomSystem(user.roomId, room.code, `${user.name} đã thêm ${target} vào nhóm`);
+        broadcastRoomRoster(user.roomId);
+        const requests = await listRoomJoinRequests(user.roomId);
+        io.to(roomChannel(user.roomId)).emit("join_requests", {
+          roomId: user.roomId,
+          requests,
+        });
+        respond({ ok: true });
+        return;
+      }
+
+      if (action === "mute") {
+        if (target === user.name || targetIsOwner) {
+          respond({ ok: false, reason: "Không thể cấm chat mục tiêu này." });
+          return;
+        }
+        if (level === "deputy" && targetIsDeputy) {
+          respond({ ok: false, reason: "Phó phòng không cấm chat phó phòng khác." });
+          return;
+        }
+        const minutes = Number(payload?.minutes) || 15;
+        await setRoomMute(user.roomId, target, minutes, user.name);
+        await postRoomSystem(
+          user.roomId,
+          room.code,
+          `${user.name} cấm chat ${target} trong ${minutes} phút`
+        );
+        respond({ ok: true });
+        return;
+      }
+
+      if (action === "unmute") {
+        await clearRoomMute(user.roomId, target);
+        await postRoomSystem(user.roomId, room.code, `${user.name} bỏ cấm chat ${target}`);
+        respond({ ok: true });
+        return;
+      }
+
+      if (action === "approve_join") {
+        if (level !== "owner" && level !== "deputy") {
+          respond({ ok: false, reason: "Không có quyền duyệt." });
+          return;
+        }
+        const pending = await listRoomJoinRequests(user.roomId);
+        if (!pending.includes(target)) {
+          respond({ ok: false, reason: "Không có yêu cầu này." });
+          return;
+        }
+        await addRoomMember(user.roomId, target);
+        await removeRoomJoinRequest(user.roomId, target);
+        await postRoomSystem(user.roomId, room.code, `${user.name} duyệt ${target} vào nhóm`);
+        broadcastRoomRoster(user.roomId);
+        io.to(roomChannel(user.roomId)).emit("join_requests", {
+          roomId: user.roomId,
+          requests: await listRoomJoinRequests(user.roomId),
+        });
+        respond({ ok: true });
+        return;
+      }
+
+      if (action === "deny_join") {
+        if (level !== "owner" && level !== "deputy") {
+          respond({ ok: false, reason: "Không có quyền từ chối." });
+          return;
+        }
+        await removeRoomJoinRequest(user.roomId, target);
+        io.to(roomChannel(user.roomId)).emit("join_requests", {
+          roomId: user.roomId,
+          requests: await listRoomJoinRequests(user.roomId),
+        });
+        respond({ ok: true });
+        return;
+      }
+
       respond({ ok: false, reason: "Thao tác không hợp lệ." });
     } catch (err) {
       console.error("[room_member_manage]", err);
@@ -1065,6 +1181,11 @@ io.on("connection", (socket) => {
         user,
         "Tên này đã bị gỡ khỏi nhóm. Bấm 「Tên của bạn」 đặt tên mới rồi vào lại."
       );
+      return;
+    }
+
+    if (await isUserMutedInRoom(user.roomId, user.name)) {
+      socket.emit("message_error", "Bạn đang bị cấm chat tạm thời trong nhóm này.");
       return;
     }
 
