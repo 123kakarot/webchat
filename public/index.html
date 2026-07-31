@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Phòng chat</title>
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#080b14" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,40 +14,62 @@
     />
     <style>
       :root {
-        --bg: #0b0f14;
-        --surface: #151b24;
-        --surface2: #111820;
-        --border: #243044;
-        --text: #eef2f8;
-        --muted: #8b9cb3;
-        --accent: #3b82f6;
-        --accent-hover: #2563eb;
-        --bubble-other: #1e2838;
-        --bubble-self: #1d4ed8;
+        --bg: #080b14;
+        --bg-elevated: #0c101c;
+        --surface: #131829;
+        --surface2: #0f1424;
+        --border: rgba(130, 145, 180, 0.14);
+        --text: #f1f4fb;
+        --muted: #8b95ad;
+        --accent: #6366f1;
+        --accent-hover: #818cf8;
+        --accent-violet: #8b5cf6;
+        --accent-gradient: linear-gradient(135deg, #6366f1 0%, #7c3aed 52%, #8b5cf6 100%);
+        --accent-glow: rgba(99, 102, 241, 0.42);
+        --nav-active-bg: linear-gradient(
+          135deg,
+          rgba(99, 102, 241, 0.32) 0%,
+          rgba(139, 92, 246, 0.16) 100%
+        );
+        --nav-active-text: #c4b5fd;
+        --bubble-other: #1a2238;
+        --bubble-self: #5b54e8;
+        --bubble-self-gradient: linear-gradient(135deg, #4f46e5 0%, #6366f1 48%, #7c3aed 100%);
         --system: #6b7280;
-        --toolbar-icon: #9ca8bc;
-        --mention: #60a5fa;
+        --toolbar-icon: #9ca3b8;
+        --mention: #a5b4fc;
         --nav-width: 88px;
-        --glass: rgba(21, 27, 36, 0.92);
-        --input-bg: rgba(0, 0, 0, 0.25);
+        --glass: rgba(12, 16, 28, 0.82);
+        --input-bg: rgba(6, 9, 18, 0.55);
+        --shadow-soft: 0 12px 40px rgba(0, 0, 0, 0.38);
+        --highlight: rgba(99, 102, 241, 0.14);
       }
 
       :root[data-theme="light"] {
-        --bg: #eef2f7;
+        --bg: #eef1f8;
+        --bg-elevated: #e4e9f4;
         --surface: #ffffff;
-        --surface2: #f8fafc;
-        --border: #d1dae6;
+        --surface2: #f5f7fc;
+        --border: rgba(15, 23, 42, 0.1);
         --text: #0f172a;
         --muted: #64748b;
-        --accent: #2563eb;
-        --accent-hover: #1d4ed8;
-        --bubble-other: #e2e8f0;
-        --bubble-self: #2563eb;
+        --accent: #6366f1;
+        --accent-hover: #4f46e5;
+        --accent-violet: #7c3aed;
+        --accent-gradient: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+        --accent-glow: rgba(99, 102, 241, 0.28);
+        --nav-active-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.14) 0%, rgba(124, 58, 237, 0.08) 100%);
+        --nav-active-text: #4338ca;
+        --bubble-other: #e8ecf4;
+        --bubble-self: #6366f1;
+        --bubble-self-gradient: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
         --system: #64748b;
         --toolbar-icon: #475569;
-        --mention: #2563eb;
-        --glass: rgba(255, 255, 255, 0.94);
+        --mention: #4f46e5;
+        --glass: rgba(255, 255, 255, 0.92);
         --input-bg: #ffffff;
+        --shadow-soft: 0 12px 32px rgba(15, 23, 42, 0.08);
+        --highlight: rgba(99, 102, 241, 0.1);
       }
 
       html[data-theme="light"] .nav-rail {
@@ -55,12 +77,12 @@
       }
 
       html[data-theme="light"] .nav-item.active {
-        background: rgba(37, 99, 235, 0.12);
-        color: #1d4ed8;
+        background: var(--nav-active-bg);
+        color: var(--nav-active-text);
       }
 
       html[data-theme="light"] .gate {
-        background: radial-gradient(ellipse at top, #dbeafe 0%, var(--bg) 60%);
+        background: radial-gradient(ellipse at top, #e0e7ff 0%, var(--bg) 55%);
       }
 
       * {
@@ -123,6 +145,11 @@
       body {
         font-family: "Be Vietnam Pro", system-ui, sans-serif;
         background: var(--bg);
+        background-image: radial-gradient(
+          ellipse 100% 70% at 50% -15%,
+          rgba(99, 102, 241, 0.11),
+          transparent 55%
+        );
         color: var(--text);
         min-height: 100dvh;
         display: flex;
@@ -135,7 +162,7 @@
         align-items: center;
         justify-content: center;
         padding: 1.5rem;
-        background: radial-gradient(ellipse at top, #1a2744 0%, var(--bg) 60%);
+        background: radial-gradient(ellipse at top, rgba(99, 102, 241, 0.18) 0%, var(--bg) 58%);
       }
 
       .gate-card {
@@ -145,7 +172,7 @@
         border: 1px solid var(--border);
         border-radius: 16px;
         padding: 2rem;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        box-shadow: var(--shadow-soft);
       }
 
       .gate-card h1 {
@@ -190,12 +217,13 @@
         padding: 0.85rem;
         border: none;
         border-radius: 10px;
-        background: var(--accent);
+        background: var(--accent-gradient);
         color: #fff;
         font: inherit;
         font-weight: 600;
         cursor: pointer;
         margin-top: 0.35rem;
+        box-shadow: 0 6px 20px var(--accent-glow);
       }
 
       .gate-card .gate-btn.secondary {
@@ -914,7 +942,7 @@
         max-width: none;
         margin: 0;
         height: 100dvh;
-        background: var(--bg);
+        background: var(--bg-elevated);
       }
 
       .app-shell.active {
@@ -923,7 +951,7 @@
 
       .nav-rail {
         width: var(--nav-width);
-        background: linear-gradient(180deg, #0a0e14 0%, #0d1219 100%);
+        background: linear-gradient(180deg, #0a0d18 0%, #0e1222 48%, #0a0c16 100%);
         border-right: 1px solid var(--border);
         display: flex;
         flex-direction: column;
@@ -947,12 +975,12 @@
         width: 40px;
         height: 40px;
         border-radius: 12px;
-        background: linear-gradient(135deg, #2563eb, #6366f1);
+        background: var(--accent-gradient);
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.15rem;
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        box-shadow: 0 6px 18px var(--accent-glow);
       }
 
       .nav-brand-name {
@@ -976,7 +1004,7 @@
         padding: 0;
         overflow: hidden;
         cursor: pointer;
-        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        background: var(--accent-gradient);
         color: #fff;
         font-weight: 600;
         font: inherit;
@@ -1019,8 +1047,9 @@
       }
 
       .nav-item.active {
-        background: rgba(59, 130, 246, 0.22);
-        color: #93c5fd;
+        background: var(--nav-active-bg);
+        color: var(--nav-active-text);
+        box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.12);
       }
 
       .nav-item:hover:not(:disabled) {
@@ -1041,7 +1070,7 @@
         height: 16px;
         padding: 0 4px;
         border-radius: 999px;
-        background: var(--accent);
+        background: var(--accent-gradient);
         color: #fff;
         font-size: 0.55rem;
         font-weight: 700;
@@ -1201,7 +1230,7 @@
         padding: 0.55rem 0.85rem;
         border: none;
         border-radius: 8px;
-        background: var(--accent);
+        background: var(--accent-gradient);
         color: #fff;
         font: inherit;
         font-size: 0.85rem;
@@ -1574,7 +1603,8 @@
 
       .sidebar-tabs button.active {
         color: #fff;
-        background: var(--accent);
+        background: var(--accent-gradient);
+        box-shadow: 0 4px 14px var(--accent-glow);
       }
 
       .contacts-section-nav {
@@ -1602,14 +1632,14 @@
       }
 
       .contacts-section-nav button.active {
-        background: rgba(59, 130, 246, 0.18);
-        color: #93c5fd;
-        border-left-color: var(--accent);
+        background: var(--nav-active-bg);
+        color: var(--nav-active-text);
+        border-left-color: var(--accent-violet);
       }
 
       html[data-theme="light"] .contacts-section-nav button.active {
-        color: #1d4ed8;
-        background: rgba(37, 99, 235, 0.1);
+        color: var(--nav-active-text);
+        background: var(--nav-active-bg);
       }
 
       .contacts-section-nav button:disabled {
@@ -1757,13 +1787,14 @@
 
       .contacts-add-btn {
         border: none;
-        background: var(--accent);
+        background: var(--accent-gradient);
         color: #fff;
         border-radius: 999px;
         padding: 0.4rem 0.75rem;
         font: inherit;
         font-size: 0.78rem;
         cursor: pointer;
+        box-shadow: 0 4px 14px var(--accent-glow);
       }
 
       .contacts-list-scroll {
@@ -1924,7 +1955,8 @@
       }
 
       .room-item.active {
-        background: rgba(59, 130, 246, 0.15);
+        background: var(--highlight);
+        box-shadow: inset 3px 0 0 var(--accent-violet);
       }
 
       .room-item.unread-soft:not(.active) {
@@ -1935,7 +1967,7 @@
         width: 48px;
         height: 48px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        background: var(--accent-gradient);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -3096,8 +3128,9 @@
       }
 
       .msg-row.self .msg-bubble {
-        background: var(--bubble-self);
+        background: var(--bubble-self-gradient);
         border-bottom-right-radius: 4px;
+        box-shadow: 0 4px 16px rgba(79, 70, 229, 0.25);
       }
 
       .msg-row:not(.self) .msg-bubble {
@@ -4419,14 +4452,14 @@
         height: 44px;
         border: none;
         border-radius: 50%;
-        background: var(--accent);
+        background: var(--accent-gradient);
         color: #fff;
         cursor: pointer;
         flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);
+        box-shadow: 0 6px 20px var(--accent-glow);
       }
 
       .send-btn svg {
@@ -5513,14 +5546,14 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "62";
+      const CLIENT_BUILD = "63";
       const BASE_DOC_TITLE = "Webchat";
 
       function applyUiTheme(mode) {
         const dark = mode !== "light";
         document.documentElement.dataset.theme = dark ? "dark" : "light";
         const meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute("content", dark ? "#0f172a" : "#eef2f7");
+        if (meta) meta.setAttribute("content", dark ? "#080b14" : "#eef1f8");
         const toggle = document.getElementById("nav-theme-toggle");
         if (toggle) toggle.checked = dark;
         try {
