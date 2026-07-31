@@ -5093,8 +5093,8 @@
         display: none;
         position: fixed;
         inset: 0;
-        z-index: 498;
-        background: rgba(0, 0, 0, 0.25);
+        z-index: 8500;
+        background: rgba(0, 0, 0, 0.28);
       }
 
       .more-menu-backdrop.open {
@@ -5549,7 +5549,7 @@
         border-radius: 12px;
         min-width: 240px;
         max-width: min(300px, calc(100vw - 16px));
-        z-index: 500;
+        z-index: 8501;
         box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
         overflow: hidden;
         padding: 0.35rem 0;
@@ -5634,7 +5634,7 @@
 
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v75</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v76</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
@@ -5873,13 +5873,6 @@
             </button>
           </div>
         </div>
-        <div class="more-menu-backdrop" id="more-menu-backdrop" hidden aria-hidden="true"></div>
-        <div class="more-menu" id="more-menu" role="menu" aria-label="Thêm tính năng">
-          <button type="button" data-more="create-poll" role="menuitem"><span class="more-menu-ico" aria-hidden="true">📊</span> Tạo bình chọn</button>
-          <button type="button" data-more="capture-chat" role="menuitem"><span class="more-menu-ico" aria-hidden="true">📷</span> Chụp khung chat</button>
-          <button type="button" data-more="edit-quick" role="menuitem"><span class="more-menu-ico" aria-hidden="true">⚡</span> Sửa tin nhắn nhanh</button>
-          <button type="button" data-more="edit-wallet" role="menuitem"><span class="more-menu-ico" aria-hidden="true">💳</span> Lưu TK chuyển khoản</button>
-        </div>
 
         <div class="picker" id="picker-sticker">
           <div class="picker-grid sticker-grid" id="sticker-grid"></div>
@@ -6087,6 +6080,14 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="more-menu-backdrop" id="more-menu-backdrop" aria-hidden="true"></div>
+    <div class="more-menu" id="more-menu" role="menu" aria-label="Thêm tính năng">
+      <button type="button" data-more="create-poll" role="menuitem"><span class="more-menu-ico" aria-hidden="true">📊</span> Tạo bình chọn</button>
+      <button type="button" data-more="capture-chat" role="menuitem"><span class="more-menu-ico" aria-hidden="true">📷</span> Chụp khung chat</button>
+      <button type="button" data-more="edit-quick" role="menuitem"><span class="more-menu-ico" aria-hidden="true">⚡</span> Sửa tin nhắn nhanh</button>
+      <button type="button" data-more="edit-wallet" role="menuitem"><span class="more-menu-ico" aria-hidden="true">💳</span> Lưu TK chuyển khoản</button>
     </div>
 
     <div class="modal-backdrop" id="modal-reactions">
@@ -6532,7 +6533,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "75";
+      const CLIENT_BUILD = "76";
       const BASE_DOC_TITLE = "Webchat";
 
       function applyUiTheme(mode) {
@@ -10806,7 +10807,7 @@
         document.getElementById("more-menu")?.classList.remove("open");
         const backdrop = document.getElementById("more-menu-backdrop");
         backdrop?.classList.remove("open");
-        backdrop?.setAttribute("hidden", "");
+        backdrop?.setAttribute("aria-hidden", "true");
         document.getElementById("btn-more")?.classList.remove("btn-more-active");
       }
 
@@ -10817,7 +10818,7 @@
         const backdrop = document.getElementById("more-menu-backdrop");
         menu?.classList.add("open");
         backdrop?.classList.add("open");
-        backdrop?.removeAttribute("hidden");
+        backdrop?.setAttribute("aria-hidden", "false");
         document.getElementById("btn-more")?.classList.add("btn-more-active");
         requestAnimationFrame(() => {
           requestAnimationFrame(() => syncMoreMenuPosition());
@@ -10836,7 +10837,10 @@
         toggleMoreMenu();
       });
 
-      document.getElementById("more-menu-backdrop")?.addEventListener("click", () => closeMoreMenu());
+      document.getElementById("more-menu-backdrop")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        closeMoreMenu();
+      });
 
       function syncMoreMenuPosition() {
         const btn = document.getElementById("btn-more");
@@ -10849,6 +10853,7 @@
         left = Math.max(8, Math.min(left, window.innerWidth - menuW - 8));
         let top = r.top - menuH - 10;
         if (top < 8) top = Math.min(r.bottom + 10, window.innerHeight - menuH - 8);
+        menu.style.position = "fixed";
         menu.style.left = `${left}px`;
         menu.style.top = `${top}px`;
         menu.style.bottom = "auto";
