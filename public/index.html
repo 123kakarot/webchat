@@ -269,6 +269,363 @@
         display: flex;
       }
 
+      .chat-side-panel {
+        width: min(360px, 94vw);
+        flex-shrink: 0;
+        border-left: 1px solid var(--border);
+        background: #1a1f28;
+        display: none;
+        flex-direction: column;
+        min-height: 0;
+        z-index: 13;
+      }
+
+      .chat-side-panel.open {
+        display: flex;
+      }
+
+      .chat-side-panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        flex-shrink: 0;
+      }
+
+      .chat-side-panel-head h3 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      .chat-side-panel-head button {
+        border: none;
+        background: none;
+        color: var(--muted);
+        font-size: 1.35rem;
+        cursor: pointer;
+        line-height: 1;
+        padding: 0.15rem;
+      }
+
+      .room-search-panel-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.85rem 1rem 1rem;
+        min-height: 0;
+      }
+
+      .room-search-field-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.45rem 0.65rem;
+        border: 1px solid rgba(59, 130, 246, 0.45);
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.2);
+        margin-bottom: 0.65rem;
+      }
+
+      .room-search-field-wrap .room-search-icon {
+        opacity: 0.65;
+        font-size: 0.9rem;
+      }
+
+      .room-search-field-wrap input {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        font-size: 0.88rem;
+        outline: none;
+      }
+
+      .room-search-clear {
+        border: none;
+        background: none;
+        color: #60a5fa;
+        font: inherit;
+        font-size: 0.82rem;
+        cursor: pointer;
+        padding: 0;
+        flex-shrink: 0;
+      }
+
+      .room-search-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.85rem;
+        position: relative;
+      }
+
+      .room-search-filter {
+        border: none;
+        background: none;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.78rem;
+        cursor: pointer;
+        padding: 0.2rem 0;
+      }
+
+      .room-search-filter:hover {
+        color: var(--text);
+      }
+
+      .room-search-filter-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 20;
+        min-width: 180px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.35rem 0;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      }
+
+      .room-search-filter-menu button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: none;
+        color: var(--text);
+        font: inherit;
+        font-size: 0.85rem;
+        padding: 0.45rem 0.75rem;
+        cursor: pointer;
+      }
+
+      .room-search-filter-menu button:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .room-search-results-head {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 0.45rem;
+      }
+
+      .room-search-result-row {
+        display: flex;
+        gap: 0.65rem;
+        padding: 0.65rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        cursor: pointer;
+        text-align: left;
+        width: 100%;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+        background: none;
+        color: inherit;
+        font: inherit;
+      }
+
+      .room-search-result-row:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .room-search-result-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #475569, #334155);
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .room-search-result-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .room-search-result-body {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .room-search-result-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.2rem;
+      }
+
+      .room-search-result-name {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #f3f4f6;
+      }
+
+      .room-search-result-time {
+        font-size: 0.72rem;
+        color: var(--muted);
+        flex-shrink: 0;
+      }
+
+      .room-search-result-snippet {
+        font-size: 0.82rem;
+        color: #cbd5e1;
+        line-height: 1.35;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+
+      .room-search-result-snippet .search-hl {
+        color: #60a5fa;
+        font-weight: 700;
+        background: none;
+      }
+
+      .room-search-empty {
+        font-size: 0.85rem;
+        color: var(--muted);
+        padding: 1rem 0;
+        text-align: center;
+      }
+
+      .room-info-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem 1rem 1.25rem;
+        min-height: 0;
+      }
+
+      .room-info-identity {
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+
+      .room-info-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        margin: 0 auto 0.65rem;
+        background: linear-gradient(135deg, #3b82f6, #6366f1);
+        color: #fff;
+        font-size: 1.5rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .room-info-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .room-info-name {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #f3f4f6;
+      }
+
+      .room-info-quick {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.35rem;
+        margin-bottom: 1rem;
+      }
+
+      .room-info-quick button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        border: none;
+        background: none;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.62rem;
+        cursor: pointer;
+        padding: 0.35rem 0.15rem;
+        line-height: 1.25;
+      }
+
+      .room-info-quick button span:first-child {
+        font-size: 1.15rem;
+      }
+
+      .room-info-quick button:hover {
+        color: var(--text);
+      }
+
+      .room-info-section {
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 0.65rem 0;
+      }
+
+      .room-info-section summary {
+        cursor: pointer;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #e5e7eb;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .room-info-section summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .room-info-member-mini {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.45rem 0;
+      }
+
+      .room-info-member-mini-av {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #475569, #334155);
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .room-info-link {
+        display: block;
+        width: 100%;
+        margin-top: 0.5rem;
+        border: none;
+        background: none;
+        color: #60a5fa;
+        font: inherit;
+        font-size: 0.82rem;
+        cursor: pointer;
+        text-align: left;
+        padding: 0.25rem 0;
+      }
+
       .room-members-head {
         display: flex;
         align-items: center;
@@ -3733,19 +4090,13 @@
           </div>
         </div>
         <div style="display:flex;gap:0.35rem;align-items:center">
-          <button type="button" class="online-toggle" id="btn-room-search" title="Tìm trong phòng">🔍</button>
+          <button type="button" class="online-toggle" id="btn-room-search" title="Tìm trong trò chuyện">🔍</button>
+          <button type="button" class="online-toggle" id="btn-room-info" title="Thông tin nhóm">ℹ</button>
           <button type="button" class="online-toggle" id="btn-toggle-system-log" title="Ẩn/hiện nhật ký hệ thống">📋</button>
           <button type="button" class="online-toggle" id="change-name-btn" title="Đổi tên hiển thị của bạn">Tên của bạn</button>
           <button type="button" class="online-toggle" id="btn-room-rename-head" title="Đổi tên nhóm" hidden>Đổi tên nhóm</button>
         </div>
       </header>
-      <div class="room-search-bar" id="room-search-bar" hidden>
-        <input type="search" id="room-inchat-search" placeholder="Tìm tin trong phòng…" autocomplete="off" />
-        <span class="room-search-meta" id="room-search-meta"></span>
-        <button type="button" class="online-toggle" id="room-search-prev" title="Trước">↑</button>
-        <button type="button" class="online-toggle" id="room-search-next" title="Sau">↓</button>
-        <button type="button" class="online-toggle" id="room-search-close" title="Đóng">×</button>
-      </div>
       <div class="room-pins-bar" id="room-pins-bar" hidden></div>
       <div class="online-panel" id="online-panel" hidden></div>
       <div id="messages" role="log"></div>
@@ -3854,7 +4205,53 @@
       <input type="file" id="file-attach" />
       </div>
 
-      <button type="button" class="room-members-backdrop" id="room-members-backdrop" aria-label="Đóng danh sách thành viên" hidden></button>
+      <button type="button" class="room-members-backdrop" id="room-members-backdrop" aria-label="Đóng panel" hidden></button>
+
+      <aside class="chat-side-panel room-search-panel" id="room-search-panel" aria-label="Tìm kiếm trong trò chuyện">
+        <div class="chat-side-panel-head">
+          <h3>Tìm kiếm trong trò chuyện</h3>
+          <button type="button" id="room-search-panel-close" aria-label="Đóng">×</button>
+        </div>
+        <div class="room-search-panel-body">
+          <div class="room-search-field-wrap">
+            <span class="room-search-icon" aria-hidden="true">🔍</span>
+            <input type="search" id="room-inchat-search" placeholder="Tìm tin nhắn…" autocomplete="off" />
+            <button type="button" class="room-search-clear" id="room-search-clear">Xóa</button>
+          </div>
+          <div class="room-search-filters">
+            <button type="button" class="room-search-filter" id="room-search-filter-sender">Lọc theo: 👤 <span id="room-search-sender-label">Người gửi</span> ▾</button>
+            <button type="button" class="room-search-filter" id="room-search-filter-date">📅 <span id="room-search-date-label">Ngày gửi</span> ▾</button>
+            <div class="room-search-filter-menu" id="room-search-sender-menu" hidden></div>
+            <div class="room-search-filter-menu" id="room-search-date-menu" hidden style="left: auto; right: 0"></div>
+          </div>
+          <div class="room-search-results-head">Tin nhắn</div>
+          <div id="room-search-results"></div>
+        </div>
+      </aside>
+
+      <aside class="chat-side-panel room-info-panel" id="room-info-panel" aria-label="Thông tin nhóm">
+        <div class="chat-side-panel-head">
+          <h3 id="room-info-panel-title">Thông tin nhóm</h3>
+          <button type="button" id="room-info-panel-close" aria-label="Đóng">×</button>
+        </div>
+        <div class="room-info-scroll">
+          <div class="room-info-identity">
+            <div class="room-info-avatar" id="room-info-avatar"></div>
+            <div class="room-info-name" id="room-info-name">—</div>
+          </div>
+          <div class="room-info-quick">
+            <button type="button" id="room-info-notify" title="Thông báo"><span>🔔</span><span>Thông báo</span></button>
+            <button type="button" id="room-info-pins" title="Ghim"><span>📌</span><span>Ghim tin</span></button>
+            <button type="button" id="room-info-add-member"><span>➕</span><span>Thêm TV</span></button>
+            <button type="button" id="room-info-manage"><span>⚙</span><span>Quản lý</span></button>
+          </div>
+          <details class="room-info-section" open>
+            <summary>Thành viên nhóm <span id="room-info-member-n">0</span></summary>
+            <div id="room-info-members-mini"></div>
+            <button type="button" class="room-info-link" id="room-info-all-members">Xem tất cả thành viên</button>
+          </details>
+        </div>
+      </aside>
 
       <aside class="room-members-panel" id="room-members-panel" aria-label="Thành viên nhóm">
         <div class="room-members-head">
@@ -4268,6 +4665,8 @@
       let inChatSearchQuery = "";
       let inChatSearchHits = [];
       let inChatSearchIndex = -1;
+      let inChatSearchSenderFilter = "";
+      let inChatSearchDateFilter = 0;
       let joinRequests = [];
       let currentRequireApproval = false;
       let hideSystemLog = localStorage.getItem("webchat-hide-system") === "1";
@@ -4277,7 +4676,7 @@
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
-      const CLIENT_BUILD = "55";
+      const CLIENT_BUILD = "56";
       const BASE_DOC_TITLE = "Webchat";
 
       function joinPayload(name, rejoin) {
@@ -5684,6 +6083,66 @@
         return msg.text || "";
       }
 
+      function formatRelativeMessageTime(at) {
+        const t = Number(at);
+        if (!Number.isFinite(t)) return "";
+        const ms = Date.now() - t;
+        if (ms < 60_000) return "Vừa xong";
+        if (ms < 3_600_000) return Math.max(1, Math.floor(ms / 60_000)) + " phút";
+        if (ms < 86_400_000) return Math.max(1, Math.floor(ms / 3_600_000)) + " giờ";
+        return formatPollWhen(at);
+      }
+
+      function messagePassesDateFilter(msg) {
+        if (!inChatSearchDateFilter) return true;
+        const t = Number(msg?.at);
+        if (!Number.isFinite(t)) return false;
+        const ms = Date.now() - t;
+        if (inChatSearchDateFilter === 1) return ms < 86_400_000;
+        if (inChatSearchDateFilter === 7) return ms < 7 * 86_400_000;
+        return true;
+      }
+
+      function highlightSearchSnippet(text, q) {
+        const raw = String(text || "");
+        const qi = raw.toLowerCase().indexOf(q.toLowerCase());
+        if (qi < 0) return escapeHtml(raw.slice(0, 140));
+        const start = Math.max(0, qi - 24);
+        const end = Math.min(raw.length, qi + q.length + 60);
+        const slice = raw.slice(start, end);
+        const local = slice.toLowerCase().indexOf(q.toLowerCase());
+        if (local < 0) return escapeHtml(slice);
+        const before = slice.slice(0, local);
+        const match = slice.slice(local, local + q.length);
+        const after = slice.slice(local + q.length);
+        return (
+          (start > 0 ? "…" : "") +
+          escapeHtml(before) +
+          '<span class="search-hl">' +
+          escapeHtml(match) +
+          "</span>" +
+          escapeHtml(after) +
+          (end < raw.length ? "…" : "")
+        );
+      }
+
+      function syncChatRightBackdrop() {
+        const open =
+          document.getElementById("room-search-panel")?.classList.contains("open") ||
+          document.getElementById("room-info-panel")?.classList.contains("open") ||
+          document.getElementById("room-members-panel")?.classList.contains("open");
+        chat.classList.toggle("members-panel-open", open);
+        const backdrop = document.getElementById("room-members-backdrop");
+        if (backdrop) backdrop.hidden = !open;
+      }
+
+      function closeChatRightPanels(except) {
+        if (except !== "search") document.getElementById("room-search-panel")?.classList.remove("open");
+        if (except !== "info") document.getElementById("room-info-panel")?.classList.remove("open");
+        if (except !== "members") document.getElementById("room-members-panel")?.classList.remove("open");
+        syncChatRightBackdrop();
+      }
+
       function clearInChatSearchUi() {
         inChatSearchQuery = "";
         inChatSearchHits = [];
@@ -5691,67 +6150,226 @@
         document.querySelectorAll(".msg-row.search-hit, .msg-row.search-hit-active").forEach((el) => {
           el.classList.remove("search-hit", "search-hit-active");
         });
-        const meta = document.getElementById("room-search-meta");
-        if (meta) meta.textContent = "";
+        const results = document.getElementById("room-search-results");
+        if (results) results.innerHTML = "";
+      }
+
+      function renderSearchResultsList() {
+        const container = document.getElementById("room-search-results");
+        if (!container) return;
+        container.innerHTML = "";
+        const q = inChatSearchQuery;
+        if (!q) return;
+
+        const hits = [];
+        for (const [id, node] of messageNodes) {
+          const msg = node.msg;
+          if (!msg) continue;
+          if (inChatSearchSenderFilter && msg.name !== inChatSearchSenderFilter) continue;
+          if (!messagePassesDateFilter(msg)) continue;
+          const hay = messageSearchableText(msg).toLowerCase();
+          if (!hay.includes(q)) continue;
+          hits.push({ id: Number(id), msg });
+        }
+        hits.sort((a, b) => (b.msg.at || 0) - (a.msg.at || 0));
+        inChatSearchHits = hits.map((h) => h.id);
+
+        if (!hits.length) {
+          container.innerHTML = '<div class="room-search-empty">Không có kết quả</div>';
+          return;
+        }
+
+        for (const { id, msg } of hits) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "room-search-result-row";
+          const av = document.createElement("div");
+          av.className = "room-search-result-avatar";
+          const url = memberAvatarByName.get(msg.name) || "";
+          const letter = roomInitials(msg.name || "?");
+          if (url) {
+            const img = document.createElement("img");
+            img.src = url;
+            img.alt = "";
+            img.addEventListener("error", () => {
+              img.remove();
+              av.textContent = letter;
+            });
+            av.appendChild(img);
+          } else {
+            av.textContent = letter;
+          }
+          const body = document.createElement("div");
+          body.className = "room-search-result-body";
+          const top = document.createElement("div");
+          top.className = "room-search-result-top";
+          const nm = document.createElement("span");
+          nm.className = "room-search-result-name";
+          nm.textContent = msg.name === myName ? "Bạn" : msg.name || "?";
+          const tm = document.createElement("span");
+          tm.className = "room-search-result-time";
+          tm.textContent = formatRelativeMessageTime(msg.at);
+          top.appendChild(nm);
+          top.appendChild(tm);
+          const sn = document.createElement("div");
+          sn.className = "room-search-result-snippet";
+          sn.innerHTML = highlightSearchSnippet(messagePreview(msg), q);
+          body.appendChild(top);
+          body.appendChild(sn);
+          btn.appendChild(av);
+          btn.appendChild(body);
+          btn.addEventListener("click", () => {
+            scrollToMessage(id);
+            const row = messageNodes.get(id)?.row;
+            if (row) {
+              row.classList.add("search-hit-active");
+              setTimeout(() => row.classList.remove("search-hit-active"), 2000);
+            }
+          });
+          container.appendChild(btn);
+        }
       }
 
       function runInChatSearch() {
         const input = document.getElementById("room-inchat-search");
         const q = (input?.value || "").trim().toLowerCase();
-        clearInChatSearchUi();
-        inChatSearchQuery = q;
-        if (!q) return;
-        for (const [id, node] of messageNodes) {
-          const hay = messageSearchableText(node.msg).toLowerCase();
-          if (hay.includes(q)) inChatSearchHits.push(Number(id));
-        }
-        inChatSearchHits.sort((a, b) => a - b);
-        if (!inChatSearchHits.length) {
-          const meta = document.getElementById("room-search-meta");
-          if (meta) meta.textContent = "0 kết quả";
-          return;
-        }
-        inChatSearchIndex = 0;
-        highlightInChatSearchMatch();
-      }
-
-      function highlightInChatSearchMatch() {
-        document.querySelectorAll(".msg-row.search-hit-active").forEach((el) => {
-          el.classList.remove("search-hit-active");
+        document.querySelectorAll(".msg-row.search-hit, .msg-row.search-hit-active").forEach((el) => {
+          el.classList.remove("search-hit", "search-hit-active");
         });
-        for (const id of inChatSearchHits) {
-          const row = messageNodes.get(id)?.row;
-          if (row) row.classList.add("search-hit");
-        }
-        const id = inChatSearchHits[inChatSearchIndex];
-        const row = id != null ? messageNodes.get(id)?.row : null;
-        if (row) {
-          row.classList.add("search-hit-active");
-          row.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-        const meta = document.getElementById("room-search-meta");
-        if (meta && inChatSearchHits.length) {
-          meta.textContent = `${inChatSearchIndex + 1}/${inChatSearchHits.length}`;
+        inChatSearchHits = [];
+        inChatSearchIndex = -1;
+        inChatSearchQuery = q;
+        renderSearchResultsList();
+      }
+
+      function toggleSearchPanel(open) {
+        const panel = document.getElementById("room-search-panel");
+        if (!panel) return;
+        const wantOpen = open ?? !panel.classList.contains("open");
+        if (wantOpen) {
+          closeChatRightPanels("search");
+          panel.classList.add("open");
+          syncChatRightBackdrop();
+          document.getElementById("room-inchat-search")?.focus();
+          runInChatSearch();
+        } else {
+          panel.classList.remove("open");
+          syncChatRightBackdrop();
+          clearInChatSearchUi();
+          const input = document.getElementById("room-inchat-search");
+          if (input) input.value = "";
+          document.getElementById("room-search-sender-menu").hidden = true;
+          document.getElementById("room-search-date-menu").hidden = true;
         }
       }
 
-      function stepInChatSearch(delta) {
-        if (!inChatSearchHits.length) return;
-        inChatSearchIndex = (inChatSearchIndex + delta + inChatSearchHits.length) % inChatSearchHits.length;
-        highlightInChatSearchMatch();
+      function renderRoomInfoPanel() {
+        const room = roomsData.find((r) => r.id === currentRoomId);
+        const isDm = room?.kind === "direct";
+        document.getElementById("room-info-panel-title").textContent = isDm
+          ? "Thông tin trò chuyện"
+          : "Thông tin nhóm";
+        const nameEl = document.getElementById("room-info-name");
+        const avEl = document.getElementById("room-info-avatar");
+        const title = room?.name || document.getElementById("room-title")?.textContent || "—";
+        if (nameEl) nameEl.textContent = title;
+        if (avEl) {
+          avEl.innerHTML = "";
+          const url = room?.avatarUrl || "";
+          const letter = roomInitials(title);
+          if (url) {
+            const img = document.createElement("img");
+            img.src = url;
+            img.alt = "";
+            avEl.appendChild(img);
+          } else {
+            avEl.textContent = letter;
+          }
+        }
+        const members = roomRoster?.members || [];
+        const total = roomRoster?.memberCount ?? members.length;
+        document.getElementById("room-info-member-n").textContent = String(total);
+        const mini = document.getElementById("room-info-members-mini");
+        if (mini) {
+          mini.innerHTML = "";
+          members.slice(0, 8).forEach((m) => {
+            const row = document.createElement("div");
+            row.className = "room-info-member-mini";
+            const av = document.createElement("div");
+            av.className = "room-info-member-mini-av";
+            av.textContent = roomInitials(m.name);
+            const nm = document.createElement("span");
+            nm.textContent = m.name === myName ? "Bạn" : m.name;
+            row.appendChild(av);
+            row.appendChild(nm);
+            mini.appendChild(row);
+          });
+        }
+        document.getElementById("room-info-add-member").hidden = Boolean(isDm);
+        document.getElementById("room-info-manage").hidden = Boolean(isDm) || !myRoomManageLevel();
+      }
+
+      function toggleInfoPanel(open) {
+        const panel = document.getElementById("room-info-panel");
+        if (!panel) return;
+        const wantOpen = open ?? !panel.classList.contains("open");
+        if (wantOpen) {
+          closeChatRightPanels("info");
+          renderRoomInfoPanel();
+          panel.classList.add("open");
+        } else {
+          panel.classList.remove("open");
+        }
+        syncChatRightBackdrop();
       }
 
       function toggleInChatSearch(open) {
-        const bar = document.getElementById("room-search-bar");
-        const input = document.getElementById("room-inchat-search");
-        if (!bar) return;
-        const wantOpen = open ?? bar.hidden;
-        bar.hidden = !wantOpen;
-        if (!wantOpen) {
-          clearInChatSearchUi();
-          if (input) input.value = "";
-        } else {
-          input?.focus();
+        toggleSearchPanel(open);
+      }
+
+      function buildSearchFilterMenus() {
+        const senderMenu = document.getElementById("room-search-sender-menu");
+        if (senderMenu && !senderMenu.dataset.ready) {
+          senderMenu.dataset.ready = "1";
+          const mk = (label, value) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.textContent = label;
+            b.addEventListener("click", () => {
+              inChatSearchSenderFilter = value;
+              document.getElementById("room-search-sender-label").textContent =
+                value ? value : "Người gửi";
+              senderMenu.hidden = true;
+              runInChatSearch();
+            });
+            senderMenu.appendChild(b);
+          };
+          mk("Tất cả", "");
+          const names = new Set();
+          for (const node of messageNodes.values()) {
+            if (node.msg?.name) names.add(node.msg.name);
+          }
+          [...names].sort((a, b) => a.localeCompare(b, "vi")).forEach((n) => mk(n, n));
+        }
+        const dateMenu = document.getElementById("room-search-date-menu");
+        if (dateMenu && !dateMenu.dataset.ready) {
+          dateMenu.dataset.ready = "1";
+          [
+            ["Tất cả", 0],
+            ["Hôm nay", 1],
+            ["7 ngày qua", 7],
+          ].forEach(([label, value]) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.textContent = label;
+            b.addEventListener("click", () => {
+              inChatSearchDateFilter = value;
+              document.getElementById("room-search-date-label").textContent = label;
+              dateMenu.hidden = true;
+              runInChatSearch();
+            });
+            dateMenu.appendChild(b);
+          });
         }
       }
 
@@ -6139,14 +6757,15 @@
 
       function toggleMembersPanel(open) {
         const panel = document.getElementById("room-members-panel");
-        const backdrop = document.getElementById("room-members-backdrop");
         const wantOpen = open ?? !panel.classList.contains("open");
-        panel.classList.toggle("open", wantOpen);
-        chat.classList.toggle("members-panel-open", wantOpen);
-        if (backdrop) {
-          backdrop.hidden = !wantOpen;
+        if (wantOpen) {
+          closeChatRightPanels("members");
+          panel.classList.add("open");
+          renderMembersPanel();
+        } else {
+          panel.classList.remove("open");
         }
-        if (wantOpen) renderMembersPanel();
+        syncChatRightBackdrop();
       }
 
       function closeAllMemberMenus() {
@@ -6470,14 +7089,30 @@
         toggleMembersPanel(true);
       });
       document.getElementById("room-members-close").addEventListener("click", () => toggleMembersPanel(false));
-      document.getElementById("room-members-backdrop").addEventListener("click", () => toggleMembersPanel(false));
-      document.addEventListener("click", () => closeAllMemberMenus());
+      document.getElementById("room-members-backdrop").addEventListener("click", () => {
+        closeChatRightPanels();
+        clearInChatSearchUi();
+        const input = document.getElementById("room-inchat-search");
+        if (input) input.value = "";
+      });
+      document.addEventListener("click", () => {
+        closeAllMemberMenus();
+        document.getElementById("room-search-sender-menu").hidden = true;
+        document.getElementById("room-search-date-menu").hidden = true;
+      });
       appShell.addEventListener("click", (e) => {
-        const panel = document.getElementById("room-members-panel");
-        if (!panel.classList.contains("open")) return;
-        if (panel.contains(e.target)) return;
-        if (e.target.closest("#btn-room-members")) return;
-        toggleMembersPanel(false);
+        const searchPanel = document.getElementById("room-search-panel");
+        const infoPanel = document.getElementById("room-info-panel");
+        const membersPanel = document.getElementById("room-members-panel");
+        const anyOpen =
+          searchPanel?.classList.contains("open") ||
+          infoPanel?.classList.contains("open") ||
+          membersPanel?.classList.contains("open");
+        if (!anyOpen) return;
+        if (searchPanel?.contains(e.target) || infoPanel?.contains(e.target) || membersPanel?.contains(e.target))
+          return;
+        if (e.target.closest("#btn-room-members, #btn-room-search, #btn-room-info")) return;
+        closeChatRightPanels();
       });
       document.getElementById("btn-delete-room").addEventListener("click", deleteCurrentRoom);
       document.getElementById("btn-room-rename").addEventListener("click", promptRenameRoom);
@@ -6683,20 +7318,54 @@
       });
 
       document.getElementById("btn-room-search")?.addEventListener("click", () => {
-        const bar = document.getElementById("room-search-bar");
-        toggleInChatSearch(bar?.hidden);
+        buildSearchFilterMenus();
+        toggleSearchPanel();
       });
-      document.getElementById("room-search-close")?.addEventListener("click", () => toggleInChatSearch(false));
-      document.getElementById("room-search-prev")?.addEventListener("click", () => stepInChatSearch(-1));
-      document.getElementById("room-search-next")?.addEventListener("click", () => stepInChatSearch(1));
+      document.getElementById("room-search-panel-close")?.addEventListener("click", () => toggleSearchPanel(false));
+      document.getElementById("room-search-clear")?.addEventListener("click", () => {
+        const input = document.getElementById("room-inchat-search");
+        if (input) input.value = "";
+        runInChatSearch();
+        input?.focus();
+      });
+      document.getElementById("room-search-filter-sender")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        buildSearchFilterMenus();
+        const menu = document.getElementById("room-search-sender-menu");
+        const other = document.getElementById("room-search-date-menu");
+        if (other) other.hidden = true;
+        if (menu) menu.hidden = !menu.hidden;
+      });
+      document.getElementById("room-search-filter-date")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        buildSearchFilterMenus();
+        const menu = document.getElementById("room-search-date-menu");
+        const other = document.getElementById("room-search-sender-menu");
+        if (other) other.hidden = true;
+        if (menu) menu.hidden = !menu.hidden;
+      });
       document.getElementById("room-inchat-search")?.addEventListener("input", () => runInChatSearch());
       document.getElementById("room-inchat-search")?.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          if (e.shiftKey) stepInChatSearch(-1);
-          else stepInChatSearch(1);
-        }
-        if (e.key === "Escape") toggleInChatSearch(false);
+        if (e.key === "Escape") toggleSearchPanel(false);
+      });
+      document.getElementById("btn-room-info")?.addEventListener("click", () => toggleInfoPanel());
+      document.getElementById("room-info-panel-close")?.addEventListener("click", () => toggleInfoPanel(false));
+      document.getElementById("room-info-all-members")?.addEventListener("click", () => {
+        toggleInfoPanel(false);
+        toggleMembersPanel(true);
+      });
+      document.getElementById("room-info-add-member")?.addEventListener("click", () => {
+        document.getElementById("btn-room-invite")?.click();
+      });
+      document.getElementById("room-info-manage")?.addEventListener("click", () => {
+        toggleInfoPanel(false);
+        toggleMembersPanel(true);
+      });
+      document.getElementById("room-info-pins")?.addEventListener("click", () => {
+        document.getElementById("room-pins-bar")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+      document.getElementById("room-info-notify")?.addEventListener("click", () => {
+        showProfileToast("Thông báo phòng (sắp có)");
       });
 
       document.addEventListener("visibilitychange", () => {
