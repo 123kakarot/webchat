@@ -1308,7 +1308,7 @@
 
       .msg-row.poll-msg {
         align-self: center;
-        max-width: min(100%, 340px);
+        max-width: min(100%, 320px);
         width: 100%;
         flex-direction: column;
         align-items: center;
@@ -1339,11 +1339,17 @@
       }
 
       .msg-row.poll-msg .msg-bubble {
-        background: rgba(28, 32, 42, 0.95);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 14px;
+        background: #1a1d24;
+        border: none;
+        border-radius: 16px;
         width: 100%;
         box-sizing: border-box;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+      }
+
+      .msg-row.poll-msg .poll-bubble {
+        padding: 1rem 1rem 0.85rem;
+        background: transparent;
       }
 
       .poll-msg-time {
@@ -2234,73 +2240,119 @@
       }
 
       .poll-bubble {
-        min-width: min(100%, 280px);
+        min-width: min(100%, 260px);
         max-width: 100%;
-        padding: 0.75rem 0.85rem 0.65rem;
+        padding: 1rem 1rem 0.85rem;
       }
 
       .poll-bubble .poll-title {
         font-weight: 700;
-        font-size: 0.95rem;
-        margin-bottom: 0.25rem;
+        font-size: 1rem;
+        margin: 0 0 0.35rem;
         line-height: 1.35;
+        color: #f3f4f6;
       }
 
       .poll-bubble .poll-sub {
-        font-size: 0.75rem;
-        color: var(--muted);
-        margin-bottom: 0.45rem;
+        font-size: 0.76rem;
+        color: #9ca3af;
+        margin: 0 0 0.15rem;
+        line-height: 1.4;
+      }
+
+      .poll-bubble .poll-sub:last-of-type {
+        margin-bottom: 0.5rem;
       }
 
       .poll-bubble .poll-voters-link {
         display: inline-flex;
         align-items: center;
-        gap: 0.25rem;
+        gap: 0.15rem;
         border: none;
         background: none;
         color: #60a5fa;
         font: inherit;
-        font-size: 0.78rem;
-        padding: 0 0 0.35rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: 0;
+        margin: 0 0 0.65rem;
         cursor: pointer;
+      }
+
+      .poll-bubble .poll-voters-link:hover {
+        text-decoration: underline;
+      }
+
+      .poll-options-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+        margin-bottom: 0.65rem;
       }
 
       .poll-option-row {
         display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin: 0.3rem 0;
+        align-items: stretch;
+        gap: 0.55rem;
       }
 
       .poll-option-bar {
         flex: 1;
+        min-width: 0;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.45rem 0.55rem;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid var(--border);
-        font-size: 0.85rem;
-        min-height: 36px;
+        gap: 0.5rem;
+        padding: 0.5rem 0.65rem;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 0.88rem;
+        min-height: 40px;
+        box-sizing: border-box;
+        color: #e5e7eb;
+      }
+
+      .poll-option-bar .poll-option-label {
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+        line-height: 1.3;
       }
 
       .poll-option-bar.selected {
-        background: rgba(59, 130, 246, 0.18);
-        border-color: rgba(59, 130, 246, 0.45);
+        background: rgba(37, 99, 235, 0.32);
+        border-color: rgba(59, 130, 246, 0.75);
       }
 
       .poll-option-bar .poll-opt-check {
-        color: #3b82f6;
+        flex-shrink: 0;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #2563eb;
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
         font-weight: 700;
+        line-height: 1;
       }
 
       .poll-option-count {
-        font-size: 0.85rem;
-        color: var(--muted);
-        min-width: 1.25rem;
-        text-align: right;
         flex-shrink: 0;
+        width: 1.35rem;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        font-size: 0.88rem;
+        font-weight: 500;
+        color: #9ca3af;
+      }
+
+      .poll-option-row:has(.poll-option-bar.selected) .poll-option-count {
+        color: #e5e7eb;
       }
 
       .poll-modal-option-row {
@@ -2382,19 +2434,23 @@
       .poll-vote-cta {
         display: block;
         width: 100%;
-        margin-top: 0.5rem;
-        padding: 0.45rem;
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.25);
+        margin: 0;
+        padding: 0.55rem 0.75rem;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
         background: transparent;
-        color: var(--text);
+        color: #f3f4f6;
         font: inherit;
-        font-size: 0.88rem;
+        font-size: 0.9rem;
+        font-weight: 500;
         cursor: pointer;
+        text-align: center;
+        box-sizing: border-box;
       }
 
       .poll-vote-cta:hover {
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.4);
       }
 
       .poll-modal {
@@ -4036,7 +4092,7 @@
       const STORAGE_PROFILE = "webchat-profile";
       const STORAGE_CLIENT_ID = "webchat-client-id";
       const AUTH_POLICY = "36";
-      const CLIENT_BUILD = "50";
+      const CLIENT_BUILD = "51";
       const BASE_DOC_TITLE = "Webchat";
 
       function joinPayload(name, rejoin) {
@@ -7362,15 +7418,13 @@
         title.textContent = msg.text || "Bình chọn";
         bubble.appendChild(title);
 
-        const sub = document.createElement("div");
-        sub.className = "poll-sub";
         if (meta.locked) {
+          const endLine = document.createElement("div");
+          endLine.className = "poll-sub";
           const endAt = meta.lockedAt || msg.at;
-          sub.textContent = "Kết thúc lúc " + formatPollDateTime(endAt);
-        } else {
-          sub.textContent = allowMultiple ? "Chọn nhiều phương án" : "Chọn một phương án";
+          endLine.textContent = "Kết thúc lúc " + formatPollDateTime(endAt);
+          bubble.appendChild(endLine);
         }
-        bubble.appendChild(sub);
 
         const modeLine = document.createElement("div");
         modeLine.className = "poll-sub";
@@ -7389,17 +7443,23 @@
           bubble.appendChild(link);
         }
 
+        const list = document.createElement("div");
+        list.className = "poll-options-list";
+
         options.forEach((opt, i) => {
           const row = document.createElement("div");
           row.className = "poll-option-row";
+          const selected = myChoices.includes(i);
           const bar = document.createElement("div");
-          bar.className = "poll-option-bar" + (myChoices.includes(i) ? " selected" : "");
+          bar.className = "poll-option-bar" + (selected ? " selected" : "");
           const label = document.createElement("span");
+          label.className = "poll-option-label";
           label.textContent = String(opt);
           bar.appendChild(label);
-          if (myChoices.includes(i)) {
+          if (selected) {
             const chk = document.createElement("span");
             chk.className = "poll-opt-check";
+            chk.setAttribute("aria-hidden", "true");
             chk.textContent = "✓";
             bar.appendChild(chk);
           }
@@ -7408,34 +7468,32 @@
           count.textContent = String(Array.isArray(votes[String(i)]) ? votes[String(i)].length : 0);
           row.appendChild(bar);
           row.appendChild(count);
-          bubble.appendChild(row);
+          list.appendChild(row);
         });
+        bubble.appendChild(list);
 
-        if (!meta.locked) {
+        const showViewChoices = meta.locked || voted;
+        if (!showViewChoices) {
           const cta = document.createElement("button");
           cta.type = "button";
           cta.className = "poll-vote-cta";
-          cta.textContent = voted ? "Xem lựa chọn" : "Bình chọn";
+          cta.textContent = "Bình chọn";
           cta.addEventListener("click", (e) => {
             e.stopPropagation();
             openPollVoteModal(msg);
           });
           bubble.appendChild(cta);
-        } else if (voted) {
+        } else {
           const cta = document.createElement("button");
           cta.type = "button";
           cta.className = "poll-vote-cta";
           cta.textContent = "Xem lựa chọn";
           cta.addEventListener("click", (e) => {
             e.stopPropagation();
-            openPollDetailsModal(msg);
+            if (meta.locked) openPollDetailsModal(msg);
+            else openPollVoteModal(msg);
           });
           bubble.appendChild(cta);
-        } else {
-          const locked = document.createElement("div");
-          locked.className = "poll-sub";
-          locked.textContent = "Bình chọn đã khóa";
-          bubble.appendChild(locked);
         }
       }
 
