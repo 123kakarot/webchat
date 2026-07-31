@@ -2552,6 +2552,62 @@
         .room-remove {
           opacity: 1;
         }
+
+        header.chat-room-header {
+          padding: 0.45rem 0.55rem 0.45rem 0.4rem;
+          gap: 0.25rem;
+          min-height: 52px;
+          align-items: center;
+        }
+
+        .chat-room-head-main {
+          gap: 0.45rem;
+          min-width: 0;
+        }
+
+        .chat-room-head-actions {
+          display: none;
+        }
+
+        .head-meta-desktop-only {
+          display: none !important;
+        }
+
+        .head-meta-mobile-only {
+          display: inline-flex;
+        }
+
+        header.chat-room-header #you-label {
+          display: none !important;
+        }
+
+        .chat-room-head-meta {
+          flex-wrap: nowrap;
+          overflow: hidden;
+          gap: 0.35rem;
+          margin-top: 0.08rem;
+        }
+
+        .chat-room-head-text .title {
+          font-size: 0.92rem;
+          line-height: 1.25;
+        }
+
+        .room-head-avatar {
+          width: 40px;
+          height: 40px;
+        }
+
+        .btn-back-rooms.head-icon-btn {
+          width: 34px;
+          height: 34px;
+          min-width: 34px;
+          flex-shrink: 0;
+        }
+
+        #status-dot {
+          display: none;
+        }
       }
 
       @media (min-width: 769px) {
@@ -2600,6 +2656,54 @@
         flex-wrap: wrap;
         gap: 0.35rem 0.65rem;
         align-items: center;
+      }
+
+      .room-head-meta-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.28rem;
+        border: none;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        font: inherit;
+        font-size: inherit;
+        color: inherit;
+        cursor: pointer;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .room-head-meta-chip:hover {
+        color: var(--text);
+      }
+
+      .room-meta-ico {
+        font-size: 0.82rem;
+        line-height: 1;
+        opacity: 0.9;
+        flex-shrink: 0;
+      }
+
+      .room-meta-summary {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+      }
+
+      .room-meta-divider {
+        color: var(--border);
+        opacity: 0.9;
+        user-select: none;
+      }
+
+      .head-meta-mobile-only {
+        display: none;
+      }
+
+      .chat-room-head-text.room-head-tappable {
+        cursor: pointer;
       }
 
       .chat-room-head-actions {
@@ -5442,7 +5546,7 @@
 
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v71</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v72</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
@@ -5599,14 +5703,19 @@
         <div class="chat-room-head-main">
           <button type="button" class="online-toggle btn-back-rooms head-icon-btn" id="btn-back-rooms">←</button>
           <button type="button" class="room-head-avatar" id="room-head-avatar" title="Ảnh nhóm"><span id="room-head-avatar-letter">?</span></button>
-          <div class="chat-room-head-text">
+          <div class="chat-room-head-text room-head-tappable" id="room-head-tap-info" title="Thông tin nhóm">
             <div class="title"><span class="status-dot" id="status-dot"></span><span id="room-title">Phòng chat</span></div>
             <div class="chat-room-head-meta">
-              <button type="button" class="room-member-count" id="btn-room-members">0 thành viên</button>
-              <span>Mã: <code id="room-code-label">—</code></span>
-              <button type="button" class="head-text-btn" id="copy-room-code">Copy</button>
+              <button type="button" class="room-head-meta-chip room-member-count" id="btn-room-members">
+                <span class="room-meta-ico" aria-hidden="true">👤</span>
+                <span class="room-meta-summary" id="room-meta-summary">0 thành viên</span>
+              </button>
+              <span class="room-meta-divider head-meta-mobile-only" aria-hidden="true">|</span>
+              <button type="button" class="room-head-meta-chip head-meta-mobile-only" id="btn-room-info-mobile" aria-label="Thông tin nhóm" title="Thông tin nhóm">🏷</button>
+              <span class="head-meta-desktop-only">Mã: <code id="room-code-label">—</code></span>
+              <button type="button" class="head-text-btn head-meta-desktop-only" id="copy-room-code">Copy</button>
             </div>
-            <div class="you" id="you-label" hidden style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
+            <div class="you head-meta-desktop-only" id="you-label" hidden style="font-size:0.72rem;color:var(--muted);margin-top:0.1rem"></div>
           </div>
         </div>
         <div class="chat-room-head-actions">
@@ -6325,7 +6434,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "71";
+      const CLIENT_BUILD = "72";
       const BASE_DOC_TITLE = "Webchat";
 
       function applyUiTheme(mode) {
@@ -9743,17 +9852,35 @@
 
         const total = roomRoster?.memberCount ?? 0;
         const onlineN = roomRoster?.onlineCount ?? onlineNames.length;
-        const countBtn = document.getElementById("btn-room-members");
+        const summaryEl = document.getElementById("room-meta-summary");
         if (room?.kind === "direct") {
-          countBtn.textContent = "Chat riêng";
+          if (summaryEl) summaryEl.textContent = "Chat riêng";
         } else if (total > 0) {
-          countBtn.textContent = `${total} thành viên · ${onlineN} đang online`;
+          const isMobile = window.matchMedia("(max-width: 768px)").matches;
+          if (summaryEl) {
+            summaryEl.textContent = isMobile
+              ? `${total} thành viên`
+              : `${total} thành viên · ${onlineN} đang online`;
+          }
         } else if (onlineN > 0) {
-          countBtn.textContent = `${onlineN} đang online`;
-        } else {
-          countBtn.textContent = "0 thành viên";
+          if (summaryEl) {
+            summaryEl.textContent = window.matchMedia("(max-width: 768px)").matches
+              ? `${onlineN} online`
+              : `${onlineN} đang online`;
+          }
+        } else if (summaryEl) {
+          summaryEl.textContent = "0 thành viên";
         }
         syncRoomLeaderActionsUi();
+      }
+
+      function isMobileChatHeader() {
+        return window.matchMedia("(max-width: 768px)").matches;
+      }
+
+      function openRoomHeaderDetail() {
+        if (isMobileChatHeader()) toggleInfoPanel(true);
+        else toggleMembersPanel(true);
       }
 
       function updateRoomAvatarOnServer(url, avatarDataUrl = "") {
@@ -9903,7 +10030,21 @@
 
       document.getElementById("btn-room-members").addEventListener("click", (e) => {
         e.stopPropagation();
-        toggleMembersPanel(true);
+        openRoomHeaderDetail();
+      });
+      document.getElementById("btn-room-info-mobile")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleInfoPanel(true);
+      });
+      document.getElementById("room-head-tap-info")?.addEventListener("click", (e) => {
+        if (!isMobileChatHeader()) return;
+        if (e.target.closest("#btn-room-members, #btn-room-info-mobile")) return;
+        toggleInfoPanel(true);
+      });
+      document.getElementById("room-head-avatar")?.addEventListener("click", (e) => {
+        if (!isMobileChatHeader()) return;
+        e.stopPropagation();
+        toggleInfoPanel(true);
       });
       document.getElementById("room-members-close").addEventListener("click", () => toggleMembersPanel(false));
       document.getElementById("room-members-backdrop").addEventListener("click", () => {
@@ -9928,7 +10069,7 @@
         if (!anyOpen) return;
         if (searchPanel?.contains(e.target) || infoPanel?.contains(e.target) || membersPanel?.contains(e.target))
           return;
-        if (e.target.closest("#btn-room-members, #btn-room-search, #btn-room-info")) return;
+        if (e.target.closest("#btn-room-members, #btn-room-search, #btn-room-info, #btn-room-info-mobile")) return;
         closeChatRightPanels();
       });
       document.getElementById("btn-delete-room").addEventListener("click", deleteCurrentRoom);
@@ -10246,6 +10387,9 @@
       INFO_DOCK_MQ.addEventListener("change", () => {
         syncInfoDockLayout();
         if (INFO_DOCK_MQ.matches) maybeAutoOpenInfoDock();
+      });
+      window.matchMedia("(max-width: 768px)").addEventListener("change", () => {
+        if (currentRoomId != null) renderRoomHeader();
       });
       syncInfoDockLayout();
 
