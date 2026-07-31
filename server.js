@@ -66,9 +66,10 @@ import {
   ensureUserPublicId,
   resolveFriendTargetInput,
   lookupUserByPublicId,
+  getUserPublicId,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "72");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "73");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -977,7 +978,8 @@ io.on("connection", (socket) => {
     }
     try {
       const rooms = await listCommonGroupRooms(user.name, target);
-      respond({ ok: true, rooms });
+      const publicId = (await getUserPublicId(target)) || "";
+      respond({ ok: true, rooms, publicId });
     } catch (err) {
       console.error("[common_rooms]", err);
       respond({ ok: false, reason: "Không tải được nhóm chung." });

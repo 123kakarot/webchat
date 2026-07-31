@@ -3172,7 +3172,55 @@
         min-width: 0;
         word-break: break-word;
         flex: 1;
+      }
+
+      .user-profile-text-col {
+        min-width: 0;
+        flex: 1;
         padding-top: 1.35rem;
+      }
+
+      .user-profile-public-id-row {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+        margin-top: 0.35rem;
+        width: 100%;
+      }
+
+      .user-profile-public-id-row code {
+        font-family: ui-monospace, monospace;
+        font-size: 0.95rem;
+        letter-spacing: 0.05em;
+        padding: 0.35rem 0.55rem;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--border);
+        color: var(--nav-active-text);
+      }
+
+      .user-profile-copy-id {
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.72rem;
+        padding: 0.3rem 0.55rem;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .user-profile-copy-id:hover {
+        color: var(--text);
+        border-color: rgba(99, 102, 241, 0.35);
+      }
+
+      .user-profile-id-hint {
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin-top: 0.25rem;
+        line-height: 1.4;
       }
 
       .user-profile-actions {
@@ -5546,7 +5594,7 @@
 
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v72</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v73</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
@@ -6080,7 +6128,14 @@
         <div class="user-profile-body">
           <div class="user-profile-identity">
             <div class="user-profile-avatar" id="user-profile-avatar"></div>
-            <div class="user-profile-name" id="user-profile-name"></div>
+            <div class="user-profile-text-col">
+              <div class="user-profile-name" id="user-profile-name"></div>
+              <div class="user-profile-public-id-row" id="user-profile-id-row" hidden>
+                <code id="user-profile-public-id">—</code>
+                <button type="button" class="user-profile-copy-id" id="user-profile-copy-id">Sao chép</button>
+              </div>
+              <p class="user-profile-id-hint" id="user-profile-id-hint" hidden>Gửi ID này để người khác kết bạn nhanh (Thêm bạn → nhập #xxxxxx).</p>
+            </div>
           </div>
           <div class="user-profile-actions">
             <button type="button" id="user-profile-friend" hidden>Kết bạn</button>
@@ -6434,7 +6489,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "72";
+      const CLIENT_BUILD = "73";
       const BASE_DOC_TITLE = "Webchat";
 
       function applyUiTheme(mode) {
@@ -9486,11 +9541,34 @@
           avatarData || avatarDataForUserName(n)
         );
         document.getElementById("user-profile-name").textContent = n;
+        const idRow = document.getElementById("user-profile-id-row");
+        const idCode = document.getElementById("user-profile-public-id");
+        const idHint = document.getElementById("user-profile-id-hint");
+        if (idRow && idCode) {
+          idRow.hidden = false;
+          idCode.textContent = "…";
+          if (idHint) idHint.hidden = true;
+        }
         const commonEl = document.getElementById("user-profile-common");
         if (commonEl) {
           commonEl.innerHTML = '<li class="muted">Đang tải…</li>';
           socket.timeout(12000).emit("common_rooms", { targetName: n }, (err, res) => {
             if (!commonEl.isConnected) return;
+            const publicId = res?.publicId ? String(res.publicId) : "";
+            if (idRow && idCode) {
+              if (publicId) {
+                idCode.textContent = publicId;
+                idRow.hidden = false;
+                if (idHint) idHint.hidden = false;
+              } else {
+                idCode.textContent = "Chưa có";
+                idRow.hidden = false;
+                if (idHint) {
+                  idHint.textContent = "Người này chưa có ID (chưa đăng nhập Webchat sau bản mới).";
+                  idHint.hidden = false;
+                }
+              }
+            }
             if (err || !res?.ok) {
               commonEl.innerHTML = '<li class="muted">Không tải được</li>';
               return;
@@ -9992,6 +10070,16 @@
       });
 
       document.getElementById("create-group-submit").addEventListener("click", submitCreateGroup);
+      document.getElementById("user-profile-copy-id")?.addEventListener("click", async () => {
+        const code = document.getElementById("user-profile-public-id")?.textContent?.trim();
+        if (!code || code === "…" || code === "Chưa có") return;
+        try {
+          await navigator.clipboard.writeText(code);
+          showProfileToast("Đã sao chép ID");
+        } catch {
+          showProfileToast("Không sao chép được");
+        }
+      });
       document.getElementById("user-profile-dm").addEventListener("click", () => {
         startDirectChatWith(userProfileTargetName);
       });
