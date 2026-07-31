@@ -63,9 +63,12 @@ import {
   getDbOverview,
   upsertUserAvatarCache,
   getUserAvatarCache,
+  ensureUserPublicId,
+  resolveFriendTargetInput,
+  lookupUserByPublicId,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "69");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "70");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -479,12 +482,19 @@ io.on("connection", (socket) => {
     if (joined) {
       const existing = online.get(socket.id);
       if (existing?.name) {
+        let publicId = "";
+        try {
+          publicId = (await ensureUserPublicId(existing.name)) || "";
+        } catch (err) {
+          console.error("[join rejoin publicId]", err);
+        }
         const payload = {
           ok: true,
           name: existing.name,
           clientId: existing.clientId,
           persistent: isPersistent(),
           rejoin: Boolean(rejoin),
+          publicId,
         };
         socket.emit("joined", payload);
         respond(payload);
@@ -520,12 +530,20 @@ io.on("connection", (socket) => {
       authPolicyOk: true,
     });
 
+    let publicId = "";
+    try {
+      publicId = (await ensureUserPublicId(trimmed)) || "";
+    } catch (err) {
+      console.error("[join publicId]", err);
+    }
+
     const payload = {
       ok: true,
       name: trimmed,
       clientId,
       persistent: isPersistent(),
       rejoin: Boolean(rejoin),
+      publicId,
     };
     socket.emit("joined", payload);
     respond(payload);
@@ -825,6 +843,24 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("lookup_user_id", async (payload, ack) => {
+    const respond = (data) => {
+      if (typeof ack === "function") ack(data);
+    };
+    const user = online.get(socket.id);
+    if (!user) {
+      respond({ ok: false, reason: "Chưa đăng nhập." });
+      return;
+    }
+    try {
+      const result = await lookupUserByPublicId(payload?.publicId ?? payload?.id ?? "");
+      respond(result);
+    } catch (err) {
+      console.error("[lookup_user_id]", err);
+      respond({ ok: false, reason: "Không tra được ID." });
+    }
+  });
+
   socket.on("friend_request", async (payload, ack) => {
     const respond = (data) => {
       if (typeof ack === "function") ack(data);
@@ -834,12 +870,18 @@ io.on("connection", (socket) => {
       respond({ ok: false, reason: "Chưa đăng nhập." });
       return;
     }
-    const target = String(payload?.targetName ?? "").trim().slice(0, 32);
-    if (!target) {
-      respond({ ok: false, reason: "Thiếu tên." });
+    const rawTarget = String(payload?.targetName ?? payload?.target ?? "").trim();
+    if (!rawTarget) {
+      respond({ ok: false, reason: "Thiếu tên hoặc ID." });
       return;
     }
     try {
+      const resolved = await resolveFriendTargetInput(rawTarget);
+      if (!resolved.ok) {
+        respond(resolved);
+        return;
+      }
+      const target = resolved.name;
       const result = await sendFriendRequest(user.name, target);
       if (result.ok && result.status === "pending_out") {
         emitToUserByName(target, "friend_incoming", {
@@ -848,7 +890,7 @@ io.on("connection", (socket) => {
       } else if (result.ok && result.status === "friends") {
         emitToUserByName(target, "friend_accepted", { name: user.name });
       }
-      respond(result);
+      respond({ ...result, targetName: target, targetPublicId: resolved.publicId || "" });
     } catch (err) {
       console.error("[friend_request]", err);
       respond({ ok: false, reason: "Không gửi được lời mời." });

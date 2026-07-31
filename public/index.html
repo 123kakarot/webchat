@@ -2909,7 +2909,49 @@
 
       .add-friend-modal input {
         width: 100%;
-        margin-bottom: 0.85rem;
+        margin-bottom: 0.35rem;
+      }
+
+      .add-friend-id-preview {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin: 0 0 0.65rem;
+        line-height: 1.4;
+      }
+
+      .add-friend-id-preview.err {
+        color: #f87171;
+      }
+
+      .profile-public-id-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .profile-public-id {
+        font-family: ui-monospace, monospace;
+        font-size: 1.05rem;
+        letter-spacing: 0.06em;
+        padding: 0.45rem 0.65rem;
+        border-radius: 10px;
+        background: var(--input-bg);
+        border: 1px solid var(--border);
+        color: var(--nav-active-text);
+      }
+
+      .settings-hint {
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin: 0.45rem 0 0;
+        line-height: 1.45;
+      }
+
+      .contacts-row-id {
+        font-size: 0.68rem;
+        color: var(--muted);
+        font-family: ui-monospace, monospace;
       }
 
       .add-friend-section-title {
@@ -5406,7 +5448,7 @@
 
     <section class="gate" id="gate">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v69</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v70</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
@@ -5913,8 +5955,9 @@
           <h2>Thêm bạn</h2>
           <button type="button" class="user-profile-close" data-close="modal-add-friend" aria-label="Đóng">×</button>
         </div>
-        <label class="add-friend-label">Tên hiển thị</label>
-        <input id="add-friend-name" type="search" placeholder="Nhập tên người cần kết bạn" maxlength="32" autocomplete="off" />
+        <label class="add-friend-label">Tên hoặc ID người dùng</label>
+        <input id="add-friend-name" type="search" placeholder="Tên hiển thị hoặc #eft56y" maxlength="32" autocomplete="off" spellcheck="false" />
+        <p class="add-friend-id-preview" id="add-friend-id-preview" hidden></p>
         <div class="add-friend-section-title">Có thể bạn quen</div>
         <div class="add-friend-suggestions" id="add-friend-suggestions"></div>
         <div class="modal-actions">
@@ -6074,6 +6117,14 @@
                 <label for="profile-name">Tên hiển thị trong phòng chat</label>
                 <input id="profile-name" type="text" maxlength="32" autocomplete="nickname" />
                 <p id="profile-error" hidden style="color:#f87171;font-size:0.8rem;margin-top:0.5rem"></p>
+              </div>
+              <div class="settings-row">
+                <label>ID người dùng (kết bạn nhanh)</label>
+                <div class="profile-public-id-row">
+                  <code id="profile-public-id" class="profile-public-id">—</code>
+                  <button type="button" class="app-btn secondary" id="btn-copy-public-id">Sao chép</button>
+                </div>
+                <p class="settings-hint">Chia sẻ ID dạng <strong>#xxxxxx</strong> để người khác tìm bạn mà không cần nhớ tên.</p>
               </div>
               <div class="settings-row">
                 <button type="button" class="app-btn danger" id="btn-logout-profile">Đăng xuất & đăng nhập lại</button>
@@ -6236,6 +6287,7 @@
       ];
 
       let myName = "";
+      let myPublicId = "";
       let onlineNames = [];
       let pendingAutoJoin = null;
       let currentRoomId = null;
@@ -6279,7 +6331,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "69";
+      const CLIENT_BUILD = "70";
       const BASE_DOC_TITLE = "Webchat";
 
       function applyUiTheme(mode) {
@@ -7787,14 +7839,15 @@
             alert(res?.reason || "Không gửi được lời mời kết bạn.");
             return;
           }
+          const resolvedName = res.targetName || target;
           if (res.status === "friends") {
             showProfileToast("Đã trở thành bạn bè");
           } else {
             showProfileToast("Đã gửi lời mời kết bạn");
-            if (!friendOutgoing.some((x) => x.name === target)) {
-              friendOutgoing.push({ name: target, avatarUrl: "" });
+            if (!friendOutgoing.some((x) => x.name === resolvedName)) {
+              friendOutgoing.push({ name: resolvedName, avatarUrl: "", publicId: res.targetPublicId || "" });
             }
-            friendStatusMap[target] = "pending_out";
+            friendStatusMap[resolvedName] = "pending_out";
           }
           syncFriends(() => applyFriendUiAfterChange());
         });
@@ -7866,9 +7919,60 @@
         row.appendChild(btn);
       }
 
+      function syncMyPublicIdUi() {
+        const codeEl = document.getElementById("profile-public-id");
+        if (codeEl) codeEl.textContent = myPublicId || "—";
+      }
+
+      function friendSearchMatches(c, q) {
+        const n = (c.name || "").toLowerCase();
+        const id = (c.publicId || "").toLowerCase();
+        const qq = q.replace(/^#/, "");
+        return n.includes(q) || id.includes(q) || id.replace(/^#/, "").includes(qq);
+      }
+
+      let addFriendLookupTimer = null;
+
+      function hideAddFriendIdPreview() {
+        const el = document.getElementById("add-friend-id-preview");
+        if (el) el.hidden = true;
+      }
+
+      function scheduleAddFriendIdLookup() {
+        clearTimeout(addFriendLookupTimer);
+        addFriendLookupTimer = setTimeout(runAddFriendIdLookup, 320);
+      }
+
+      function runAddFriendIdLookup() {
+        const preview = document.getElementById("add-friend-id-preview");
+        const raw = document.getElementById("add-friend-name")?.value?.trim() || "";
+        if (!preview) return;
+        const looksLikeId = raw.startsWith("#") || (/^[a-z0-9]{6}$/i.test(raw) && !raw.includes(" "));
+        if (!looksLikeId || raw.length < 6) {
+          preview.hidden = true;
+          return;
+        }
+        preview.textContent = "Đang tra ID…";
+        preview.hidden = false;
+        preview.classList.remove("err");
+        socket.timeout(8000).emit("lookup_user_id", { publicId: raw }, (err, res) => {
+          if (!preview.isConnected) return;
+          if (err || !res?.ok) {
+            preview.textContent = res?.reason || "Không tìm thấy ID này.";
+            preview.classList.add("err");
+            preview.hidden = false;
+            return;
+          }
+          preview.classList.remove("err");
+          preview.innerHTML = `Tìm thấy: <strong>${escapeHtml(res.name)}</strong> · ${escapeHtml(res.publicId || "")}`;
+          preview.hidden = false;
+        });
+      }
+
       function openAddFriendModal() {
         if (!ensureLoggedIn()) return;
         document.getElementById("add-friend-name").value = "";
+        hideAddFriendIdPreview();
         openModal("modal-add-friend");
         loadAddFriendSuggestions();
         document.getElementById("add-friend-name").focus();
@@ -7900,7 +8004,7 @@
             row.innerHTML =
               `<div class="contacts-row-avatar">${av}</div>` +
               `<div class="add-friend-row-meta"><div class="add-friend-row-name">${escapeHtml(s.name)}</div>` +
-              `<div class="add-friend-row-source">${escapeHtml(s.source || "Cùng nhóm chat")}</div></div>`;
+              `<div class="add-friend-row-source">${escapeHtml(s.publicId || s.source || "Cùng nhóm chat")}</div></div>`;
             const btn = document.createElement("button");
             btn.type = "button";
             btn.textContent = "Kết bạn";
@@ -7918,7 +8022,7 @@
       function submitAddFriendByName() {
         const name = document.getElementById("add-friend-name")?.value?.trim();
         if (!name) {
-          alert("Nhập tên hiển thị.");
+          alert("Nhập tên hiển thị hoặc ID (#xxxxxx).");
           return;
         }
         sendFriendRequestTo(name);
@@ -8032,8 +8136,8 @@
         }
 
         let friends = contactsData.slice();
-        if (navQ) friends = friends.filter((c) => c.name.toLowerCase().includes(navQ));
-        if (listQ) friends = friends.filter((c) => c.name.toLowerCase().includes(listQ));
+        if (navQ) friends = friends.filter((c) => friendSearchMatches(c, navQ));
+        if (listQ) friends = friends.filter((c) => friendSearchMatches(c, listQ));
         if (sort === "online") {
           friends.sort((a, b) => {
             const o = Number(b.online) - Number(a.online);
@@ -8076,9 +8180,13 @@
             ? `<img src="${String(c.avatarUrl).replace(/"/g, "&quot;")}" alt="" />`
             : escapeHtml(roomInitials(c.name));
           const dot = c.online ? '<span class="online-dot" aria-hidden="true"></span>' : "";
+          const idLine = c.publicId
+            ? `<span class="contacts-row-id">${escapeHtml(c.publicId)}</span>`
+            : "";
           row.innerHTML =
             `<span class="contacts-row-avatar">${avInner}${dot}</span>` +
             `<span class="contacts-row-name">${escapeHtml(c.name)}</span>` +
+            idLine +
             `<span class="contacts-row-more" aria-hidden="true">⋯</span>`;
           row.addEventListener("click", () => openUserProfile(c.name, c.avatarUrl || ""));
           listEl.appendChild(row);
@@ -8190,6 +8298,7 @@
         closeProfilePopover();
         closeSettingsFlyout();
         syncSettingsFormFromProfile();
+        syncMyPublicIdUi();
         setSettingsTab(tab);
         openModal("modal-settings");
       }
@@ -8529,10 +8638,12 @@
         joinRoomWithAck(currentRoomCode, { force: true });
       }
 
-      function onJoinedSession({ name, persistent, rejoin, clientId }) {
+      function onJoinedSession({ name, persistent, rejoin, clientId, publicId }) {
         try {
           clearJoinWait();
           myName = name;
+          if (publicId) myPublicId = String(publicId);
+          syncMyPublicIdUi();
           if (clientId) {
             myClientId = String(clientId).slice(0, 64);
             localStorage.setItem(STORAGE_CLIENT_ID, myClientId);
@@ -9915,6 +10026,16 @@
       document.getElementById("contacts-sort")?.addEventListener("change", () => renderContactsMain());
       document.getElementById("contacts-add-friend")?.addEventListener("click", openAddFriendModal);
       document.getElementById("add-friend-submit")?.addEventListener("click", submitAddFriendByName);
+      document.getElementById("add-friend-name")?.addEventListener("input", () => scheduleAddFriendIdLookup());
+      document.getElementById("btn-copy-public-id")?.addEventListener("click", async () => {
+        if (!myPublicId) return;
+        try {
+          await navigator.clipboard.writeText(myPublicId);
+          showProfileToast("Đã sao chép ID");
+        } catch {
+          showProfileToast("Không sao chép được — chọn và copy thủ công");
+        }
+      });
       document.getElementById("mob-nav-contacts")?.addEventListener("click", () => {
         appShell.classList.remove("show-chat");
         showContactsPanel();

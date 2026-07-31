@@ -29,6 +29,10 @@ const memoryJoinRequests = new Map();
 const memoryFriendships = new Map();
 /** @type {Map<string, { avatarUrl: string, avatarData: string }>} */
 const memoryUserAvatars = new Map();
+/** @type {Map<string, string>} userName -> 6-char public id (no #) */
+const memoryUserPublicIds = new Map();
+const PUBLIC_ID_LEN = 6;
+const PUBLIC_ID_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
 const MAX_AVATAR_DATA_LEN = 120_000;
 
 function sanitizeAvatarData(raw) {
@@ -262,6 +266,13 @@ export async function initDb() {
       avatar_url VARCHAR(500) NOT NULL DEFAULT '',
       avatar_data TEXT NOT NULL DEFAULT '',
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS user_public_ids (
+      user_name VARCHAR(32) PRIMARY KEY,
+      public_id CHAR(6) NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CONSTRAINT user_public_ids_public_id_unique UNIQUE (public_id)
     );
   `);
 
@@ -723,6 +734,150 @@ export async function listCommonGroupRooms(nameA, nameB) {
   return rows.map(roomRowToClient).filter(Boolean);
 }
 
+export function formatPublicId(code) {
+  const c = String(code ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/^#/, "");
+  if (!/^[a-z0-9]{6}$/.test(c)) return "";
+  return `#${c}`;
+}
+
+export function normalizePublicIdInput(raw) {
+  let s = String(raw ?? "").trim().toLowerCase();
+  if (s.startsWith("#")) s = s.slice(1);
+  if (s.length !== PUBLIC_ID_LEN) {
+    return { ok: false, reason: "ID phải có dạng #xxxxxx (6 ký tự chữ hoặc số)." };
+  }
+  if (!/^[a-z0-9]{6}$/.test(s)) {
+    return { ok: false, reason: "ID chỉ gồm chữ thường và số (a-z, 0-9)." };
+  }
+  return { ok: true, code: s };
+}
+
+function randomPublicIdCode() {
+  const bytes = crypto.randomBytes(PUBLIC_ID_LEN);
+  let out = "";
+  for (let i = 0; i < PUBLIC_ID_LEN; i++) {
+    out += PUBLIC_ID_CHARS[bytes[i] % PUBLIC_ID_CHARS.length];
+  }
+  return out;
+}
+
+export async function mapPublicIdsForUserNames(names) {
+  /** @type {Map<string, string>} */
+  const map = new Map();
+  const list = [...new Set(names.map((n) => String(n ?? "").trim()).filter(Boolean))];
+  if (!list.length) return map;
+
+  if (useMemory) {
+    for (const n of list) {
+      const code = memoryUserPublicIds.get(n);
+      if (code) map.set(n, formatPublicId(code));
+    }
+    return map;
+  }
+
+  const { rows } = await pool.query(
+    `SELECT user_name, public_id FROM user_public_ids WHERE user_name = ANY($1::varchar[])`,
+    [list]
+  );
+  for (const row of rows) {
+    map.set(row.user_name, formatPublicId(row.public_id));
+  }
+  return map;
+}
+
+async function enrichWithPublicIds(items) {
+  const map = await mapPublicIdsForUserNames(items.map((i) => i.name));
+  for (const item of items) {
+    item.publicId = map.get(item.name) || "";
+  }
+  return items;
+}
+
+export async function ensureUserPublicId(userName) {
+  const name = String(userName ?? "").trim().slice(0, 32);
+  if (!name) return null;
+
+  if (useMemory) {
+    let code = memoryUserPublicIds.get(name);
+    if (!code) {
+      const used = new Set(memoryUserPublicIds.values());
+      do {
+        code = randomPublicIdCode();
+      } while (used.has(code));
+      memoryUserPublicIds.set(name, code);
+    }
+    return formatPublicId(code);
+  }
+
+  const existing = await pool.query(`SELECT public_id FROM user_public_ids WHERE user_name = $1`, [name]);
+  if (existing.rows[0]?.public_id) return formatPublicId(existing.rows[0].public_id);
+
+  for (let attempt = 0; attempt < 24; attempt++) {
+    const code = randomPublicIdCode();
+    try {
+      await pool.query(`INSERT INTO user_public_ids (user_name, public_id) VALUES ($1, $2)`, [name, code]);
+      return formatPublicId(code);
+    } catch (err) {
+      if (err?.code === "23505") continue;
+      throw err;
+    }
+  }
+  throw new Error("Could not allocate public user id");
+}
+
+export async function getUserPublicId(userName) {
+  const name = String(userName ?? "").trim().slice(0, 32);
+  if (!name) return null;
+  if (useMemory) {
+    const code = memoryUserPublicIds.get(name);
+    return code ? formatPublicId(code) : null;
+  }
+  const { rows } = await pool.query(`SELECT public_id FROM user_public_ids WHERE user_name = $1`, [name]);
+  return rows[0]?.public_id ? formatPublicId(rows[0].public_id) : null;
+}
+
+export async function resolveUserNameByPublicId(raw) {
+  const norm = normalizePublicIdInput(raw);
+  if (!norm.ok) return null;
+  if (useMemory) {
+    for (const [uname, code] of memoryUserPublicIds) {
+      if (code === norm.code) return uname;
+    }
+    return null;
+  }
+  const { rows } = await pool.query(`SELECT user_name FROM user_public_ids WHERE public_id = $1`, [norm.code]);
+  return rows[0]?.user_name || null;
+}
+
+export async function resolveFriendTargetInput(raw) {
+  const s = String(raw ?? "").trim();
+  if (!s) return { ok: false, reason: "Nhập tên hoặc ID (#xxxxxx)." };
+  const looksLikeId = s.startsWith("#") || (/^[a-z0-9]{6}$/i.test(s) && !s.includes(" "));
+  if (looksLikeId) {
+    const norm = normalizePublicIdInput(s);
+    if (!norm.ok) return norm;
+    const name = await resolveUserNameByPublicId(norm.code);
+    if (!name) return { ok: false, reason: "Không tìm thấy người dùng với ID này." };
+    return { ok: true, name, publicId: formatPublicId(norm.code) };
+  }
+  const name = s.slice(0, 32);
+  if (!name) return { ok: false, reason: "Tên không hợp lệ." };
+  return { ok: true, name };
+}
+
+export async function lookupUserByPublicId(raw) {
+  const norm = normalizePublicIdInput(raw);
+  if (!norm.ok) return { ok: false, reason: norm.reason };
+  const name = await resolveUserNameByPublicId(norm.code);
+  if (!name) return { ok: false, reason: "Không tìm thấy ID này." };
+  const cached = useMemory ? memoryUserAvatars.get(name) : await getUserAvatarCache(name);
+  const avatarUrl = cached?.avatarUrl || (useMemory ? avatarUrlForUserName(name) : "");
+  return { ok: true, name, publicId: formatPublicId(norm.code), avatarUrl: avatarUrl || "" };
+}
+
 async function friendRowForUser(me, row) {
   const other = row.user_a === me ? row.user_b : row.user_a;
   let avatarUrl = "";
@@ -782,7 +937,8 @@ export async function listFriendsForUser(userName) {
         avatarData: cached?.avatarData || undefined,
       });
     }
-    return out.sort((x, y) => x.name.localeCompare(y.name, "vi"));
+    out.sort((x, y) => x.name.localeCompare(y.name, "vi"));
+    return enrichWithPublicIds(out);
   }
 
   const { rows } = await pool.query(
@@ -812,7 +968,7 @@ export async function listFriendsForUser(userName) {
       avatarData: cached.avatarData || undefined,
     });
   }
-  return out;
+  return enrichWithPublicIds(out);
 }
 
 export async function listIncomingFriendRequests(userName) {
@@ -828,7 +984,8 @@ export async function listIncomingFriendRequests(userName) {
       if (!other) continue;
       out.push({ name: other, avatarUrl: avatarUrlForUserName(other), requestedBy: row.requestedBy });
     }
-    return out.sort((x, y) => x.name.localeCompare(y.name, "vi"));
+    out.sort((x, y) => x.name.localeCompare(y.name, "vi"));
+    return enrichWithPublicIds(out);
   }
 
   const { rows } = await pool.query(
@@ -850,7 +1007,7 @@ export async function listIncomingFriendRequests(userName) {
     const item = await friendRowForUser(me, row);
     out.push({ name: item.name, avatarUrl: item.avatarUrl, requestedBy: item.requestedBy });
   }
-  return out;
+  return enrichWithPublicIds(out);
 }
 
 export async function listOutgoingFriendRequests(userName) {
@@ -866,7 +1023,8 @@ export async function listOutgoingFriendRequests(userName) {
       if (!other) continue;
       out.push({ name: other, avatarUrl: avatarUrlForUserName(other) });
     }
-    return out.sort((x, y) => x.name.localeCompare(y.name, "vi"));
+    out.sort((x, y) => x.name.localeCompare(y.name, "vi"));
+    return enrichWithPublicIds(out);
   }
 
   const { rows } = await pool.query(
@@ -889,7 +1047,7 @@ export async function listOutgoingFriendRequests(userName) {
     const item = await friendRowForUser(me, row);
     out.push({ name: item.name, avatarUrl: item.avatarUrl });
   }
-  return out;
+  return enrichWithPublicIds(out);
 }
 
 export async function listFriendSuggestions(userName) {
@@ -917,7 +1075,7 @@ export async function listFriendSuggestions(userName) {
       item.avatarUrl = rows[0]?.avatar_url || "";
     }
   }
-  return out;
+  return enrichWithPublicIds(out);
 }
 
 export async function sendFriendRequest(fromName, toName) {
