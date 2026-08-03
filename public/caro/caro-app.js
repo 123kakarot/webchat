@@ -53,6 +53,8 @@ export function mountCaroApp(ctx) {
   let serverHistory = [];
   let toastTimer = null;
   let quickWaiting = false;
+  let caroRoomTab = "all";
+  let caroLbTab = "all";
 
   const audio = {
     place: null,
@@ -400,84 +402,333 @@ export function mountCaroApp(ctx) {
       </div>`;
   }
 
+  function playerInitial() {
+    const n = playerName();
+    return (n[0] || "B").toUpperCase();
+  }
+
+  function localMatchResult(h) {
+    if (h.reason === "draw" || h.winnerSide == null) return { label: "Hòa", cls: "draw" };
+    if (h.mode === "ai") {
+      return h.winnerSide === "x" ? { label: "Thắng", cls: "win" } : { label: "Thua", cls: "loss" };
+    }
+    return { label: "Local", cls: "neutral" };
+  }
+
+  function filteredPublicRooms() {
+    const list = publicRooms || [];
+    if (caroRoomTab === "wait") return list.filter((r) => (r.players?.length || 0) < 2);
+    if (caroRoomTab === "play") return list.filter((r) => r.status === "playing");
+    return list;
+  }
+
+  function dashOnlineCount() {
+    const base = 18 + (publicRooms?.length || 0) * 3 + (leaderboard?.length || 0) * 2;
+    return base + (ctx.socket?.connected ? 12 : 0);
+  }
+
+  function heroBoardSvg() {
+    return `<svg class="caro-hero-board" viewBox="0 0 200 160" aria-hidden="true">
+      <defs>
+        <filter id="caroHeroGlow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <g transform="translate(28 24)" opacity="0.4">
+        <path d="M0 80 L72 20 L144 80 L72 140 Z" fill="none" stroke="#3b82f6" stroke-width="1"/>
+        ${[0, 1, 2, 3, 4].map((i) => `<line x1="${i * 18}" y1="0" x2="${i * 18 + 36}" y2="120" stroke="#2563eb" stroke-width="0.5" opacity="0.6"/>`).join("")}
+      </g>
+      <circle cx="118" cy="72" r="14" fill="#5ee7ff" filter="url(#caroHeroGlow)"/>
+      <text x="118" y="77" text-anchor="middle" fill="#031018" font-size="14" font-weight="700">X</text>
+      <circle cx="142" cy="96" r="14" fill="#ff7ab8" filter="url(#caroHeroGlow)"/>
+      <text x="142" y="101" text-anchor="middle" fill="#1a0510" font-size="14" font-weight="700">O</text>
+      <circle cx="96" cy="96" r="14" fill="#5ee7ff" filter="url(#caroHeroGlow)" opacity="0.9"/>
+      <text x="96" y="101" text-anchor="middle" fill="#031018" font-size="14" font-weight="700">X</text>
+    </svg>`;
+  }
+
   function renderCaroHome() {
     const stats = loadStats();
-    const hist = loadLocalHistory().slice(0, 5);
+    const hist = loadLocalHistory().slice(0, 4);
+    const rooms = filteredPublicRooms().slice(0, 5);
+    const winRate = stats.played ? Math.round((stats.win / stats.played) * 100) : 0;
+    const level = Math.max(1, Math.min(99, Math.floor((stats.elo - 880) / 28)));
+    const xpPct = Math.min(100, (stats.played * 17 + stats.win * 9) % 100);
+    const lbSlice = (leaderboard || []).slice(0, 5);
+    const achPlayed = Math.min(100, stats.played * 20);
+    const achAi = Math.min(100, stats.aiHardWins * 25);
+    const achStreak = Math.min(100, stats.streak * 20);
+
+    const roomTabs = [
+      { id: "all", label: "Tất cả" },
+      { id: "wait", label: "Chờ vào" },
+      { id: "play", label: "Đang chơi" },
+    ];
+
     return `
-      <div class="caro-launcher">
-        <section class="caro-banner">
-          <h1>CỜ CARO</h1>
-          <p>Chơi với AI, bạn bè cùng máy, hoặc online realtime — đồng bộ phong cách WebChat Hub.</p>
-          <div class="caro-cta-row">
-            <button type="button" class="caro-btn primary" data-act="quick">Quick Match</button>
-            <button type="button" class="caro-btn primary" data-act="ai">Chơi với AI</button>
-            <button type="button" class="caro-btn" data-act="local">Chơi local (2 người)</button>
-            <button type="button" class="caro-btn" data-act="create">Tạo phòng</button>
-            <button type="button" class="caro-btn" data-act="join">Tham gia</button>
+      <div class="caro-dash">
+        <aside class="caro-dash-nav" aria-label="Menu Caro">
+          <div class="caro-dash-logo">
+            <span class="caro-dash-logo-ico" aria-hidden="true">⊞</span>
+            <span>Cờ Caro</span>
           </div>
-        </section>
-        <div class="caro-grid-2">
-          <section class="caro-panel">
-            <h2>Phòng công khai</h2>
-            <div class="caro-list" data-public-rooms>
-              ${
-                publicRooms.length
-                  ? publicRooms
-                      .map(
-                        (r) => `<div class="caro-list-item">
-                    <div><strong>${escapeHtml(r.name)}</strong><div class="caro-muted">${r.code} · ${r.size}x${r.size} · ${r.players.length}/2</div></div>
-                    <button type="button" class="caro-btn" data-join-code="${r.code}">Vào</button>
-                  </div>`
-                      )
-                      .join("")
-                  : `<div class="caro-empty">Chưa có phòng public — hãy tạo phòng mới.</div>`
-              }
+          <nav class="caro-dash-menu">
+            <button type="button" class="caro-dash-menu-item is-active" data-act="caro-home">
+              <span class="ico">⌂</span> Trang chủ
+            </button>
+            <button type="button" class="caro-dash-menu-item" data-act="ai">
+              <span class="ico">▶</span> Chơi ngay
+            </button>
+            <button type="button" class="caro-dash-menu-item" data-act="join">
+              <span class="ico">⎈</span> Phòng game
+            </button>
+            <button type="button" class="caro-dash-menu-item" data-act="rank">
+              <span class="ico">★</span> Xếp hạng
+            </button>
+            <button type="button" class="caro-dash-menu-item" data-act="history">
+              <span class="ico">↺</span> Lịch sử
+            </button>
+            <button type="button" class="caro-dash-menu-item" data-act="caro-achievements">
+              <span class="ico">🏅</span> Thành tựu
+            </button>
+            <button type="button" class="caro-dash-menu-item" data-act="caro-settings">
+              <span class="ico">⚙</span> Cài đặt
+            </button>
+          </nav>
+          <label class="caro-dash-sound">
+            <input type="checkbox" data-act="sound" ${soundOn ? "checked" : ""} />
+            <span>Âm thanh</span>
+          </label>
+          <div class="caro-dash-nav-foot">
+            <button type="button" class="caro-dash-link" data-act="board-portal">← Sảnh game</button>
+            <button type="button" class="caro-dash-link" data-act="back-hub">← Hub</button>
+          </div>
+        </aside>
+
+        <div class="caro-dash-main">
+          <header class="caro-dash-header">
+            <div class="caro-dash-online">
+              <span class="caro-dash-dot"></span>
+              ${dashOnlineCount()} người online
             </div>
-            <div class="caro-form-actions" style="margin-top:0.75rem">
-              <button type="button" class="caro-btn ghost" data-act="refresh-rooms">Làm mới</button>
-              <button type="button" class="caro-btn ghost" data-act="history">Lịch sử</button>
-              <button type="button" class="caro-btn ghost" data-act="rank">Xếp hạng</button>
+            <div class="caro-dash-header-user">
+              <button type="button" class="caro-dash-bell" aria-label="Thông báo" data-act="caro-notify">🔔</button>
+              <div class="caro-dash-user-chip">
+                <span class="caro-dash-avatar">${escapeHtml(playerInitial())}</span>
+                <span class="caro-dash-user-meta">
+                  <strong>${escapeHtml(playerName())}</strong>
+                  <span>LV ${level}</span>
+                </span>
+              </div>
             </div>
-          </section>
-          <section class="caro-panel">
-            <h2>Hồ sơ của bạn</h2>
-            <div class="caro-list">
-              <div class="caro-list-item"><span>Người chơi</span><strong>${escapeHtml(playerName())}</strong></div>
-              <div class="caro-list-item"><span>ELO (local)</span><strong>${stats.elo}</strong></div>
-              <div class="caro-list-item"><span>Thắng / Thua / Hòa</span><strong>${stats.win}/${stats.loss}/${stats.draw}</strong></div>
-              <div class="caro-list-item"><span>Chuỗi thắng</span><strong>${stats.streak}</strong></div>
-              <div class="caro-list-item"><span>Win AI Hard+</span><strong>${stats.aiHardWins}</strong></div>
+          </header>
+
+          <div class="caro-dash-scroll">
+            <section class="caro-dash-hero">
+              <div class="caro-dash-hero-text">
+                <p class="caro-dash-kicker">Trí tuệ · Chiến thuật · Thử thách</p>
+                <h1>CỜ CARO</h1>
+                <p class="caro-dash-lead">AI, local hai người, phòng online và Quick Match — đồng bộ phong cách WebChat Hub.</p>
+                <button type="button" class="caro-dash-play-now" data-act="quick">
+                  ${quickWaiting ? "Đang ghép…" : "Chơi ngay"}
+                </button>
+              </div>
+              <div class="caro-dash-hero-art">${heroBoardSvg()}</div>
+            </section>
+
+            <div class="caro-dash-quick">
+              <button type="button" class="caro-quick-tile tile-blue" data-act="quick">
+                <span class="tile-ico">⚡</span>
+                <span class="tile-title">Quick Match</span>
+                <span class="tile-sub">Tìm đối thủ ngay</span>
+              </button>
+              <button type="button" class="caro-quick-tile tile-purple" data-act="ai">
+                <span class="tile-ico">🤖</span>
+                <span class="tile-title">Chơi với AI</span>
+                <span class="tile-sub">4 cấp độ khó</span>
+              </button>
+              <button type="button" class="caro-quick-tile tile-green" data-act="local">
+                <span class="tile-ico">👥</span>
+                <span class="tile-title">Chơi Local</span>
+                <span class="tile-sub">2 người / 1 máy</span>
+              </button>
+              <button type="button" class="caro-quick-tile tile-gold" data-act="create">
+                <span class="tile-ico">＋</span>
+                <span class="tile-title">Tạo phòng</span>
+                <span class="tile-sub">Tùy luật &amp; timer</span>
+              </button>
             </div>
-            <h2 style="margin-top:1rem">Trận gần đây</h2>
-            <div class="caro-list">
-              ${
-                hist.length
-                  ? hist
-                      .map(
-                        (h) => `<div class="caro-list-item">
-                    <div>${escapeHtml(h.mode)} · ${h.size}x${h.size}<div class="caro-muted">${new Date(h.at).toLocaleString("vi")}</div></div>
-                    <button type="button" class="caro-btn ghost" data-replay="${h.id}">Replay</button>
-                  </div>`
-                      )
-                      .join("")
-                  : `<div class="caro-empty">Chưa có trận local.</div>`
-              }
+
+            <div class="caro-dash-mid">
+              <section class="caro-dash-card caro-dash-rooms">
+                <div class="caro-dash-card-head">
+                  <h2>Phòng game công khai</h2>
+                  <button type="button" class="caro-dash-link" data-act="refresh-rooms">Làm mới</button>
+                </div>
+                <div class="caro-dash-tabs" role="tablist">
+                  ${roomTabs
+                    .map(
+                      (t) =>
+                        `<button type="button" class="caro-dash-tab${caroRoomTab === t.id ? " is-active" : ""}" data-act="room-tab" data-tab="${t.id}">${t.label}</button>`
+                    )
+                    .join("")}
+                </div>
+                <div class="caro-dash-room-list">
+                  ${
+                    rooms.length
+                      ? rooms
+                          .map((r) => {
+                            const full = (r.players?.length || 0) >= 2;
+                            const status =
+                              r.status === "playing"
+                                ? "Đang chơi"
+                                : full
+                                  ? "Sẵn sàng"
+                                  : "Chờ vào";
+                            return `<article class="caro-room-row">
+                              <div>
+                                <strong>${escapeHtml(r.name || "Phòng Caro")}</strong>
+                                <div class="caro-muted">${r.size}x${r.size} · ${escapeHtml(r.mode || "freestyle")} · ${status}</div>
+                              </div>
+                              <div class="caro-room-meta">
+                                <span>${r.players?.length || 0}/2</span>
+                                <button type="button" class="caro-btn sm" data-join-code="${r.code}">Tham gia</button>
+                              </div>
+                            </article>`;
+                          })
+                          .join("")
+                      : `<p class="caro-empty">Chưa có phòng — tạo phòng mới hoặc Quick Match.</p>`
+                  }
+                </div>
+                <button type="button" class="caro-btn ghost" data-act="join" style="margin-top:0.65rem">Nhập mã phòng</button>
+              </section>
+
+              <section class="caro-dash-card caro-dash-recent">
+                <div class="caro-dash-card-head">
+                  <h2>Trận đấu gần đây</h2>
+                  <button type="button" class="caro-dash-link" data-act="history">Xem tất cả</button>
+                </div>
+                <div class="caro-dash-match-list">
+                  ${
+                    hist.length
+                      ? hist
+                          .map((h) => {
+                            const res = localMatchResult(h);
+                            return `<article class="caro-match-row">
+                              <div>
+                                <strong>${h.mode === "ai" ? "AI" : "Local"} · ${h.size}x${h.size}</strong>
+                                <div class="caro-muted">${new Date(h.at).toLocaleString("vi")}</div>
+                              </div>
+                              <span class="caro-result ${res.cls}">${res.label}</span>
+                              <button type="button" class="caro-btn ghost sm" data-replay="${h.id}">Replay</button>
+                            </article>`;
+                          })
+                          .join("")
+                      : `<p class="caro-empty">Chưa có trận — bắt đầu với AI hoặc Quick Match.</p>`
+                  }
+                </div>
+              </section>
             </div>
-            <div class="caro-form-actions" style="margin-top:0.75rem">
-              <label class="caro-muted" style="display:flex;align-items:center;gap:0.4rem">
-                <input type="checkbox" data-act="sound" ${soundOn ? "checked" : ""}/> Âm thanh
-              </label>
-              <label class="caro-muted">Theme
-                <select data-act="theme">
-                  <option value="neon" ${boardTheme === "neon" ? "selected" : ""}>Neon</option>
-                  <option value="wood" ${boardTheme === "wood" ? "selected" : ""}>Gỗ</option>
-                  <option value="cyber" ${boardTheme === "cyber" ? "selected" : ""}>Cyberpunk</option>
-                  <option value="amoled" ${boardTheme === "amoled" ? "selected" : ""}>AMOLED</option>
-                </select>
-              </label>
+
+            <div class="caro-dash-bottom">
+              <section class="caro-dash-card caro-dash-rules">
+                <h2>Luật chơi nhanh</h2>
+                <ul>
+                  <li>X đi trước, O đi sau (AI luôn là O).</li>
+                  <li>Thắng khi có 5 quân liên tiếp (ngang, dọc, chéo).</li>
+                  <li>Bàn 10×10, 15×15 hoặc 19×19; freestyle / tournament.</li>
+                  <li>Online: timer mỗi lượt, xin hòa, đầu hàng, rematch.</li>
+                </ul>
+              </section>
+              <section class="caro-dash-card caro-dash-ach" id="caro-achievements">
+                <div class="caro-dash-card-head">
+                  <h2>Thành tựu</h2>
+                </div>
+                <div class="caro-ach-grid">
+                  <div class="caro-ach-item">
+                    <span class="caro-ach-ico">⭐</span>
+                    <span class="caro-ach-name">Tân binh</span>
+                    <div class="caro-ach-bar"><span style="width:${achPlayed}%"></span></div>
+                  </div>
+                  <div class="caro-ach-item">
+                    <span class="caro-ach-ico">👑</span>
+                    <span class="caro-ach-name">Thủ AI</span>
+                    <div class="caro-ach-bar"><span style="width:${achAi}%"></span></div>
+                  </div>
+                  <div class="caro-ach-item">
+                    <span class="caro-ach-ico">🔥</span>
+                    <span class="caro-ach-name">Chuỗi thắng</span>
+                    <div class="caro-ach-bar"><span style="width:${achStreak}%"></span></div>
+                  </div>
+                </div>
+              </section>
             </div>
-          </section>
+          </div>
         </div>
+
+        <aside class="caro-dash-rail">
+          <section class="caro-dash-profile card-glow">
+            <div class="caro-dash-avatar lg">${escapeHtml(playerInitial())}</div>
+            <h3>${escapeHtml(playerName())}</h3>
+            <p class="caro-muted">Level ${level}</p>
+            <div class="caro-xp"><span style="width:${xpPct}%"></span></div>
+            <div class="caro-stat-grid">
+              <div><span>ELO</span><strong>${stats.elo}</strong></div>
+              <div><span>Win rate</span><strong>${winRate}%</strong></div>
+              <div><span>Thắng</span><strong>${stats.win}</strong></div>
+              <div><span>Thua</span><strong>${stats.loss}</strong></div>
+              <div><span>Hòa</span><strong>${stats.draw}</strong></div>
+              <div><span>Streak</span><strong>${stats.streak}</strong></div>
+            </div>
+          </section>
+
+          <section class="caro-dash-card">
+            <div class="caro-dash-card-head">
+              <h2>Bảng xếp hạng</h2>
+            </div>
+            <div class="caro-dash-tabs compact">
+              <button type="button" class="caro-dash-tab${caroLbTab === "week" ? " is-active" : ""}" data-act="lb-tab" data-tab="week">Tuần</button>
+              <button type="button" class="caro-dash-tab${caroLbTab === "month" ? " is-active" : ""}" data-act="lb-tab" data-tab="month">Tháng</button>
+              <button type="button" class="caro-dash-tab${caroLbTab === "all" ? " is-active" : ""}" data-act="lb-tab" data-tab="all">Tất cả</button>
+            </div>
+            <ol class="caro-lb-list">
+              ${
+                lbSlice.length
+                  ? lbSlice
+                      .map(
+                        (row, i) => `<li class="caro-lb-row rank-${i + 1}">
+                          <span class="caro-lb-rank">${i + 1}</span>
+                          <span class="caro-lb-name">${escapeHtml(row.name || "—")}</span>
+                          <span class="caro-lb-elo">${row.elo ?? "—"}</span>
+                        </li>`
+                      )
+                      .join("")
+                  : `<li class="caro-empty">Chưa có dữ liệu xếp hạng.</li>`
+              }
+            </ol>
+            <button type="button" class="caro-btn ghost sm" data-act="rank" style="width:100%;margin-top:0.5rem">Chi tiết</button>
+          </section>
+
+          <section class="caro-dash-card caro-dash-guide">
+            <h2>Hướng dẫn nhanh</h2>
+            <ol>
+              <li>Chọn Quick Match hoặc Tạo phòng.</li>
+              <li>Chơi AI để luyện opening &amp; block.</li>
+              <li>Xem replay trong Lịch sử local.</li>
+              <li>Bật âm thanh &amp; theme bên dưới.</li>
+            </ol>
+          </section>
+
+          <section class="caro-dash-card" id="caro-settings">
+            <h2>Cài đặt bàn cờ</h2>
+            <label class="caro-muted caro-setting-row">Theme
+              <select data-act="theme">
+                <option value="neon" ${boardTheme === "neon" ? "selected" : ""}>Neon</option>
+                <option value="wood" ${boardTheme === "wood" ? "selected" : ""}>Gỗ</option>
+                <option value="cyber" ${boardTheme === "cyber" ? "selected" : ""}>Cyberpunk</option>
+                <option value="amoled" ${boardTheme === "amoled" ? "selected" : ""}>AMOLED</option>
+              </select>
+            </label>
+          </section>
+        </aside>
       </div>`;
   }
 
@@ -874,6 +1125,16 @@ export function mountCaroApp(ctx) {
 
     const inCaro = !["board-hub", "game-soon"].includes(view);
 
+    const isDash = view === "caro-home";
+
+    if (isDash) {
+      root.innerHTML = `<div class="caro-shell-dash">${body}${
+        quickWaiting ? '<div class="caro-dash-toast-bar">Đang ghép Quick Match…</div>' : ""
+      }</div>`;
+      startTimerUi();
+      return;
+    }
+
     root.innerHTML = `
       <div class="caro-top">
         <div class="caro-brand">${topBrandHtml()} · ${escapeHtml(title)}${
@@ -1055,6 +1316,36 @@ export function mountCaroApp(ctx) {
         view = "online-game";
         render();
       } else toast("Đang chờ đối thủ…");
+      return;
+    }
+    if (act === "room-tab") {
+      caroRoomTab = t.dataset.tab || "all";
+      render();
+      return;
+    }
+    if (act === "lb-tab") {
+      caroLbTab = t.dataset.tab || "all";
+      render();
+      return;
+    }
+    if (act === "caro-achievements") {
+      view = "caro-home";
+      render();
+      requestAnimationFrame(() => {
+        root.querySelector("#caro-achievements")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      return;
+    }
+    if (act === "caro-settings") {
+      view = "caro-home";
+      render();
+      requestAnimationFrame(() => {
+        root.querySelector("#caro-settings")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      return;
+    }
+    if (act === "caro-notify") {
+      toast("Thông báo trận đấu — đang phát triển.");
       return;
     }
     if (act === "refresh-rooms") {
