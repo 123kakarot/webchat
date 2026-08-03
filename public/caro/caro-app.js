@@ -271,11 +271,48 @@ export function mountCaroApp(ctx) {
     }
 
     if (s.view && !["board-hub", "game-soon"].includes(s.view)) {
-      view = s.view;
+      if (["lobby", "online-game"].includes(s.view) && !onlineRoom) {
+        view = "caro-home";
+      } else {
+        view = s.view;
+      }
       render();
       return true;
     }
     return false;
+  }
+
+  function paintBootView() {
+    const s = loadUiSession();
+    if (s?.local?.board && s.view === "local-game") {
+      localMatch = { ...s.local };
+      if (localMatch.status === "playing") {
+        localMatch.turnDeadline = Date.now() + (localMatch.turnMs || 60000);
+      }
+      view = "local-game";
+      return;
+    }
+    if (s?.view && !["lobby", "online-game"].includes(s.view)) {
+      view = s.view;
+      return;
+    }
+    if (s?.view && ["lobby", "online-game"].includes(s.view)) {
+      view = "caro-home";
+      return;
+    }
+    view = "board-hub";
+  }
+
+  function safeRender() {
+    try {
+      render();
+    } catch (err) {
+      console.error("caro render", err);
+      view = "board-hub";
+      onlineRoom = null;
+      localMatch = null;
+      render();
+    }
   }
 
   function stopTimer() {
@@ -318,10 +355,19 @@ export function mountCaroApp(ctx) {
         resolve({ ok: false, reason: "Chưa kết nối server." });
         return;
       }
-      s.timeout(12000).emit(event, payload, (err, res) => {
+      const finish = (err, res) => {
         if (err) resolve({ ok: false, reason: "Timeout server." });
         else resolve(res || { ok: false });
-      });
+      };
+      try {
+        if (typeof s.timeout === "function") {
+          s.timeout(12000).emit(event, payload, finish);
+        } else {
+          s.emit(event, payload, finish);
+        }
+      } catch (_) {
+        resolve({ ok: false, reason: "Lỗi kết nối." });
+      }
     });
   }
 
@@ -1988,17 +2034,28 @@ export function mountCaroApp(ctx) {
     open() {
       root.hidden = false;
       bindSocket();
+      paintBootView();
+      safeRender();
+
       restoreSession()
-        .catch(() => false)
-        .then((restored) => {
-          if (!restored) {
-            const s = loadUiSession();
-            if (s?.view && !["board-hub"].includes(s.view)) view = s.view;
-            else view = "board-hub";
-          }
-          return refreshMeta();
+        .catch((err) => {
+          console.error("restoreSession", err);
+          return false;
         })
-        .then(() => render());
+        .then((restored) => {
+          if (!restored && !onlineRoom && !(localMatch && view === "local-game")) {
+            paintBootView();
+          }
+          return refreshMeta().catch((err) => {
+            console.error("refreshMeta", err);
+          });
+        })
+        .then(() => safeRender())
+        .catch((err) => {
+          console.error("caro open", err);
+          view = "board-hub";
+          safeRender();
+        });
     },
     close() {
       stopTimer();
