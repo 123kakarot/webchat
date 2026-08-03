@@ -52,6 +52,7 @@ export function createXiangqiModule(deps) {
 
   function startAi(level) {
     stopReplay();
+    aiGen++;
     aiBusy = false;
     match = createMatchState({ mode: "ai", aiLevel: level, meSide: SIDE_RED });
     selected = null;
@@ -63,6 +64,7 @@ export function createXiangqiModule(deps) {
 
   function startLocalPvp() {
     stopReplay();
+    aiGen++;
     aiBusy = false;
     match = createMatchState({ mode: "local", meSide: SIDE_RED });
     selected = null;
@@ -74,16 +76,27 @@ export function createXiangqiModule(deps) {
 
   function clearMatch() {
     stopReplay();
+    aiGen++;
     aiBusy = false;
     match = null;
     selected = null;
     targets = [];
   }
 
+  let aiGen = 0;
+
   function notifyUi() {
     try {
       deps.onUpdate?.();
     } catch (_) {}
+  }
+
+  /** Chỉ cập nhật bàn — nhẹ hơn full render (giảm đơ). */
+  function notifyBoard() {
+    try {
+      if (deps.onBoardUpdate?.()) return;
+    } catch (_) {}
+    notifyUi();
   }
 
   function stopReplay() {
@@ -138,7 +151,6 @@ export function createXiangqiModule(deps) {
     }
     match.checkSide = isInCheck(match.board, match.turn) ? match.turn : null;
     if (match.mode === "ai" && match.turn !== match.meSide && match.status === "playing") {
-      aiBusy = true;
       void runAiTurn();
     }
   }
@@ -149,17 +161,21 @@ export function createXiangqiModule(deps) {
       aiBusy = false;
       return;
     }
+    if (aiBusy) return;
 
+    const gen = ++aiGen;
     aiBusy = true;
+    notifyBoard();
+
     const thinkingMatch = match;
     const level = thinkingMatch.aiLevel || "medium";
     const side = thinkingMatch.turn;
 
     try {
       await new Promise((r) => setTimeout(r, aiThinkDelay(level)));
-      await new Promise((r) => requestAnimationFrame(() => r()));
-
-      if (match !== thinkingMatch || match.status !== "playing" || match.turn !== side) return;
+      if (gen !== aiGen || match !== thinkingMatch || match.status !== "playing" || match.turn !== side) {
+        return;
+      }
 
       let mv = null;
       try {
@@ -169,24 +185,33 @@ export function createXiangqiModule(deps) {
         mv = allLegalMoves(match.board, side)[0] || null;
       }
 
+      if (gen !== aiGen || match !== thinkingMatch) return;
+
       aiBusy = false;
-      if (mv) commitMove(mv.fromR, mv.fromC, mv.toR, mv.toC);
-      else {
+      if (mv) {
+        commitMove(mv.fromR, mv.fromC, mv.toR, mv.toC);
+      } else {
         const res = gameResult(match.board, side);
         if (res) finishGame(res);
       }
     } catch (err) {
       console.error("xiangqi AI", err);
-    } finally {
       aiBusy = false;
-      notifyUi();
+    } finally {
+      if (gen === aiGen) aiBusy = false;
+      notifyBoard();
     }
   }
 
   function commitMove(fromR, fromC, toR, toC) {
-    if (!match || match.status !== "playing") return;
+    if (!match || match.status !== "playing") return false;
+    const moving = match.board[fromR]?.[fromC];
+    if (!moving || moving === ".") return false;
+    // Chỉ cho đi nước hợp lệ
+    const legal = legalMovesFrom(match.board, fromR, fromC, match.turn);
+    if (!legal.some(([tr, tc]) => tr === toR && tc === toC)) return false;
+
     const cap = match.board[toR][toC];
-    const moving = match.board[fromR][fromC];
     match.board = applyMove(match.board, fromR, fromC, toR, toC);
     match.moves.push({
       fromR,
@@ -205,6 +230,7 @@ export function createXiangqiModule(deps) {
     selected = null;
     targets = [];
     afterMove();
+    return true;
   }
 
   function onCellClick(r, c) {
@@ -213,18 +239,24 @@ export function createXiangqiModule(deps) {
 
     const board = match.board;
     const p = board[r][c];
-    const mySide =
-      match.mode === "local"
-        ? match.turn
-        : match.meSide;
+    const mySide = match.mode === "local" ? match.turn : match.meSide;
 
     if (selected) {
       const [sr, sc] = selected;
       const hit = targets.some(([tr, tc]) => tr === r && tc === c);
       if (hit) {
-        commitMove(sr, sc, r, c);
+        const ok = commitMove(sr, sc, r, c);
+        return ok;
+      }
+      // Click quân mình khác → chọn lại
+      if (p !== "." && pieceSide(p) === mySide) {
+        selected = [r, c];
+        targets = legalMovesFrom(board, r, c, mySide);
         return true;
       }
+      selected = null;
+      targets = [];
+      return true;
     }
 
     if (p !== "." && pieceSide(p) === mySide) {
@@ -232,31 +264,55 @@ export function createXiangqiModule(deps) {
       targets = legalMovesFrom(board, r, c, mySide);
       return true;
     }
-    selected = null;
-    targets = [];
-    return true;
+    return false;
   }
 
   function renderBoardHtml(board, interactive) {
-    let html = `<div class="xq-board" role="grid" aria-label="Bàn cờ tướng">`;
+    const w = 8;
+    const h = 9;
+    // Palace diagonals + river text in SVG (viewBox 0..8 x 0..9)
+    let lines = "";
+    for (let c = 0; c <= 8; c++) {
+      lines += `<line x1="${c}" y1="0" x2="${c}" y2="9" />`;
+    }
+    for (let r = 0; r <= 9; r++) {
+      // River: no vertical through middle for columns 1-7? Standard xiangqi keeps horizontal river gap visually
+      lines += `<line x1="0" y1="${r}" x2="8" y2="${r}" />`;
+    }
+    // Palace X
+    lines += `<line x1="3" y1="0" x2="5" y2="2" /><line x1="5" y1="0" x2="3" y2="2" />`;
+    lines += `<line x1="3" y1="7" x2="5" y2="9" /><line x1="5" y1="7" x2="3" y2="9" />`;
+
+    let points = "";
     for (let r = 0; r < 10; r++) {
       for (let c = 0; c < 9; c++) {
         const p = board[r][c];
         const isSel = selected && selected[0] === r && selected[1] === c;
         const isT = targets.some(([tr, tc]) => tr === r && tc === c);
-        html += `<button type="button" class="xq-cell${isSel ? " is-selected" : ""}${isT ? " is-target" : ""}" data-xq-r="${r}" data-xq-c="${c}" ${
+        const left = (c / w) * 100;
+        const top = (r / h) * 100;
+        points += `<button type="button" class="xq-point${isSel ? " is-selected" : ""}${isT ? " is-target" : ""}${
+          p !== "." ? " has-piece" : ""
+        }" style="left:${left}%;top:${top}%" data-xq-r="${r}" data-xq-c="${c}" ${
           interactive ? "" : "tabindex=-1"
         }>`;
-        html += `<span class="xq-dot-hint" aria-hidden="true"></span>`;
+        points += `<span class="xq-dot-hint" aria-hidden="true"></span>`;
         if (p !== ".") {
           const side = pieceSide(p) === SIDE_RED ? "red" : "black";
-          html += `<span class="xq-piece ${side}">${pieceLabel(p)}</span>`;
+          points += `<span class="xq-piece ${side}">${pieceLabel(p)}</span>`;
         }
-        html += `</button>`;
+        points += `</button>`;
       }
     }
-    html += `</div>`;
-    return html;
+
+    return `<div class="xq-board" data-xq-board-root role="grid" aria-label="Bàn cờ tướng">
+      <svg class="xq-board-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+        <g class="xq-grid-lines" fill="none" stroke="#4a2e12" stroke-width="0.045">${lines}</g>
+        <text x="2" y="4.62" text-anchor="middle" class="xq-river-txt">楚 河</text>
+        <text x="6" y="4.62" text-anchor="middle" class="xq-river-txt">漢 界</text>
+      </svg>
+      <div class="xq-points">${points}</div>
+    </div>`;
   }
 
   function formatTime(ms) {
@@ -546,10 +602,10 @@ export function createXiangqiModule(deps) {
 
             <div class="xq-board-stage">
               <div class="xq-board-glow" aria-hidden="true"></div>
-              <div class="xq-board-wrap wood">
+              <div class="xq-board-wrap wood" data-xq-board-host>
                 ${renderBoardHtml(board, match.status === "playing" && replayIdx < 0)}
               </div>
-              <div class="xq-turn-chip">${turnLabel}${aiBusy ? " · AI đang nghĩ…" : ""}</div>
+              <div class="xq-turn-chip" data-xq-turn-chip>${turnLabel}${aiBusy ? " · AI đang nghĩ…" : ""}</div>
             </div>
 
             <div class="xq-player-card you${botCheck ? " in-check" : ""}">
@@ -698,6 +754,29 @@ export function createXiangqiModule(deps) {
     return match;
   }
 
+  function getTurnChipText() {
+    if (!match) return "";
+    const turnLabel =
+      match.status !== "playing"
+        ? match.status === "draw"
+          ? "Hòa"
+          : "Kết thúc"
+        : match.turn === SIDE_RED
+          ? "Lượt Đỏ"
+          : "Lượt Đen";
+    return `${turnLabel}${aiBusy ? " · AI đang nghĩ…" : ""}`;
+  }
+
+  function patchBoardIn(rootEl) {
+    if (!match || !rootEl) return false;
+    const host = rootEl.querySelector("[data-xq-board-host]");
+    if (!host) return false;
+    host.innerHTML = renderBoardHtml(match.board, match.status === "playing" && replayIdx < 0);
+    const chip = rootEl.querySelector("[data-xq-turn-chip]");
+    if (chip) chip.textContent = getTurnChipText();
+    return true;
+  }
+
   return {
     renderHome,
     renderPlay,
@@ -706,5 +785,7 @@ export function createXiangqiModule(deps) {
     clearMatch,
     getMatch,
     loadStats,
+    patchBoardIn,
+    isAiBusy: () => aiBusy,
   };
 }

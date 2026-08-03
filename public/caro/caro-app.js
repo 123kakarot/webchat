@@ -125,6 +125,18 @@ export function mountCaroApp(ctx) {
     beep,
     onReplayTick: () => render(),
     onUpdate: () => render(),
+    onBoardUpdate: () => {
+      if (view !== "xiangqi-play") return false;
+      const m = xiangqi.getMatch();
+      if (!m || m.status !== "playing") {
+        render();
+        return true;
+      }
+      // Đang nghĩ: chỉ patch chip/bàn. Xong nước: full render (lịch sử, VS…).
+      if (xiangqi.isAiBusy()) return xiangqi.patchBoardIn(root);
+      render();
+      return true;
+    },
   });
 
   function loadLocalHistory() {
@@ -1823,7 +1835,17 @@ export function mountCaroApp(ctx) {
     if (!t) return;
 
     if (t.matches("[data-xq-r]") && view === "xiangqi-play") {
-      if (xiangqi.handleCellClick(Number(t.dataset.xqR), Number(t.dataset.xqC))) render();
+      const before = xiangqi.getMatch()?.moves?.length || 0;
+      const changed = xiangqi.handleCellClick(Number(t.dataset.xqR), Number(t.dataset.xqC));
+      if (!changed) return;
+      const m = xiangqi.getMatch();
+      const after = m?.moves?.length || 0;
+      if (!m || m.status !== "playing" || after > before) {
+        render();
+        return;
+      }
+      // Chỉ đổi chọn quân / gợi ý
+      if (!xiangqi.patchBoardIn(root)) render();
       return;
     }
 

@@ -817,7 +817,7 @@
 
 .xq-board-wrap.wood {
   position: relative;
-  padding: 1.15rem 1.25rem 1.2rem;
+  padding: 1.35rem 1.4rem 1.4rem;
   border-radius: 22px;
   background:
     linear-gradient(145deg, rgba(255, 210, 140, 0.14), transparent 42%),
@@ -830,72 +830,74 @@
 }
 
 .xq-board {
-  display: grid;
-  grid-template-columns: repeat(9, 1fr);
-  grid-template-rows: repeat(10, 1fr);
-  aspect-ratio: 9 / 10;
-  width: min(92vw, 460px);
-  margin: 0 auto;
   position: relative;
-  border-radius: 12px;
+  width: min(92vw, 460px);
+  aspect-ratio: 8 / 9;
+  margin: 0 auto;
+  border-radius: 10px;
   border: 3px solid #6b3f18;
-  background-color: #c49a5c;
-  background-image:
-    repeating-linear-gradient(
-      88deg,
-      transparent,
-      transparent 2px,
-      rgba(80, 40, 10, 0.07) 2px,
-      rgba(80, 40, 10, 0.07) 3px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 4px,
-      rgba(60, 30, 8, 0.05) 4px,
-      rgba(60, 30, 8, 0.05) 5px
-    ),
-    radial-gradient(ellipse at 50% 50%, rgba(255, 220, 150, 0.2), transparent 65%),
-    linear-gradient(#4a2e12 1.8px, transparent 1.8px),
-    linear-gradient(90deg, #4a2e12 1.8px, transparent 1.8px);
-  background-size:
-    auto,
-    auto,
-    auto,
-    100% calc(100% / 9),
-    calc(100% / 8) 100%;
-  box-shadow:
-    inset 0 0 40px rgba(60, 30, 8, 0.35),
-    inset 0 0 0 1px rgba(255, 210, 140, 0.15);
+  background:
+    repeating-linear-gradient(88deg, transparent, transparent 2px, rgba(80, 40, 10, 0.06) 2px, rgba(80, 40, 10, 0.06) 3px),
+    radial-gradient(ellipse at 50% 50%, rgba(255, 220, 150, 0.18), transparent 65%),
+    #c49a5c;
+  box-shadow: inset 0 0 36px rgba(60, 30, 8, 0.32);
+  overflow: visible;
 }
 
-.xq-board::before {
+.xq-board-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.xq-river-txt {
+  fill: rgba(70, 35, 10, 0.42);
+  font-size: 0.55px;
+  font-family: "Ma Shan Zheng", "Noto Serif SC", serif;
+}
+
+.xq-points { position: absolute; inset: 0; z-index: 1; }
+
+.xq-point {
+  position: absolute;
+  width: 11.5%;
+  height: 10.2%;
+  transform: translate(-50%, -50%);
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+.xq-point.has-piece { z-index: 2; }
+.xq-point .xq-dot-hint {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 22%; height: 24%;
+  transform: translate(-50%, -50%) scale(0.4);
+  border-radius: 50%;
+  background: #3b82f6;
+  opacity: 0;
+  transition: opacity 0.12s, transform 0.12s;
+  pointer-events: none;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.85);
+}
+.xq-point.is-target .xq-dot-hint {
+  opacity: 0.95;
+  transform: translate(-50%, -50%) scale(1);
+}
+.xq-point.is-selected { z-index: 3; }
+.xq-point.is-selected::before {
   content: "";
   position: absolute;
-  left: calc(100% / 8 * 3);
-  top: 0;
-  width: calc(100% / 8 * 2);
-  height: calc(100% / 9 * 2);
-  background:
-    linear-gradient(to bottom right, transparent calc(50% - 0.9px), #4a2e12 calc(50% - 0.9px), #4a2e12 calc(50% + 0.9px), transparent calc(50% + 0.9px)),
-    linear-gradient(to bottom left, transparent calc(50% - 0.9px), #4a2e12 calc(50% - 0.9px), #4a2e12 calc(50% + 0.9px), transparent calc(50% + 0.9px));
+  inset: 8%;
+  border: 2.5px solid #3b82f6;
+  border-radius: 50%;
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.65);
   pointer-events: none;
-  opacity: 0.9;
-}
-
-.xq-board::after {
-  content: "楚 河　　漢 界";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  font-family: "Ma Shan Zheng", "Noto Serif SC", serif;
-  font-size: clamp(0.95rem, 3vw, 1.25rem);
-  letter-spacing: 0.2em;
-  color: rgba(70, 35, 10, 0.45);
-  font-weight: 400;
-  pointer-events: none;
-  text-shadow: 0 1px 0 rgba(255, 230, 180, 0.25);
 }
 
 .xq-piece {
@@ -906,48 +908,26 @@
   justify-content: center;
   border-radius: 50%;
   font-weight: 400;
-  font-size: clamp(0.95rem, 3.6vw, 1.35rem);
+  font-size: clamp(0.95rem, 3.4vw, 1.3rem);
   font-family: "Ma Shan Zheng", "Noto Serif SC", "KaiTi", serif;
   line-height: 1;
   transition: transform 0.12s, box-shadow 0.12s;
   pointer-events: none;
   user-select: none;
-  background:
-    radial-gradient(circle at 30% 26%, #fff8e8 0%, #f0d6a8 38%, #d4a86a 72%, #b07a3e 100%);
+  background: radial-gradient(circle at 30% 26%, #fff8e8 0%, #f0d6a8 38%, #d4a86a 72%, #b07a3e 100%);
   border: 2.5px solid #8b5a2b;
-  box-shadow:
-    0 2px 0 #6b4423,
-    0 5px 10px rgba(0, 0, 0, 0.4),
-    inset 0 2px 3px rgba(255, 255, 255, 0.55),
-    inset 0 -2px 4px rgba(90, 50, 20, 0.2);
+  box-shadow: 0 2px 0 #6b4423, 0 5px 10px rgba(0,0,0,0.4), inset 0 2px 3px rgba(255,255,255,0.55);
 }
-
-.xq-cell:hover .xq-piece {
-  transform: scale(1.1) translateY(-2px);
-}
-
+.xq-point:hover .xq-piece { transform: scale(1.1) translateY(-2px); }
 .xq-piece.red {
-  color: #c01010;
-  border-color: #a01818;
-  text-shadow: 0 1px 0 rgba(255, 240, 200, 0.5);
-  box-shadow:
-    0 2px 0 #7a2010,
-    0 5px 12px rgba(160, 30, 20, 0.4),
-    0 0 12px rgba(255, 60, 30, 0.25),
-    inset 0 2px 3px rgba(255, 255, 255, 0.55),
-    inset 0 -2px 4px rgba(120, 30, 10, 0.15);
+  color: #c01010; border-color: #a01818;
+  text-shadow: 0 1px 0 rgba(255,240,200,0.5);
+  box-shadow: 0 2px 0 #7a2010, 0 5px 12px rgba(160,30,20,0.4), 0 0 12px rgba(255,60,30,0.25), inset 0 2px 3px rgba(255,255,255,0.55);
 }
-
 .xq-piece.black {
-  color: #141414;
-  border-color: #2a2a2a;
-  text-shadow: 0 1px 0 rgba(255, 240, 210, 0.35);
-  box-shadow:
-    0 2px 0 #3a3028,
-    0 5px 12px rgba(0, 0, 0, 0.45),
-    0 0 10px rgba(40, 100, 220, 0.18),
-    inset 0 2px 3px rgba(255, 255, 255, 0.5),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.12);
+  color: #141414; border-color: #2a2a2a;
+  text-shadow: 0 1px 0 rgba(255,240,210,0.35);
+  box-shadow: 0 2px 0 #3a3028, 0 5px 12px rgba(0,0,0,0.45), inset 0 2px 3px rgba(255,255,255,0.5);
 }
 
 .xq-turn-chip {
@@ -959,46 +939,6 @@
   border: 1px solid rgba(120, 180, 255, 0.55);
   color: #fff;
   box-shadow: 0 0 22px rgba(59, 130, 246, 0.4);
-}
-
-.xq-cell {
-  position: relative;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  padding: 0;
-  min-height: 0;
-}
-
-.xq-cell .xq-dot-hint {
-  position: absolute;
-  inset: 36%;
-  border-radius: 50%;
-  background: #3b82f6;
-  opacity: 0;
-  transform: scale(0.4);
-  transition: opacity 0.12s, transform 0.12s;
-  pointer-events: none;
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.85);
-}
-
-.xq-cell.is-target .xq-dot-hint {
-  opacity: 0.95;
-  transform: scale(1);
-}
-
-.xq-cell.is-selected {
-  z-index: 2;
-}
-
-.xq-cell.is-selected::before {
-  content: "";
-  position: absolute;
-  inset: 5%;
-  border: 2.5px solid #3b82f6;
-  border-radius: 50%;
-  box-shadow: 0 0 16px rgba(59, 130, 246, 0.65);
-  pointer-events: none;
 }
 
 .xq-mode-tabs {
