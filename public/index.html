@@ -5778,6 +5778,13 @@
         transition: none !important;
       }
 
+      .hub-svg-defs {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+      }
+
       .hub-card {
         position: absolute;
         left: 50%;
@@ -5786,23 +5793,14 @@
         height: min(280px, 58vw);
         max-height: 320px;
         margin: 0;
-        padding: 1.15rem 1rem 1.25rem;
+        padding: 0;
         border: none;
-        border-radius: 22px;
+        background: transparent;
+        box-shadow: none;
         cursor: pointer;
         color: #e8f6ff;
         text-align: center;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: space-between;
-        background:
-          linear-gradient(165deg, rgba(45, 120, 180, 0.55) 0%, rgba(12, 32, 58, 0.92) 48%, rgba(6, 14, 28, 0.96) 100%);
-        border: 1px solid rgba(120, 220, 255, 0.38);
-        box-shadow:
-          0 0 0 1px rgba(94, 231, 255, 0.08) inset,
-          0 18px 50px rgba(0, 0, 0, 0.45),
-          0 0 34px rgba(40, 160, 220, 0.12);
+        overflow: visible;
         transform-style: preserve-3d;
         backface-visibility: hidden;
         transform-origin: 50% 50%;
@@ -5810,51 +5808,124 @@
         opacity: 0.58;
         transition:
           transform 1.15s cubic-bezier(0.22, 1, 0.36, 1),
-          opacity 0.65s ease,
-          box-shadow 0.55s ease,
-          border-color 0.55s ease,
-          filter 0.55s ease;
+          opacity 0.65s ease;
         -webkit-tap-highlight-color: transparent;
       }
 
-      .hub-card::before {
-        content: "";
+      .hub-card-inner {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        height: 100%;
+        padding: 1.15rem 1rem 1.25rem;
+        border-radius: 22px;
+        overflow: hidden;
+        background: linear-gradient(
+          152deg,
+          rgba(255, 255, 255, 0.16) 0%,
+          rgba(40, 100, 160, 0.22) 28%,
+          rgba(12, 28, 52, 0.48) 55%,
+          rgba(6, 14, 28, 0.62) 100%
+        );
+        border: 1px solid rgba(130, 220, 255, 0.32);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.28),
+          inset 1px 0 0 rgba(255, 255, 255, 0.08),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+          0 22px 48px rgba(0, 0, 0, 0.45),
+          0 0 36px rgba(32, 140, 220, 0.14);
+        backdrop-filter: blur(20px) saturate(1.45);
+        -webkit-backdrop-filter: blur(20px) saturate(1.45);
+        transition:
+          border-color 0.5s ease,
+          box-shadow 0.5s ease,
+          filter 0.5s ease;
+      }
+
+      .hub-card-shine {
+        position: absolute;
+        top: -35%;
+        left: -25%;
+        width: 85%;
+        height: 70%;
+        background: radial-gradient(
+          ellipse at 35% 30%,
+          rgba(255, 255, 255, 0.55) 0%,
+          rgba(160, 230, 255, 0.2) 28%,
+          transparent 68%
+        );
+        pointer-events: none;
+        mix-blend-mode: screen;
+        opacity: 0.85;
+      }
+
+      .hub-card-edge {
         position: absolute;
         inset: 0;
         border-radius: inherit;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, transparent 38%);
         pointer-events: none;
+        box-shadow:
+          inset 0 0 0 1px rgba(180, 240, 255, 0.12),
+          inset 0 1px 18px rgba(120, 220, 255, 0.08);
+        background: linear-gradient(
+          125deg,
+          rgba(200, 250, 255, 0.35) 0%,
+          rgba(200, 250, 255, 0.06) 18%,
+          transparent 42%
+        );
+      }
+
+      .hub-card.is-active .hub-card-inner {
+        border-color: rgba(170, 245, 255, 0.55);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.38),
+          inset 1px 0 0 rgba(255, 255, 255, 0.12),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+          0 26px 56px rgba(0, 0, 0, 0.5),
+          0 0 52px rgba(56, 189, 248, 0.28);
+        filter: brightness(1.06);
       }
 
       .hub-card.is-active {
         opacity: 1;
-        border-color: rgba(150, 240, 255, 0.75);
-        box-shadow:
-          0 0 0 1px rgba(94, 231, 255, 0.25) inset,
-          0 22px 60px rgba(0, 0, 0, 0.55),
-          0 0 48px rgba(60, 200, 255, 0.28);
-        filter: brightness(1.08);
       }
 
-      .hub-card:not(.is-active) {
-        filter: brightness(0.88) saturate(0.92);
+      .hub-card:not(.is-active) .hub-card-inner {
+        filter: brightness(0.9) saturate(0.92);
       }
 
       .hub-card-ico {
-        width: 72px;
-        height: 72px;
-        margin-top: 0.35rem;
-        border-radius: 20px;
+        position: relative;
+        z-index: 1;
+        width: 84px;
+        height: 84px;
+        margin-top: 0.25rem;
+        border-radius: 22px;
         display: grid;
         place-items: center;
-        font-size: 2.1rem;
-        background: radial-gradient(circle at 35% 30%, rgba(180, 240, 255, 0.35), rgba(20, 60, 100, 0.35));
-        box-shadow: 0 10px 28px rgba(0, 40, 80, 0.4), 0 0 20px rgba(80, 200, 255, 0.2);
+        background: radial-gradient(circle at 32% 28%, rgba(190, 245, 255, 0.35), rgba(18, 55, 95, 0.5));
+        box-shadow:
+          0 12px 32px rgba(0, 35, 70, 0.45),
+          0 0 24px rgba(56, 189, 248, 0.22),
+          inset 0 1px 0 rgba(255, 255, 255, 0.25);
         animation: hub-ico-float 3.6s ease-in-out infinite;
+      }
+
+      .hub-card-ico svg {
+        width: 46px;
+        height: 46px;
+        filter: url(#hub-ico-glow);
       }
 
       .hub-card.is-active .hub-card-ico {
         animation-duration: 2.8s;
+        box-shadow:
+          0 14px 36px rgba(0, 35, 70, 0.5),
+          0 0 32px rgba(94, 231, 255, 0.35),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
       }
 
       @keyframes hub-ico-float {
@@ -5863,15 +5934,20 @@
       }
 
       .hub-card-title {
+        position: relative;
+        z-index: 1;
         font-family: Orbitron, "Be Vietnam Pro", sans-serif;
         font-weight: 600;
         font-size: clamp(0.95rem, 2.4vw, 1.15rem);
         letter-spacing: 0.04em;
         line-height: 1.25;
         margin-top: 0.75rem;
+        text-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
       }
 
       .hub-card-sub {
+        position: relative;
+        z-index: 1;
         font-size: 0.72rem;
         line-height: 1.4;
         color: rgba(190, 220, 238, 0.78);
@@ -6060,6 +6136,13 @@
         font-size: 2.6rem;
         margin-bottom: 0.75rem;
         filter: drop-shadow(0 0 16px rgba(94, 231, 255, 0.35));
+        display: flex;
+        justify-content: center;
+      }
+
+      .module-stub-ico svg {
+        width: 56px;
+        height: 56px;
       }
 
       .module-stub-card h2 {
@@ -6122,6 +6205,22 @@
     </div>
 
     <section class="hub" id="hub" aria-label="Menu chính">
+      <svg class="hub-svg-defs" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="hub-ico-grad" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#b8f5ff" />
+            <stop offset="45%" stop-color="#5ecbff" />
+            <stop offset="100%" stop-color="#a78bfa" />
+          </linearGradient>
+          <linearGradient id="hub-ico-grad-dim" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#7dd3fc" />
+            <stop offset="100%" stop-color="#6366f1" />
+          </linearGradient>
+          <filter id="hub-ico-glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#38bdf8" flood-opacity="0.55" />
+          </filter>
+        </defs>
+      </svg>
       <div class="hub-bg" aria-hidden="true"></div>
       <header class="hub-header">
         <div class="hub-brand">WEB<span>CHAT</span></div>
@@ -6156,7 +6255,7 @@
 
     <section class="gate" id="gate" style="display:none">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v79</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v80</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
@@ -7056,7 +7155,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "79";
+      const CLIENT_BUILD = "80";
       const BASE_DOC_TITLE = "WebChat Hub";
 
       function applyUiTheme(mode) {
@@ -7084,6 +7183,37 @@
       }
 
       loadUiTheme();
+
+      function hubModuleIconSvg(moduleId) {
+        const g = 'stroke="url(#hub-ico-grad)" fill="url(#hub-ico-grad-dim)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"';
+        const gStroke = 'stroke="url(#hub-ico-grad)" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"';
+        switch (moduleId) {
+          case "chat":
+            return `<svg viewBox="0 0 64 64" aria-hidden="true"><path ${gStroke} d="M14 20h36a4 4 0 0 1 4 4v16a4 4 0 0 1-4 4H28l-10 8v-8h-4a4 4 0 0 1-4-4V24a4 4 0 0 1 4-4z"/><circle cx="26" cy="32" r="2" fill="#b8f5ff"/><circle cx="34" cy="32" r="2" fill="#b8f5ff"/><circle cx="42" cy="32" r="2" fill="#b8f5ff"/></svg>`;
+          case "board":
+            return `<svg viewBox="0 0 64 64" aria-hidden="true"><path ${g} d="M18 14h28v28H18z" opacity="0.35"/><path ${gStroke} d="M22 18h20v20H22z"/><path ${gStroke} d="M28 22h8M28 28h8M28 34h5"/><circle cx="40" cy="40" r="10" fill="rgba(94,231,255,0.15)" stroke="url(#hub-ico-grad)" stroke-width="2"/><text x="40" y="44" text-anchor="middle" fill="url(#hub-ico-grad)" font-size="11" font-weight="700" font-family="Orbitron,sans-serif">6</text></svg>`;
+          case "books":
+            return `<svg viewBox="0 0 64 64" aria-hidden="true"><path ${g} d="M12 18c8-2 16-2 20 0v32c-4-2-12-2-20 0V18z"/><path ${g} d="M52 18c-8-2-16-2-20 0v32c4-2 12-2 20 0V18z" opacity="0.85"/><path ${gStroke} d="M32 18v32"/></svg>`;
+          case "account":
+            return `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" ${gStroke}/><circle cx="32" cy="26" r="7" ${g}/><path ${g} d="M18 48c3-8 10-12 14-12s11 4 14 12"/></svg>`;
+          case "about":
+            return `<svg viewBox="0 0 64 64" aria-hidden="true"><path ${g} d="M32 10l6 14 15 2-11 10 3 15-13-7-13 7 3-15-11-10 15-2z"/><circle cx="32" cy="32" r="24" ${gStroke} opacity="0.45"/></svg>`;
+          default:
+            return `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="20" ${gStroke}/></svg>`;
+        }
+      }
+
+      function hubCardInnerHtml(mod) {
+        return (
+          `<span class="hub-card-inner">` +
+          `<span class="hub-card-shine" aria-hidden="true"></span>` +
+          `<span class="hub-card-edge" aria-hidden="true"></span>` +
+          `<span class="hub-card-ico" aria-hidden="true">${hubModuleIconSvg(mod.id)}</span>` +
+          `<span class="hub-card-title">${mod.title}</span>` +
+          `<span class="hub-card-sub">${mod.sub}</span>` +
+          `</span>`
+        );
+      }
 
       const HUB_MODULES = [
         {
@@ -7215,10 +7345,7 @@
           btn.className = "hub-card" + (i === 0 ? " is-active" : "");
           btn.dataset.index = String(i);
           btn.setAttribute("aria-label", mod.title);
-          btn.innerHTML =
-            `<span class="hub-card-ico" aria-hidden="true">${mod.ico}</span>` +
-            `<span class="hub-card-title">${mod.title}</span>` +
-            `<span class="hub-card-sub">${mod.sub}</span>`;
+          btn.innerHTML = hubCardInnerHtml(mod);
           btn.addEventListener("click", () => {
             if (hubDragMoved) return;
             if (i === hubIndex) enterHubModule();
@@ -7286,7 +7413,7 @@
 
       function showModuleStub(mod) {
         if (!moduleStub) return;
-        document.getElementById("module-stub-ico").textContent = mod.ico;
+        document.getElementById("module-stub-ico").innerHTML = hubModuleIconSvg(mod.id);
         document.getElementById("module-stub-title").textContent = mod.stubTitle || mod.title;
         document.getElementById("module-stub-desc").textContent = mod.stubDesc || "";
         moduleStub.hidden = false;
