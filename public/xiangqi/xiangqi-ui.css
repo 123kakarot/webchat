@@ -1385,6 +1385,13 @@
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
+.xq-btn-ghost:disabled,
+.xq-btn-primary:disabled,
+.xq-btn-danger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .xq-btn-danger {
   color: #ffe4e4;
   background: linear-gradient(90deg, rgba(180, 40, 40, 0.7), rgba(220, 80, 40, 0.65));

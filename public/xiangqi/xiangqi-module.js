@@ -1,6 +1,7 @@
 import {
   applyMove,
   allLegalMoves,
+  createInitialBoard,
   createMatchState,
   findAttackers,
   findKing,
@@ -444,6 +445,59 @@ export function createXiangqiModule(deps) {
       if (gen === aiGen) aiBusy = false;
       notifyBoard();
     }
+  }
+
+  function undoMove() {
+    if (!match || match.status !== "playing") {
+      toast?.("Chỉ đi lại khi đang chơi.");
+      return false;
+    }
+    if (match.mode === "online") {
+      toast?.("Online chưa hỗ trợ đi lại.");
+      return false;
+    }
+    if (!match.moves?.length) {
+      toast?.("Chưa có nước để đi lại.");
+      return false;
+    }
+
+    // Hủy AI đang nghĩ
+    if (aiBusy) {
+      aiGen++;
+      aiBusy = false;
+    }
+    stopReplay();
+    replayIdx = -1;
+    selected = null;
+    targets = [];
+
+    let pop = 1;
+    if (match.mode === "ai") {
+      // Về lại lượt người: nếu đang tới lượt mình thì bỏ cả nước AI + nước mình
+      pop = match.turn === match.meSide ? 2 : 1;
+    }
+    pop = Math.min(pop, match.moves.length);
+    match.moves.splice(match.moves.length - pop, pop);
+    if (match.posKeys?.length > 1) {
+      const keyPop = Math.min(pop, match.posKeys.length - 1);
+      match.posKeys.splice(match.posKeys.length - keyPop, keyPop);
+    }
+
+    let b = createInitialBoard();
+    for (const m of match.moves) {
+      b = applyMove(b, m.fromR, m.fromC, m.toR, m.toC);
+    }
+    match.board = b;
+    match.turn = match.moves.length % 2 === 0 ? SIDE_RED : SIDE_BLACK;
+    match.checkSide = isInCheck(match.board, match.turn) ? match.turn : null;
+    match.winner = null;
+    match.clockAt = Date.now();
+    match.turnDeadline =
+      Date.now() + (match.turn === SIDE_RED ? match.redTimeMs : match.blackTimeMs);
+
+    toast?.(match.mode === "ai" && pop === 2 ? "Đã đi lại (bạn + AI)." : "Đã đi lại 1 nước.");
+    beep?.(420, 50, "sine", 0.03);
+    return true;
   }
 
   function commitMove(fromR, fromC, toR, toC) {
@@ -1245,6 +1299,11 @@ export function createXiangqiModule(deps) {
             </section>
 
             <div class="xq-play-actions">
+              <button type="button" class="xq-btn-ghost" data-act="xq-undo" ${
+                match.status === "playing" && match.mode !== "online" && match.moves?.length
+                  ? ""
+                  : "disabled"
+              }>↩ Đi lại</button>
               <button type="button" class="xq-btn-ghost" data-act="xq-draw">Hòa</button>
               <button type="button" class="xq-btn-danger" data-act="xq-resign">Đầu hàng</button>
               <button type="button" class="xq-btn-primary" data-act="xq-home">← Sảnh</button>
@@ -1301,6 +1360,10 @@ export function createXiangqiModule(deps) {
       void deps.leaveOnline?.();
       clearMatch();
       return "xiangqi-home";
+    }
+    if (act === "xq-undo") {
+      undoMove();
+      return "xiangqi-play";
     }
     if (act === "xq-resign" && match?.status === "playing") {
       if (match.mode === "online") return "xq-cmd:resign";
