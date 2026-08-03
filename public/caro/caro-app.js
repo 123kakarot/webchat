@@ -34,7 +34,7 @@ function gameArtUrl(id) {
 }
 
 function renderGameThumb(id, variant = "card") {
-  const url = `${gameArtUrl(id)}?v=98`;
+  const url = `${gameArtUrl(id)}?v=99`;
   const title = gameById(id)?.title || (id === "uno" ? "UNO" : id);
   const safeTitle = String(title).replace(/"/g, "&quot;");
   return `<span class="board-game-thumb thumb-${variant}" role="img" aria-label="${safeTitle}">
@@ -674,6 +674,14 @@ export function mountCaroApp(ctx) {
       { id: "play", label: "Đang chơi" },
     ];
 
+    const featuredGames = [
+      { id: "caro", title: "Cờ Caro", live: true, rating: "4.9", players: String(online), action: "quick" },
+      { id: "chess", title: "Cờ vua", rating: "4.8", players: "14" },
+      { id: "xiangqi", title: "Cờ tướng", rating: "4.7", players: "9" },
+      { id: "go", title: "Cờ vây", rating: "4.6", players: "6" },
+      { id: "uno", title: "UNO", rating: "4.6", players: "8" },
+    ];
+
     return `
       <div class="caro-dash caro-dash-play">
         <aside class="caro-dash-nav" aria-label="WebChat Hub">
@@ -776,24 +784,30 @@ export function mountCaroApp(ctx) {
 
             <section class="caro-dash-card caro-reveal" style="--i:2">
               <div class="caro-dash-card-head"><h2>Game nổi bật</h2></div>
-              <div class="board-featured-scroll caro-scroll-thin">
-                <article class="board-feature-card is-live">
-                  <span class="board-feature-hot">HOT</span>
-                  ${renderGameThumb("caro", "featured")}
-                  <span class="board-game-title">Cờ Caro</span>
-                  <span class="board-feature-meta"><span class="stars">★★★★★</span> 4.9 · ${online} online</span>
-                  <button type="button" class="caro-btn sm primary glow-cyan" data-act="quick">Chơi ngay</button>
-                </article>
-                <button type="button" class="board-feature-card is-soon tint-chess" data-pick-game="chess">
-                  ${renderGameThumb("chess", "featured")}
-                  <span class="board-game-title">Cờ vua</span>
-                  <span class="board-feature-meta"><span class="stars">★★★★☆</span> 4.8 · 14 online</span>
-                </button>
-                <button type="button" class="board-feature-card is-soon tint-uno" data-pick-game="uno">
-                  ${renderGameThumb("uno", "featured")}
-                  <span class="board-game-title">UNO</span>
-                  <span class="board-feature-meta"><span class="stars">★★★★☆</span> 4.6 · 8 online</span>
-                </button>
+              <div class="board-featured-grid">
+                ${featuredGames
+                  .map((g) => {
+                    const stars = parseFloat(g.rating) >= 4.8 ? "★★★★★" : "★★★★☆";
+                    const tag = g.live
+                      ? `<span class="board-feature-hot">HOT</span>`
+                      : `<span class="board-feature-soon">Soon</span>`;
+                    const body = `<span class="board-game-title">${escapeHtml(g.title)}</span>
+                  <span class="board-feature-meta"><span class="stars">${stars}</span> ${g.rating} · ${g.players} online</span>`;
+                    if (g.live) {
+                      return `<article class="board-feature-card is-live">
+                    ${tag}
+                    ${renderGameThumb(g.id, "featured")}
+                    <div class="board-feature-body">${body}
+                    <button type="button" class="caro-btn sm primary glow-cyan" data-act="${g.action}">Chơi ngay</button></div>
+                  </article>`;
+                    }
+                    return `<button type="button" class="board-feature-card is-soon" data-pick-game="${g.id}">
+                    ${tag}
+                    ${renderGameThumb(g.id, "featured")}
+                    <div class="board-feature-body">${body}</div>
+                  </button>`;
+                  })
+                  .join("")}
               </div>
             </section>
 
