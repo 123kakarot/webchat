@@ -1708,7 +1708,8 @@ export function mountCaroApp(ctx) {
 
     const inCaro = !["board-hub", "game-soon", "xiangqi-home", "xiangqi-play"].includes(view);
 
-    const isDash = view === "caro-home" || view === "board-hub" || view === "xiangqi-home";
+    const isDash =
+      view === "caro-home" || view === "board-hub" || view === "xiangqi-home" || view === "xiangqi-play";
 
     if (isDash) {
       root.innerHTML = `<div class="caro-shell-dash">

@@ -384,84 +384,206 @@ export function createXiangqiModule(deps) {
     if (!match) return `<div class="caro-empty">Chưa có ván.</div>`;
     const stats = loadStats();
     const board = replayIdx >= 0 ? boardAtReplay() : match.board;
-    const oppSide = match.meSide === SIDE_RED ? SIDE_BLACK : SIDE_RED;
-    const topSide = SIDE_BLACK;
-    const botSide = SIDE_RED;
-    const topCheck = match.checkSide === topSide && match.status === "playing";
-    const botCheck = match.checkSide === botSide && match.status === "playing";
+    const topCheck = match.checkSide === SIDE_BLACK && match.status === "playing";
+    const botCheck = match.checkSide === SIDE_RED && match.status === "playing";
+    const winRate = stats.played ? Math.round((stats.win / stats.played) * 100) : 0;
+    const oppLabel =
+      match.mode === "ai" ? `AI · ${String(match.aiLevel || "medium").toUpperCase()}` : "Đối thủ Local";
+    const oppElo = stats.elo + 34;
+    const turnLabel =
+      match.status !== "playing"
+        ? match.status === "draw"
+          ? "Hòa"
+          : "Kết thúc"
+        : match.turn === SIDE_RED
+          ? "Lượt Đỏ"
+          : "Lượt Đen";
+
+    const movePairs = [];
+    for (let i = 0; i < match.moves.length; i += 2) {
+      movePairs.push({
+        n: Math.floor(i / 2) + 1,
+        a: match.moves[i]?.note || "—",
+        b: match.moves[i + 1]?.note || "",
+      });
+    }
+    const recentPairs = movePairs.slice(-6).reverse();
 
     const overlay =
       match.status === "finished" || match.status === "draw"
         ? `<div class="xq-checkmate-overlay" data-act="xq-dismiss-win">
             <div class="xq-checkmate-card">
-              <div style="font-size:2.5rem">🏆</div>
-              <h2>${match.status === "draw" ? "HÒA" : "CHECKMATE"}</h2>
+              <div class="xq-win-trophy" aria-hidden="true">🏆</div>
+              <h2>${match.status === "draw" ? "HÒA CỜ" : "CHECKMATE"}</h2>
               <p>${
                 match.status === "draw"
-                  ? "Trận hòa."
+                  ? "Trận hòa — cả hai đều bản lĩnh."
                   : match.winner === match.meSide || match.mode === "local"
                     ? "Bạn chiến thắng!"
                     : "Đối thủ thắng."
               }</p>
-              <p class="caro-muted">${match.mode === "ai" ? "+15 ELO khi thắng AI" : ""}</p>
-              <button type="button" class="caro-btn primary" data-act="xq-home">Về sảnh Cờ Tướng</button>
+              <p class="xq-elo-delta">${match.mode === "ai" && match.winner === match.meSide ? "+15 ELO" : ""}</p>
+              <button type="button" class="xq-btn-primary" data-act="xq-home">Về sảnh Cờ Tướng</button>
             </div>
           </div>`
         : "";
 
+    const level = match.aiLevel || "medium";
+
     return `
-      <div class="xq-shell">
+      <div class="xq-play-arena xq-shell">
         ${overlay}
-        <div class="xq-game-top">
-          <strong>Cờ Tướng</strong>
-          <span class="caro-muted">${match.mode === "ai" ? `AI · ${match.aiLevel}` : "Local 2 người"} · ${escapeHtml(playerName())}</span>
-        </div>
-        <div class="xq-player-bar${topCheck ? " in-check" : ""}">
-          <span>Đối thủ ${match.mode === "ai" ? "(AI)" : ""} · ${topSide === SIDE_RED ? stats.elo : stats.elo + 34} ELO ${topCheck ? "🔥 Chiếu" : ""}</span>
-          <span>⏱ ${formatTime(match.blackTimeMs)}</span>
-        </div>
-        <div class="xq-game-layout">
-          <div class="xq-board-wrap">
-            ${renderBoardHtml(board, match.status === "playing" && replayIdx < 0)}
+        <div class="xq-play-ambient" aria-hidden="true"></div>
+
+        <header class="xq-play-header">
+          <div class="xq-play-crumb">
+            <button type="button" class="xq-link" data-act="xq-home">Cờ Tướng</button>
+            <span>/</span>
+            <span>${match.mode === "ai" ? "Chơi với AI" : "Chơi Local"}</span>
           </div>
-          <aside class="xq-side-panel">
-            <div class="xq-panel">
-              <h3>Lịch sử nước đi</h3>
-              <div class="xq-move-log">${
-                match.moves.length
-                  ? match.moves.map((m, i) => `<div>#${i + 1} ${escapeHtml(m.note || "")}</div>`).join("")
-                  : "—"
-              }</div>
+          <div class="xq-play-timer-pill">
+            <span class="xq-timer-ico" aria-hidden="true">⏱</span>
+            <div>
+              <small>Thời gian còn lại</small>
+              <strong data-xq-clock>${formatTime(match.redTimeMs)}</strong>
             </div>
-            <div class="xq-panel xq-chat-box">
-              <h3>Chat · Reaction</h3>
-              <div class="xq-move-log">${chatLog.map((x) => `<div>${escapeHtml(x)}</div>`).join("") || '<span class="caro-muted">👏 🔥 😂 — spectator sắp có</span>'}</div>
-              <input type="text" maxlength="120" placeholder="Nhắn nhanh…" data-xq-chat-input />
-              <div class="xq-actions">
-                <button type="button" class="caro-btn ghost" data-act="xq-react" data-emoji="👏">👏</button>
-                <button type="button" class="caro-btn ghost" data-act="xq-react" data-emoji="🔥">🔥</button>
-                <button type="button" class="caro-btn ghost" data-act="xq-react" data-emoji="😂">😂</button>
+          </div>
+          <button type="button" class="xq-icon-btn" data-act="xq-home" title="Sảnh" aria-label="Về sảnh">⌂</button>
+        </header>
+
+        <div class="xq-play-grid">
+          <aside class="xq-play-left">
+            <section class="xq-glass-card">
+              <h3>Nước đi gần đây</h3>
+              <div class="xq-move-grid">
+                ${
+                  recentPairs.length
+                    ? recentPairs
+                        .map(
+                          (p) => `<div class="xq-move-pair">
+                            <span class="xq-move-n">${p.n}</span>
+                            <span>${escapeHtml(p.a)}</span>
+                            <span>${escapeHtml(p.b)}</span>
+                          </div>`
+                        )
+                        .join("")
+                    : `<p class="xq-muted">Chưa có nước — hãy đi tiên.</p>`
+                }
               </div>
+            </section>
+            <section class="xq-glass-card xq-chat-card">
+              <h3>Chat phòng</h3>
+              <div class="xq-chat-log">${
+                chatLog.length
+                  ? chatLog.map((x) => `<div class="xq-chat-line">${escapeHtml(x)}</div>`).join("")
+                  : `<p class="xq-muted">👏 🔥 😂 — spectator sắp có</p>`
+              }</div>
+              <div class="xq-chat-compose">
+                <input type="text" maxlength="120" placeholder="Nhập tin nhắn…" data-xq-chat-input />
+              </div>
+              <div class="xq-react-row">
+                <button type="button" class="xq-react" data-act="xq-react" data-emoji="👏">👏</button>
+                <button type="button" class="xq-react" data-act="xq-react" data-emoji="🔥">🔥</button>
+                <button type="button" class="xq-react" data-act="xq-react" data-emoji="😂">😂</button>
+              </div>
+            </section>
+          </aside>
+
+          <section class="xq-play-center">
+            <div class="xq-player-card${topCheck ? " in-check" : ""}">
+              <span class="xq-avatar dark">AI</span>
+              <div class="xq-player-meta">
+                <strong>${escapeHtml(oppLabel)}</strong>
+                <span>${oppElo} ELO ${topCheck ? "· 🔥 Chiếu" : ""}</span>
+              </div>
+              <span class="xq-side-badge black">Đen</span>
+              <span class="xq-mini-clock">${formatTime(match.blackTimeMs)}</span>
             </div>
-            <div class="xq-panel">
+
+            <div class="xq-board-stage">
+              <div class="xq-board-glow" aria-hidden="true"></div>
+              <div class="xq-board-wrap wood">
+                ${renderBoardHtml(board, match.status === "playing" && replayIdx < 0)}
+              </div>
+              <div class="xq-turn-chip">${turnLabel}${aiBusy ? " · AI đang nghĩ…" : ""}</div>
+            </div>
+
+            <div class="xq-player-card you${botCheck ? " in-check" : ""}">
+              <span class="xq-avatar red">${escapeHtml((playerName()[0] || "B").toUpperCase())}</span>
+              <div class="xq-player-meta">
+                <strong>${escapeHtml(playerName())}</strong>
+                <span>${stats.elo} ELO ${botCheck ? "· 🔥 Chiếu" : ""}</span>
+              </div>
+              <span class="xq-side-badge red">Đỏ</span>
+              <span class="xq-mini-clock">${formatTime(match.redTimeMs)}</span>
+            </div>
+          </section>
+
+          <aside class="xq-play-right">
+            <section class="xq-glass-card">
+              <h3>Chế độ</h3>
+              <div class="xq-mode-tabs">
+                <button type="button" class="xq-tab" data-act="xq-quick">Quick</button>
+                <button type="button" class="xq-tab is-active" data-act="xq-home">AI</button>
+                <button type="button" class="xq-tab" data-act="xq-local">Local</button>
+              </div>
+              ${
+                match.mode === "ai"
+                  ? `<div class="xq-ai-levels-play">
+                      <button type="button" class="${level === "easy" ? "is-on" : ""}" data-act="xq-ai" data-level="easy">Easy</button>
+                      <button type="button" class="${level === "medium" ? "is-on" : ""}" data-act="xq-ai" data-level="medium">Medium</button>
+                      <button type="button" class="${level === "hard" ? "is-on" : ""}" data-act="xq-ai" data-level="hard">Hard</button>
+                      <button type="button" class="master ${level === "master" ? "is-on" : ""}" data-act="xq-ai" data-level="master">Master</button>
+                    </div>`
+                  : ""
+              }
+            </section>
+
+            <section class="xq-vs-card">
+              <div class="xq-vs-col">
+                <span class="xq-avatar red sm">${escapeHtml((playerName()[0] || "B").toUpperCase())}</span>
+                <strong>Bạn</strong>
+                <span>${stats.elo}</span>
+                <small>${stats.win}W ${stats.loss}L ${stats.draw}D</small>
+              </div>
+              <div class="xq-vs-mid">VS</div>
+              <div class="xq-vs-col">
+                <span class="xq-avatar dark sm">AI</span>
+                <strong>Đối thủ</strong>
+                <span>${oppElo}</span>
+                <small>${match.mode === "ai" ? level : "local"}</small>
+              </div>
+            </section>
+
+            <section class="xq-glass-card">
+              <h3>Thống kê</h3>
+              <div class="xq-stat-bars">
+                <div><span>Win rate</span><strong>${winRate}%</strong>
+                  <div class="xq-bar"><i style="width:${winRate}%"></i></div>
+                </div>
+                <div class="xq-stat-inline">
+                  <span>Chuỗi thắng <strong>${stats.streak}</strong></span>
+                  <span>Tổng trận <strong>${stats.played}</strong></span>
+                </div>
+              </div>
+            </section>
+
+            <section class="xq-glass-card">
               <h3>Replay</h3>
               <div class="xq-replay-bar">
-                <button type="button" class="caro-btn ghost" data-act="xq-replay-start">▶ Play</button>
-                <button type="button" class="caro-btn ghost" data-act="xq-replay-pause">Pause</button>
-                <button type="button" class="caro-btn ghost" data-act="xq-replay-prev">◀</button>
-                <button type="button" class="caro-btn ghost" data-act="xq-replay-next">▶</button>
+                <button type="button" data-act="xq-replay-start">▶</button>
+                <button type="button" data-act="xq-replay-pause">❚❚</button>
+                <button type="button" data-act="xq-replay-prev">◀</button>
+                <button type="button" data-act="xq-replay-next">▶▶</button>
               </div>
-            </div>
-            <div class="xq-actions">
-              <button type="button" class="caro-btn ghost" data-act="xq-draw">Hòa</button>
-              <button type="button" class="caro-btn" data-act="xq-resign">Đầu hàng</button>
-              <button type="button" class="caro-btn ghost" data-act="xq-home">← Sảnh</button>
+            </section>
+
+            <div class="xq-play-actions">
+              <button type="button" class="xq-btn-ghost" data-act="xq-draw">Hòa</button>
+              <button type="button" class="xq-btn-danger" data-act="xq-resign">Đầu hàng</button>
+              <button type="button" class="xq-btn-primary" data-act="xq-home">← Sảnh</button>
             </div>
           </aside>
-        </div>
-        <div class="xq-player-bar${botCheck ? " in-check" : ""}" style="margin-top:0.5rem">
-          <span>Bạn · ${stats.elo} ELO ${botCheck ? "🔥 Chiếu" : ""}</span>
-          <span>⏱ ${formatTime(match.redTimeMs)}</span>
         </div>
       </div>`;
   }
