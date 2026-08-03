@@ -44,7 +44,7 @@ function onBoard(r, c) {
   return r >= 0 && r <= 9 && c >= 0 && c <= 8;
 }
 
-function findKing(board, side) {
+export function findKing(board, side) {
   const k = side === SIDE_RED ? "K" : "k";
   for (let r = 0; r < 10; r++) {
     for (let c = 0; c < 9; c++) {
@@ -156,7 +156,7 @@ function pawnMoves(board, r, c, p, side) {
   return moves;
 }
 
-function pieceMoves(board, r, c) {
+export function pieceMoves(board, r, c) {
   const p = board[r][c];
   if (p === ".") return [];
   const side = pieceSide(p);
@@ -231,7 +231,7 @@ export function applyMove(board, fromR, fromC, toR, toC) {
   return next;
 }
 
-function attacked(board, r, c, bySide) {
+export function attacked(board, r, c, bySide) {
   for (let rr = 0; rr < 10; rr++) {
     for (let cc = 0; cc < 9; cc++) {
       const p = board[rr][cc];

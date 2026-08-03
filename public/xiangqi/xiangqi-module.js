@@ -179,7 +179,7 @@ export function createXiangqiModule(deps) {
 
       let mv = null;
       try {
-        mv = pickAiMove(match.board, side, level);
+        mv = pickAiMove(match.board, side, level, { ply: match.moves?.length || 0 });
       } catch (err) {
         console.error("pickAiMove", err);
         mv = allLegalMoves(match.board, side)[0] || null;
