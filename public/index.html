@@ -5599,11 +5599,19 @@
         position: fixed;
         inset: 0;
         z-index: 9999;
-        background: rgba(8, 12, 18, 0.92);
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 1.25rem;
+        background: rgba(2, 4, 10, 0.78);
+        backdrop-filter: blur(14px) saturate(1.2);
+        -webkit-backdrop-filter: blur(14px) saturate(1.2);
+        animation: upgrade-fade-in 0.45s ease both;
+      }
+
+      @keyframes upgrade-fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
       }
 
       .upgrade-overlay[hidden] {
@@ -5611,24 +5619,168 @@
       }
 
       .upgrade-card {
-        max-width: 420px;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 1.5rem 1.35rem;
+        position: relative;
+        width: min(420px, 100%);
         text-align: center;
+        padding: 1.75rem 1.5rem 1.5rem;
+        border-radius: 22px;
+        border: 1px solid rgba(0, 229, 255, 0.38);
+        background: linear-gradient(
+          155deg,
+          rgba(255, 255, 255, 0.1) 0%,
+          rgba(8, 28, 52, 0.55) 42%,
+          rgba(4, 12, 24, 0.88) 100%
+        );
+        box-shadow:
+          0 24px 60px rgba(0, 0, 0, 0.55),
+          0 0 48px rgba(0, 200, 255, 0.14),
+          inset 0 1px 0 rgba(255, 255, 255, 0.12);
+        overflow: hidden;
+        animation: upgrade-card-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes upgrade-card-in {
+        from {
+          opacity: 0;
+          transform: translateY(16px) scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .upgrade-glow {
+        position: absolute;
+        top: -40%;
+        left: -20%;
+        width: 90%;
+        height: 70%;
+        background: radial-gradient(
+          ellipse at 30% 30%,
+          rgba(0, 229, 255, 0.35) 0%,
+          rgba(99, 102, 241, 0.15) 40%,
+          transparent 70%
+        );
+        pointer-events: none;
+        mix-blend-mode: screen;
+      }
+
+      .upgrade-icon {
+        position: relative;
+        z-index: 1;
+        width: 3.25rem;
+        height: 3.25rem;
+        margin: 0 auto 0.85rem;
+        display: grid;
+        place-items: center;
+        border-radius: 16px;
+        font-size: 1.45rem;
+        color: #00e5ff;
+        background: rgba(0, 40, 70, 0.55);
+        border: 1px solid rgba(0, 229, 255, 0.4);
+        box-shadow: 0 0 28px rgba(0, 200, 255, 0.25);
+        animation: upgrade-icon-spin 4s ease-in-out infinite;
+      }
+
+      @keyframes upgrade-icon-spin {
+        0%, 100% { transform: rotate(0deg); }
+        35% { transform: rotate(180deg); }
+        65% { transform: rotate(180deg); }
+      }
+
+      .upgrade-badge {
+        position: relative;
+        z-index: 1;
+        display: inline-block;
+        margin: 0 0 0.5rem;
+        padding: 0.2rem 0.65rem;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #7dd3fc;
+        border: 1px solid rgba(0, 229, 255, 0.35);
+        background: rgba(0, 200, 255, 0.1);
       }
 
       .upgrade-card h2 {
-        margin: 0 0 0.75rem;
-        font-size: 1.15rem;
+        position: relative;
+        z-index: 1;
+        margin: 0 0 0.65rem;
+        font-family: Orbitron, "Be Vietnam Pro", sans-serif;
+        font-size: 1.2rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        color: #f4fbff;
+        text-shadow: 0 0 24px rgba(0, 229, 255, 0.25);
       }
 
       .upgrade-card p {
-        margin: 0 0 1.25rem;
-        color: var(--muted);
+        position: relative;
+        z-index: 1;
+        margin: 0 0 1.15rem;
+        color: rgba(180, 210, 230, 0.88);
+        font-size: 0.88rem;
+        line-height: 1.55;
+      }
+
+      .upgrade-reload-btn {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.55rem;
+        padding: 0.85rem 1rem;
+        border: 1px solid rgba(0, 229, 255, 0.55);
+        border-radius: 14px;
+        font: inherit;
+        font-weight: 600;
         font-size: 0.9rem;
-        line-height: 1.5;
+        color: #fff;
+        cursor: pointer;
+        background: linear-gradient(135deg, rgba(0, 180, 255, 0.45), rgba(99, 102, 241, 0.5));
+        box-shadow: 0 8px 28px rgba(0, 120, 200, 0.35);
+        transition: transform 0.18s ease, box-shadow 0.2s ease, filter 0.2s ease;
+      }
+
+      .upgrade-reload-btn:hover {
+        transform: translateY(-2px);
+        filter: brightness(1.06);
+        box-shadow: 0 12px 32px rgba(0, 180, 255, 0.4);
+      }
+
+      .upgrade-reload-btn:active {
+        transform: translateY(0);
+      }
+
+      .upgrade-kbd {
+        font-size: 0.72rem;
+        font-weight: 500;
+        padding: 0.15rem 0.45rem;
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: rgba(230, 245, 255, 0.95);
+      }
+
+      .upgrade-hint {
+        position: relative;
+        z-index: 1;
+        margin: 0.85rem 0 0;
+        font-size: 0.72rem;
+        color: rgba(140, 170, 195, 0.75);
+        line-height: 1.45;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .upgrade-overlay,
+        .upgrade-card,
+        .upgrade-icon {
+          animation: none !important;
+        }
       }
 
       /* —— Cinematic hub —— */
@@ -6260,11 +6412,18 @@
     </style>
   </head>
   <body>
-    <div id="upgrade-overlay" class="upgrade-overlay" hidden>
+    <div id="upgrade-overlay" class="upgrade-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
       <div class="upgrade-card">
-        <h2>Cần cập nhật Webchat</h2>
-        <p id="upgrade-overlay-msg">Tải lại trang để dùng phiên bản mới và nhập lại tên.</p>
-        <button type="button" class="gate-btn" id="upgrade-reload-btn" style="width:100%">Tải lại trang (Ctrl+F5)</button>
+        <div class="upgrade-glow" aria-hidden="true"></div>
+        <div class="upgrade-icon" aria-hidden="true">↻</div>
+        <p class="upgrade-badge">Phiên bản mới</p>
+        <h2 id="upgrade-title">Cập nhật WebChat</h2>
+        <p id="upgrade-overlay-msg">Tải lại trang để dùng phiên bản mới.</p>
+        <button type="button" class="upgrade-reload-btn" id="upgrade-reload-btn">
+          <span>Tải lại trang</span>
+          <span class="upgrade-kbd">Ctrl+F5</span>
+        </button>
+        <p class="upgrade-hint">Trình duyệt sẽ lấy bản mới — có thể cần nhập lại tên.</p>
       </div>
     </div>
 
@@ -6321,7 +6480,7 @@
 
     <section class="gate" id="gate" style="display:none">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v88</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v89</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
@@ -7221,7 +7380,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "88";
+      const CLIENT_BUILD = "89";
       const BASE_DOC_TITLE = "WebChat Hub";
 
       function applyUiTheme(mode) {
