@@ -405,7 +405,11 @@ export function mountCaroApp(ctx) {
             <span>WebChat<br><small class="caro-dash-logo-sub">Board Game Hub</small></span>
           </div>
           <nav class="caro-dash-menu">${renderWebchatHubNav("board")}</nav>
-          <div class="caro-dash-online-pill"><span class="caro-dash-dot"></span> ${online} online</div>
+          <div class="caro-nav-join-card">
+            <div class="caro-avatar-stack">${renderAvatarStack(3)}</div>
+            <p><strong>${online}</strong> đang online</p>
+            <button type="button" class="caro-nav-join-btn" data-act="back-hub">Tham gia ngay</button>
+          </div>
           <div class="caro-dash-nav-foot">
             <button type="button" class="caro-dash-link" data-act="back-hub">← Về Hub chính</button>
           </div>
@@ -415,12 +419,14 @@ export function mountCaroApp(ctx) {
           <header class="caro-dash-header">
             <div class="caro-breadcrumb">Board Game <span>/ Khám phá</span></div>
             <div class="caro-dash-header-user">
-              <button type="button" class="caro-dash-bell" data-act="caro-notify" aria-label="Thông báo">🔔</button>
+              <button type="button" class="caro-dash-bell" data-act="caro-notify" aria-label="Thông báo">
+                🔔<span class="caro-bell-badge">3</span>
+              </button>
               <div class="caro-dash-user-chip">
                 <span class="caro-dash-avatar">${escapeHtml(playerInitial())}</span>
                 <span class="caro-dash-user-meta">
                   <strong>${escapeHtml(playerName())}</strong>
-                  <span>LV ${level}</span>
+                  <span class="caro-status-online">● Online</span>
                 </span>
               </div>
             </div>
@@ -454,7 +460,7 @@ export function mountCaroApp(ctx) {
                     <h3>${escapeHtml(g.title)}</h3>
                     <p class="caro-muted">${escapeHtml(g.sub)}</p>
                     <p class="board-feature-meta">★ ${g.rating} · ${g.players} đang chơi</p>
-                    <button type="button" class="caro-btn primary" data-pick-game="${g.id}">Vào sảnh game</button>
+                    <button type="button" class="caro-btn primary glow-cyan" data-pick-game="${g.id}">Vào sảnh game</button>
                   </article>`
                   )
                   .join("")}
@@ -557,6 +563,52 @@ export function mountCaroApp(ctx) {
     return base + (ctx.socket?.connected ? 12 : 0);
   }
 
+  function dashOnlinePlayersPreview() {
+    const activities = [
+      "Đang chơi Cờ Caro",
+      "Trong phòng",
+      "Quick Match",
+      "Chơi với AI",
+      "Online",
+    ];
+    const fromLb = (leaderboard || []).map((r) => r.name).filter(Boolean);
+    const fallbacks = ["Minh Anh", "Hoàng", "Lan", "Tuấn", "Vy"];
+    return Array.from({ length: 5 }, (_, i) => {
+      const name = fromLb[i] || fallbacks[i];
+      return {
+        name,
+        act: activities[i % activities.length],
+        initial: (name[0] || "?").toUpperCase(),
+        hue: 200 + i * 38,
+      };
+    });
+  }
+
+  function renderOnlinePlayersRail() {
+    return dashOnlinePlayersPreview()
+      .map(
+        (p) => `<li class="caro-online-player">
+          <span class="caro-dash-avatar sm" style="--av-hue:${p.hue}">${escapeHtml(p.initial)}</span>
+          <span class="caro-online-player-meta">
+            <strong>${escapeHtml(p.name)}</strong>
+            <span>${p.act}</span>
+          </span>
+          <span class="caro-online-dot" aria-hidden="true"></span>
+        </li>`
+      )
+      .join("");
+  }
+
+  function renderAvatarStack(max = 3) {
+    return dashOnlinePlayersPreview()
+      .slice(0, max)
+      .map(
+        (p) =>
+          `<span class="caro-stack-avatar" style="--av-hue:${p.hue}">${escapeHtml(p.initial)}</span>`
+      )
+      .join("");
+  }
+
   function heroBoardSvg() {
     return `<svg class="caro-hero-board" viewBox="0 0 200 160" aria-hidden="true">
       <defs>
@@ -609,6 +661,11 @@ export function mountCaroApp(ctx) {
             <input type="checkbox" data-act="sound" ${soundOn ? "checked" : ""} />
             <span>Âm thanh</span>
           </label>
+          <div class="caro-nav-join-card">
+            <div class="caro-avatar-stack">${renderAvatarStack(3)}</div>
+            <p><strong>${dashOnlineCount()}</strong> đang online</p>
+            <button type="button" class="caro-nav-join-btn" data-act="quick">Quick Match</button>
+          </div>
           <div class="caro-dash-nav-foot">
             <button type="button" class="caro-dash-link" data-act="board-portal">← Sảnh Board Game</button>
             <button type="button" class="caro-dash-link" data-act="back-hub">← Hub chính</button>
@@ -622,12 +679,14 @@ export function mountCaroApp(ctx) {
               <span>/ Cờ Caro</span>
             </div>
             <div class="caro-dash-header-user">
-              <button type="button" class="caro-dash-bell" aria-label="Thông báo" data-act="caro-notify">🔔</button>
+              <button type="button" class="caro-dash-bell" aria-label="Thông báo" data-act="caro-notify">
+                🔔<span class="caro-bell-badge">3</span>
+              </button>
               <div class="caro-dash-user-chip">
                 <span class="caro-dash-avatar">${escapeHtml(playerInitial())}</span>
                 <span class="caro-dash-user-meta">
                   <strong>${escapeHtml(playerName())}</strong>
-                  <span>LV ${level}</span>
+                  <span class="caro-status-online">● Online · LV ${level}</span>
                 </span>
               </div>
             </div>
@@ -651,10 +710,22 @@ export function mountCaroApp(ctx) {
             </section>
 
             <div class="caro-hub-stats caro-reveal" style="--i:1">
-              <div class="caro-hub-stat"><span>Online</span><strong>${online}</strong></div>
-              <div class="caro-hub-stat"><span>Trận đang chơi</span><strong>${liveMatches}</strong></div>
-              <div class="caro-hub-stat"><span>Top tuần</span><strong>${escapeHtml(lbSlice[0]?.name || "—")}</strong></div>
-              <div class="caro-hub-stat"><span>Chuỗi thắng</span><strong>${topStreak}</strong></div>
+              <div class="caro-hub-stat tint-cyan">
+                <span class="stat-ico" aria-hidden="true">👥</span>
+                <div><span>Người online</span><strong>${online}</strong></div>
+              </div>
+              <div class="caro-hub-stat tint-blue">
+                <span class="stat-ico" aria-hidden="true">⚔</span>
+                <div><span>Trận đang diễn ra</span><strong>${liveMatches}</strong></div>
+              </div>
+              <div class="caro-hub-stat tint-gold">
+                <span class="stat-ico" aria-hidden="true">🏆</span>
+                <div><span>Top hôm nay</span><strong>${escapeHtml(lbSlice[0]?.name || "—")}</strong></div>
+              </div>
+              <div class="caro-hub-stat tint-purple">
+                <span class="stat-ico" aria-hidden="true">🔥</span>
+                <div><span>Chuỗi thắng cao</span><strong>${topStreak}</strong></div>
+              </div>
             </div>
 
             <div class="caro-mode-row caro-reveal" style="--i:1">
@@ -685,18 +756,18 @@ export function mountCaroApp(ctx) {
                   <span class="board-feature-hot">HOT</span>
                   <span class="board-game-icon">⊞</span>
                   <span class="board-game-title">Cờ Caro</span>
-                  <span class="board-feature-meta">★ 4.9 · ${online} online</span>
-                  <button type="button" class="caro-btn sm primary" data-act="caro-home">Chơi ngay</button>
+                  <span class="board-feature-meta"><span class="stars">★★★★★</span> 4.9 · ${online} online</span>
+                  <button type="button" class="caro-btn sm primary glow-cyan" data-act="quick">Chơi ngay</button>
                 </article>
-                <button type="button" class="board-feature-card is-soon" data-pick-game="chess">
+                <button type="button" class="board-feature-card is-soon tint-chess" data-pick-game="chess">
                   <span class="board-game-icon">♔</span>
                   <span class="board-game-title">Cờ vua</span>
-                  <span class="board-feature-meta">Sắp ra mắt</span>
+                  <span class="board-feature-meta"><span class="stars">★★★★☆</span> 4.8 · 14 online</span>
                 </button>
-                <button type="button" class="board-feature-card is-soon" data-pick-game="uno">
+                <button type="button" class="board-feature-card is-soon tint-uno" data-pick-game="uno">
                   <span class="board-game-icon">🃏</span>
                   <span class="board-game-title">UNO</span>
-                  <span class="board-feature-meta">★ 4.7</span>
+                  <span class="board-feature-meta"><span class="stars">★★★★☆</span> 4.6 · 8 online</span>
                 </button>
               </div>
             </section>
@@ -820,22 +891,12 @@ export function mountCaroApp(ctx) {
         </div>
 
         <aside class="caro-dash-rail caro-reveal" style="--i:2">
-          <section class="caro-dash-profile card-glow caro-profile-glow">
-            <div class="caro-dash-avatar lg">${escapeHtml(playerInitial())}</div>
-            <h3>${escapeHtml(playerName())}</h3>
-            <p class="caro-muted">Level ${level}</p>
-            <div class="caro-xp"><span style="width:${xpPct}%"></span></div>
-            <div class="caro-stat-grid">
-              <div><span>ELO</span><strong>${stats.elo}</strong></div>
-              <div><span>Win rate</span><strong>${winRate}%</strong></div>
-              <div><span>Thắng</span><strong>${stats.win}</strong></div>
-              <div><span>Thua</span><strong>${stats.loss}</strong></div>
-              <div><span>Hòa</span><strong>${stats.draw}</strong></div>
-              <div><span>Streak</span><strong>${stats.streak}</strong></div>
-            </div>
+          <section class="caro-dash-card caro-card-vivid">
+            <div class="caro-dash-card-head"><h2>Người chơi online</h2></div>
+            <ul class="caro-online-list">${renderOnlinePlayersRail()}</ul>
           </section>
 
-          <section class="caro-dash-card">
+          <section class="caro-dash-card caro-card-vivid">
             <div class="caro-dash-card-head">
               <h2>Bảng xếp hạng</h2>
             </div>
@@ -860,6 +921,31 @@ export function mountCaroApp(ctx) {
               }
             </ol>
             <button type="button" class="caro-btn ghost sm" data-act="rank" style="width:100%;margin-top:0.5rem">Chi tiết</button>
+          </section>
+
+          <section class="caro-dash-card caro-event-card">
+            <div class="caro-event-box">
+              <span class="caro-event-ico">🏆</span>
+              <div>
+                <h2 style="margin:0 0 0.25rem">Sự kiện</h2>
+                <strong>Caro Season 1</strong>
+                <p class="caro-muted" style="font-size:0.78rem;margin:0.35rem 0 0.65rem">Giải tuần · ELO &amp; phần thưởng hub</p>
+                <button type="button" class="caro-btn sm primary glow-cyan" data-act="caro-notify">Tham gia</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="caro-dash-profile card-glow caro-profile-glow">
+            <div class="caro-dash-avatar lg">${escapeHtml(playerInitial())}</div>
+            <h3>${escapeHtml(playerName())}</h3>
+            <p class="caro-muted">Level ${level} · ELO ${stats.elo}</p>
+            <div class="caro-xp"><span style="width:${xpPct}%"></span></div>
+            <div class="caro-stat-grid">
+              <div><span>Win rate</span><strong>${winRate}%</strong></div>
+              <div><span>Streak</span><strong>${stats.streak}</strong></div>
+              <div><span>Thắng</span><strong>${stats.win}</strong></div>
+              <div><span>Thua</span><strong>${stats.loss}</strong></div>
+            </div>
           </section>
 
           <section class="caro-dash-card caro-dash-guide">
