@@ -2,11 +2,13 @@ import {
   applyMove,
   allLegalMoves,
   createMatchState,
+  findAttackers,
   findKing,
   gameResult,
   isInCheck,
   legalMovesFrom,
   moveNotation,
+  oppositeSide,
   pieceLabel,
   pieceSide,
   SIDE_BLACK,
@@ -28,6 +30,8 @@ export function createXiangqiModule(deps) {
   let replayPlaying = false;
   let replayTimer = null;
   let chatLog = [];
+  let endOverlayTimer = null;
+  let aiGen = 0;
 
   function loadStats() {
     try {
@@ -53,6 +57,7 @@ export function createXiangqiModule(deps) {
 
   function startAi(level) {
     stopReplay();
+    clearEndOverlayTimer();
     aiGen++;
     aiBusy = false;
     match = createMatchState({ mode: "ai", aiLevel: level, meSide: SIDE_RED });
@@ -65,6 +70,7 @@ export function createXiangqiModule(deps) {
 
   function startLocalPvp() {
     stopReplay();
+    clearEndOverlayTimer();
     aiGen++;
     aiBusy = false;
     match = createMatchState({ mode: "local", meSide: SIDE_RED });
@@ -83,6 +89,8 @@ export function createXiangqiModule(deps) {
     if (!room) return null;
     const prevMoves = match?.mode === "online" ? match.moves?.length || 0 : 0;
     const prevCheck = match?.mode === "online" ? match.checkSide : null;
+    const prevShow = match?.mode === "online" ? match.showEndOverlay : undefined;
+    const prevEndReason = match?.mode === "online" ? match.endReason : null;
     stopReplay();
     aiBusy = false;
     const me = playerName();
@@ -115,7 +123,29 @@ export function createXiangqiModule(deps) {
     chatLog = (room.chat || []).map((c) => `${c.name}: ${c.text}`);
     replayIdx = -1;
     const nextMoves = match.moves.length;
-    if (nextMoves > prevMoves && match.status === "playing") {
+    if (match.status === "finished" || match.status === "draw") {
+      if (match.winner && match.winner !== "draw" && isInCheck(match.board, oppositeSide(match.winner))) {
+        match.matedSide = oppositeSide(match.winner);
+        match.mateKing = findKing(match.board, match.matedSide);
+        match.mateAttackers = match.mateKing
+          ? findAttackers(match.board, match.mateKing[0], match.mateKing[1], match.winner)
+          : [];
+        match.endReason = "checkmate";
+        match.checkSide = match.matedSide;
+        if (prevShow === true) {
+          match.showEndOverlay = true;
+          match.revealMate = true;
+        } else {
+          match.showEndOverlay = false;
+          match.revealMate = true;
+          if (prevEndReason !== "checkmate") scheduleEndOverlay(3500);
+        }
+      } else {
+        match.showEndOverlay = true;
+        match.revealMate = false;
+        match.endReason = match.status === "draw" ? "draw" : "end";
+      }
+    } else if (nextMoves > prevMoves && match.status === "playing") {
       announceBoardAlerts({ skipMoveToast: false });
     } else if (match.checkSide && match.checkSide !== prevCheck && match.status === "playing") {
       announceBoardAlerts({ skipMoveToast: true });
@@ -125,14 +155,13 @@ export function createXiangqiModule(deps) {
 
   function clearMatch() {
     stopReplay();
+    clearEndOverlayTimer();
     aiGen++;
     aiBusy = false;
     match = null;
     selected = null;
     targets = [];
   }
-
-  let aiGen = 0;
 
   function notifyUi() {
     try {
@@ -213,10 +242,67 @@ export function createXiangqiModule(deps) {
     }
   }
 
+  function clearEndOverlayTimer() {
+    if (endOverlayTimer) clearTimeout(endOverlayTimer);
+    endOverlayTimer = null;
+  }
+
+  function showEndOverlayNow() {
+    clearEndOverlayTimer();
+    if (!match) return;
+    match.showEndOverlay = true;
+    notifyUi();
+  }
+
+  function scheduleEndOverlay(ms = 3200) {
+    clearEndOverlayTimer();
+    endOverlayTimer = setTimeout(() => showEndOverlayNow(), ms);
+  }
+
+  function buildMateReveal(winner) {
+    if (!match || !winner || winner === "draw") {
+      match.revealMate = false;
+      match.matedSide = null;
+      match.mateAttackers = [];
+      match.mateKing = null;
+      match.endReason = winner === "draw" ? "draw" : "end";
+      match.showEndOverlay = true;
+      return;
+    }
+    const mated = oppositeSide(winner);
+    const inCheck = isInCheck(match.board, mated);
+    match.matedSide = mated;
+    match.mateKing = findKing(match.board, mated);
+    match.mateAttackers = match.mateKing
+      ? findAttackers(match.board, match.mateKing[0], match.mateKing[1], winner)
+      : [];
+    match.checkSide = mated;
+    if (inCheck) {
+      match.endReason = "checkmate";
+      match.revealMate = true;
+      match.showEndOverlay = false;
+      const who = sideLabel(mated);
+      const atk = (match.mateAttackers || [])
+        .map((a) => pieceLabel(a.piece))
+        .filter(Boolean)
+        .join(" · ");
+      toast?.(
+        `⚔ CHIẾU BÍ — ${who} hết nước!${atk ? ` (chiếu bởi ${atk})` : ""} · xem bàn cờ`
+      );
+      beep?.(720, 220, "square", 0.08);
+      scheduleEndOverlay(3500);
+    } else {
+      match.endReason = "resign";
+      match.revealMate = false;
+      match.showEndOverlay = true;
+    }
+  }
+
   function finishGame(winner) {
     if (!match || match.status !== "playing") return;
     match.status = winner === "draw" ? "draw" : "finished";
     match.winner = winner;
+    buildMateReveal(winner);
     const stats = loadStats();
     stats.played++;
     if (match.mode === "ai") {
@@ -237,15 +323,29 @@ export function createXiangqiModule(deps) {
       }
     }
     saveStats(stats);
-    beep?.(620, 120, "sine", 0.05);
+    if (match.endReason !== "checkmate") beep?.(620, 120, "sine", 0.05);
   }
 
   function afterMove() {
     if (!match) return;
     const res = gameResult(match.board, match.turn);
     if (res) {
+      // Toast nước cuối trước khi hiện chiếu bí
+      const lm = lastMove();
+      if (lm) {
+        const who =
+          match.mode === "ai"
+            ? lm.side === match.meSide
+              ? "Bạn"
+              : "AI"
+            : match.mode === "online"
+              ? lm.side === match.meSide
+                ? "Bạn"
+                : "Đối thủ"
+              : sideLabel(lm.side);
+        toast?.(`${who} đi: ${lm.note || pieceLabel(lm.piece)}`);
+      }
       finishGame(res);
-      announceBoardAlerts({ skipMoveToast: false });
       return;
     }
     match.checkSide = isInCheck(match.board, match.turn) ? match.turn : null;
@@ -465,7 +565,11 @@ export function createXiangqiModule(deps) {
     let points = "";
     const lm = lastMove();
     const checkKing =
-      match?.checkSide && match.status === "playing" ? findKing(board, match.checkSide) : null;
+      (match?.checkSide || match?.matedSide) &&
+      (match.status === "playing" || match.revealMate)
+        ? findKing(board, match.matedSide || match.checkSide)
+        : null;
+    const attackers = match?.revealMate && match.mateAttackers ? match.mateAttackers : [];
     for (let r = 0; r < 10; r++) {
       for (let c = 0; c < 9; c++) {
         const p = board[r][c];
@@ -477,11 +581,12 @@ export function createXiangqiModule(deps) {
         const isLastFrom = lm && lm.fromR === r && lm.fromC === c;
         const isLastTo = lm && lm.toR === r && lm.toC === c;
         const isKingCheck = checkKing && checkKing[0] === r && checkKing[1] === c;
+        const isAttacker = attackers.some((a) => a.r === r && a.c === c);
         points += `<button type="button" class="xq-point${isSel ? " is-selected" : ""}${isT ? " is-target" : ""}${
           isLastFrom ? " is-last-from" : ""
         }${isLastTo ? " is-last-to" : ""}${isKingCheck ? " is-king-check" : ""}${
-          p !== "." ? " has-piece" : ""
-        }" style="left:${left}%;top:${top}%" data-xq-r="${r}" data-xq-c="${c}" ${
+          match?.revealMate && isKingCheck ? " is-mate-king" : ""
+        }${isAttacker ? " is-attacker" : ""}${p !== "." ? " has-piece" : ""}" style="left:${left}%;top:${top}%" data-xq-r="${r}" data-xq-c="${c}" ${
           interactive ? "" : "tabindex=-1"
         } aria-label="${r},${c}">`;
         points += `<span class="xq-dot-hint" aria-hidden="true"></span>`;
@@ -492,7 +597,7 @@ export function createXiangqiModule(deps) {
           const side = pieceSide(p) === SIDE_RED ? "red" : "black";
           points += `<span class="xq-piece ${side}${isLastTo ? " just-moved" : ""}${
             isKingCheck ? " in-check" : ""
-          }">${pieceLabel(p)}</span>`;
+          }${isAttacker ? " is-attacker-piece" : ""}">${pieceLabel(p)}</span>`;
         }
         points += `</button>`;
       }
@@ -715,6 +820,16 @@ export function createXiangqiModule(deps) {
 
     const winText = (() => {
       if (match.status === "draw") return "Trận hòa — cả hai đều bản lĩnh.";
+      if (match.endReason === "checkmate") {
+        const mated = match.matedSide;
+        const atk = (match.mateAttackers || []).map((a) => pieceLabel(a.piece)).join(" · ");
+        const mateLine = `Chiếu bí ${sideLabel(mated)}${atk ? ` — chiếu bởi ${atk}` : ""}.`;
+        if (match.mode === "local") {
+          return `${mateLine} ${match.winner === SIDE_RED ? "Đỏ thắng!" : "Đen thắng!"}`;
+        }
+        if (match.winner === match.meSide) return `${mateLine} Bạn chiến thắng!`;
+        return `${mateLine} Bạn thua.`;
+      }
       if (match.mode === "local") {
         return match.winner === SIDE_RED ? "Đỏ thắng!" : "Đen thắng!";
       }
@@ -735,15 +850,38 @@ export function createXiangqiModule(deps) {
     const recentPairs = movePairs.slice(-6).reverse();
 
     const overlay =
-      match.status === "finished" || match.status === "draw"
+      (match.status === "finished" || match.status === "draw") && match.showEndOverlay
         ? `<div class="xq-checkmate-overlay" data-act="xq-dismiss-win">
             <div class="xq-checkmate-card">
-              <div class="xq-win-trophy" aria-hidden="true">🏆</div>
-              <h2>${match.status === "draw" ? "HÒA CỜ" : "CHECKMATE"}</h2>
+              <div class="xq-win-trophy" aria-hidden="true">${match.status === "draw" ? "🤝" : "🏆"}</div>
+              <h2>${
+                match.status === "draw"
+                  ? "HÒA CỜ"
+                  : match.endReason === "checkmate"
+                    ? "CHIẾU BÍ"
+                    : "KẾT THÚC"
+              }</h2>
               <p>${winText}</p>
+              ${
+                match.endReason === "checkmate" && lastMove()
+                  ? `<p class="xq-mate-detail">Nước bí: <strong>${escapeHtml(
+                      lastMove().note || pieceLabel(lastMove().piece)
+                    )}</strong></p>`
+                  : ""
+              }
               <p class="xq-elo-delta">${match.mode === "ai" && match.winner === match.meSide ? "+15 ELO" : ""}</p>
+              <button type="button" class="xq-btn-ghost" data-act="xq-review-mate">Xem lại bàn</button>
               <button type="button" class="xq-btn-primary" data-act="xq-home">Về sảnh Cờ Tướng</button>
             </div>
+          </div>`
+        : "";
+
+    const mateRevealBanner =
+      match.revealMate && !match.showEndOverlay
+        ? `<div class="xq-mate-reveal-banner" role="alert">
+            <strong>⚔ CHIẾU BÍ</strong>
+            <span>${sideLabel(match.matedSide)} hết nước thoát — Tướng đỏ viền · quân chiếu sáng cam</span>
+            <button type="button" class="xq-btn-primary" data-act="xq-show-result">Xem kết quả</button>
           </div>`
         : "";
 
@@ -781,6 +919,7 @@ export function createXiangqiModule(deps) {
     return `
       <div class="xq-play-arena xq-shell">
         ${overlay}
+        ${mateRevealBanner}
         <div class="xq-play-ambient" aria-hidden="true"></div>
 
         <header class="xq-play-header">
@@ -858,14 +997,18 @@ export function createXiangqiModule(deps) {
                 ${renderBoardHtml(board, match.status === "playing" && replayIdx < 0)}
               </div>
               ${
-                match.checkSide && match.status === "playing"
-                  ? `<div class="xq-check-banner" data-xq-check-banner role="alert">⚠ CHIẾU TƯỚNG — ${
-                      match.mode === "local"
-                        ? sideLabel(match.checkSide)
-                        : match.checkSide === match.meSide
-                          ? "Tướng bạn"
-                          : sideLabel(match.checkSide)
-                    } đang bị chiếu!</div>`
+                match.checkSide && (match.status === "playing" || match.revealMate)
+                  ? `<div class="xq-check-banner${match.revealMate ? " is-mate" : ""}" data-xq-check-banner role="alert">${
+                      match.revealMate
+                        ? `⚔ CHIẾU BÍ — ${sideLabel(match.matedSide)} không còn nước đi!`
+                        : `⚠ CHIẾU TƯỚNG — ${
+                            match.mode === "local"
+                              ? sideLabel(match.checkSide)
+                              : match.checkSide === match.meSide
+                                ? "Tướng bạn"
+                                : sideLabel(match.checkSide)
+                          } đang bị chiếu!`
+                    }</div>`
                   : `<div class="xq-check-banner is-hidden" data-xq-check-banner hidden></div>`
               }
               <div class="xq-turn-chip" data-xq-turn-chip>${getTurnChipText()}</div>
@@ -1052,7 +1195,22 @@ export function createXiangqiModule(deps) {
       }, 700);
       return "xiangqi-play";
     }
-    if (act === "xq-dismiss-win") return "xiangqi-play";
+    if (act === "xq-show-result") {
+      showEndOverlayNow();
+      return "xiangqi-play";
+    }
+    if (act === "xq-review-mate") {
+      if (match) {
+        match.showEndOverlay = false;
+        match.revealMate = match.endReason === "checkmate";
+      }
+      return "xiangqi-play";
+    }
+    if (act === "xq-dismiss-win") {
+      // click ngoài card: vẫn mở kết quả / giữ overlay
+      if (match && !match.showEndOverlay) showEndOverlayNow();
+      return "xiangqi-play";
+    }
     return null;
   }
 

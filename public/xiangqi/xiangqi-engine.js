@@ -232,20 +232,39 @@ export function applyMove(board, fromR, fromC, toR, toC) {
 }
 
 export function attacked(board, r, c, bySide) {
+  return findAttackers(board, r, c, bySide).length > 0;
+}
+
+/** Quân của `bySide` đang tấn công ô (r,c). */
+export function findAttackers(board, r, c, bySide) {
+  const out = [];
+  const seen = new Set();
+  const push = (rr, cc, piece) => {
+    const k = `${rr},${cc}`;
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push({ r: rr, c: cc, piece });
+  };
+
   for (let rr = 0; rr < 10; rr++) {
     for (let cc = 0; cc < 9; cc++) {
       const p = board[rr][cc];
       if (p === "." || pieceSide(p) !== bySide) continue;
       const moves = pieceMoves(board, rr, cc);
-      if (moves.some(([tr, tc]) => tr === r && tc === c)) return true;
+      if (moves.some(([tr, tc]) => tr === r && tc === c)) push(rr, cc, p);
     }
   }
+
+  // Đối mặt tướng: quân tướng đối phương "tấn công" theo cột trống
   if (generalsFace(board)) {
     const rk = findKing(board, SIDE_RED);
     const bk = findKing(board, SIDE_BLACK);
-    if (rk && bk && rk[1] === c && (rk[0] === r || bk[0] === r)) return true;
+    if (rk && bk && rk[1] === c && bk[1] === c) {
+      if (bySide === SIDE_RED && rk[0] !== r) push(rk[0], rk[1], "K");
+      if (bySide === SIDE_BLACK && bk[0] !== r) push(bk[0], bk[1], "k");
+    }
   }
-  return false;
+  return out;
 }
 
 export function isInCheck(board, side) {
