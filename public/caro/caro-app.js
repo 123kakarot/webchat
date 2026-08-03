@@ -282,6 +282,8 @@ export function mountCaroApp(ctx) {
     if (s.view && !["board-hub", "game-soon"].includes(s.view)) {
       if (["lobby", "online-game"].includes(s.view) && !onlineRoom) {
         view = "caro-home";
+      } else if (s.view === "xiangqi-play" && !xiangqi.getMatch?.()) {
+        view = "xiangqi-home";
       } else {
         view = s.view;
       }
@@ -301,15 +303,20 @@ export function mountCaroApp(ctx) {
       view = "local-game";
       return;
     }
-    if (s?.view && !["lobby", "online-game"].includes(s.view)) {
-      view = s.view;
+    if (s?.view === "xiangqi-play") {
+      // Ván cờ tướng chưa persist — không khôi phục màn chơi trống
+      view = "xiangqi-home";
+      return;
+    }
+    if (s?.view === "xiangqi-home") {
+      view = "xiangqi-home";
       return;
     }
     if (s?.view && ["lobby", "online-game"].includes(s.view)) {
       view = "caro-home";
       return;
     }
-    if (s?.view === "xiangqi-play" || s?.view === "xiangqi-home") {
+    if (s?.view && !["lobby", "online-game", "board-hub"].includes(s.view)) {
       view = s.view;
       return;
     }
@@ -1692,7 +1699,12 @@ export function mountCaroApp(ctx) {
     else if (view === "rank") body = renderRank();
     else if (view === "replay") body = renderReplay();
     else if (view === "xiangqi-home") body = renderXiangqiHomeDash();
-    else if (view === "xiangqi-play") body = xiangqi.renderPlay();
+    else if (view === "xiangqi-play") {
+      if (!xiangqi.getMatch()) {
+        view = "xiangqi-home";
+        body = renderXiangqiHomeDash();
+      } else body = xiangqi.renderPlay();
+    }
 
     const inCaro = !["board-hub", "game-soon", "xiangqi-home", "xiangqi-play"].includes(view);
 
