@@ -34,7 +34,7 @@ function gameArtUrl(id) {
 }
 
 function renderGameThumb(id, variant = "card") {
-  const url = `${gameArtUrl(id)}?v=96`;
+  const url = `${gameArtUrl(id)}?v=97`;
   const title = gameById(id)?.title || (id === "uno" ? "UNO" : id);
   const safeTitle = String(title).replace(/"/g, "&quot;");
   return `<span class="board-game-thumb thumb-${variant}" role="img" aria-label="${safeTitle}">
