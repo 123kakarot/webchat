@@ -621,10 +621,96 @@
   gap: 0.85rem;
 }
 
-.board-game-card,
 .board-hub-game {
   width: 100%;
   appearance: none;
+  padding: 0;
+  align-items: stretch;
+  text-align: center;
+}
+
+.board-hub-game-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.75rem 1rem;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.board-game-thumb {
+  display: block;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: rgba(4, 12, 28, 0.6);
+}
+
+.board-game-thumb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 45%, rgba(4, 10, 24, 0.75) 100%);
+  pointer-events: none;
+}
+
+.board-game-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scale(1.02);
+  transition: transform 0.35s ease;
+}
+
+.board-hub-game:hover .board-game-thumb img,
+.board-feature-card:hover .board-game-thumb img,
+.board-suggest-card:hover .board-game-thumb img {
+  transform: scale(1.08);
+}
+
+.board-game-thumb.thumb-hub {
+  width: 100%;
+  height: 5.75rem;
+  border-radius: 18px 18px 10px 10px;
+  border-bottom: none;
+  box-shadow: none;
+  border-color: rgba(0, 229, 255, 0.2);
+}
+
+.board-game-thumb.thumb-suggest {
+  width: 100%;
+  height: 10.5rem;
+  border-radius: 16px;
+  margin-bottom: 0.35rem;
+}
+
+.board-game-thumb.thumb-featured {
+  width: 100%;
+  height: 5rem;
+  border-radius: 12px;
+  margin-bottom: 0.25rem;
+}
+
+.board-feature-card .board-game-thumb::after {
+  background: linear-gradient(180deg, transparent 50%, rgba(4, 10, 24, 0.55) 100%);
+}
+
+.board-feature-card {
+  padding: 0.65rem 0.65rem 0.85rem;
+}
+
+.board-suggest-card .board-game-thumb {
+  margin-bottom: 0.25rem;
+}
+
+.board-game-card,
+.board-hub-game {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -645,6 +731,11 @@
   overflow: hidden;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.board-hub-game {
+  padding: 0;
+  gap: 0;
 }
 
 .board-game-card:hover,

@@ -13,15 +13,36 @@ const STORAGE_STATS = "caro-local-stats";
 const STORAGE_SOUND = "caro-sound";
 const STORAGE_THEME = "caro-board-theme";
 
-/** @type {{ id: string, title: string, sub: string, status: "live"|"soon", icon: string }[]} */
+/** @type {{ id: string, title: string, sub: string, status: "live"|"soon", icon: string, art: string }[]} */
 const BOARD_GAMES = [
-  { id: "caro", title: "Cờ Caro", sub: "AI · 2 người · online realtime", status: "live", icon: "⊞" },
-  { id: "xiangqi", title: "Cờ tướng", sub: "Xiangqi · cờ Trung Hoa", status: "soon", icon: "帥" },
-  { id: "chess", title: "Cờ vua", sub: "Chess · cờ quốc tế", status: "soon", icon: "♔" },
-  { id: "go", title: "Cờ vây", sub: "Go · Baduk · Weiqi", status: "soon", icon: "⚫" },
-  { id: "checkers", title: "Cờ đam", sub: "Checkers · damka", status: "soon", icon: "⛀" },
-  { id: "shogi", title: "Shogi", sub: "Cờ Nhật Bản", status: "soon", icon: "☖" },
+  { id: "caro", title: "Cờ Caro", sub: "AI · 2 người · online realtime", status: "live", icon: "⊞", art: "/caro/games/caro.png" },
+  { id: "xiangqi", title: "Cờ tướng", sub: "Xiangqi · cờ Trung Hoa", status: "soon", icon: "帥", art: "/caro/games/xiangqi.svg" },
+  { id: "chess", title: "Cờ vua", sub: "Chess · cờ quốc tế", status: "soon", icon: "♔", art: "/caro/games/chess.svg" },
+  { id: "go", title: "Cờ vây", sub: "Go · Baduk · Weiqi", status: "soon", icon: "⚫", art: "/caro/games/go.svg" },
+  { id: "checkers", title: "Cờ đam", sub: "Checkers · damka", status: "soon", icon: "⛀", art: "/caro/games/checkers.svg" },
+  { id: "shogi", title: "Shogi", sub: "Cờ Nhật Bản", status: "soon", icon: "☖", art: "/caro/games/shogi.svg" },
 ];
+
+const GAME_ART = {
+  uno: "/caro/games/uno.jpg",
+};
+
+function gameById(id) {
+  return BOARD_GAMES.find((x) => x.id === id) || null;
+}
+
+function gameArtUrl(id) {
+  return gameById(id)?.art || GAME_ART[id] || `/caro/games/${id}.png`;
+}
+
+function renderGameThumb(id, variant = "card") {
+  const url = gameArtUrl(id);
+  const title = gameById(id)?.title || (id === "uno" ? "UNO" : id);
+  const safeTitle = String(title).replace(/"/g, "&quot;");
+  return `<span class="board-game-thumb thumb-${variant}" role="img" aria-label="${safeTitle}">
+    <img src="${url}" alt="" loading="lazy" decoding="async" />
+  </span>`;
+}
 
 /**
  * @param {{
@@ -394,7 +415,7 @@ export function mountCaroApp(ctx) {
         rating: g.id === "caro" ? "4.9" : "—",
         players: g.id === "caro" ? online : "—",
       })),
-      { id: "uno", title: "UNO", sub: "Party · bài", status: "soon", icon: "🃏", suggest: false, rating: "4.7", players: "42" },
+      { id: "uno", title: "UNO", sub: "Party · bài", status: "soon", icon: "🃏", suggest: false, rating: "4.7", players: "42", art: "/caro/games/uno.jpg" },
     ];
 
     return `
@@ -456,7 +477,7 @@ export function mountCaroApp(ctx) {
                     (g) => `
                   <article class="board-suggest-card is-live">
                     <span class="board-feature-hot">GỢI Ý</span>
-                    <span class="board-game-icon lg">${g.icon}</span>
+                    ${renderGameThumb(g.id, "suggest")}
                     <h3>${escapeHtml(g.title)}</h3>
                     <p class="caro-muted">${escapeHtml(g.sub)}</p>
                     <p class="board-feature-meta">★ ${g.rating} · ${g.players} đang chơi</p>
@@ -478,10 +499,12 @@ export function mountCaroApp(ctx) {
                     (g) => `
                   <button type="button" class="board-hub-game ${g.status === "live" ? "is-live" : "is-soon"}" data-pick-game="${g.id}">
                     <span class="board-game-shine"></span>
-                    <span class="board-game-icon">${g.icon}</span>
+                    ${renderGameThumb(g.id, "hub")}
+                    <span class="board-hub-game-body">
                     <span class="board-game-title">${escapeHtml(g.title)}</span>
                     <span class="board-game-sub">${escapeHtml(g.sub)}</span>
                     <span class="board-game-badge">${g.status === "live" ? "Vào sảnh" : "Sắp ra mắt"}</span>
+                    </span>
                   </button>`
                   )
                   .join("")}
@@ -754,18 +777,18 @@ export function mountCaroApp(ctx) {
               <div class="board-featured-scroll caro-scroll-thin">
                 <article class="board-feature-card is-live">
                   <span class="board-feature-hot">HOT</span>
-                  <span class="board-game-icon">⊞</span>
+                  ${renderGameThumb("caro", "featured")}
                   <span class="board-game-title">Cờ Caro</span>
                   <span class="board-feature-meta"><span class="stars">★★★★★</span> 4.9 · ${online} online</span>
                   <button type="button" class="caro-btn sm primary glow-cyan" data-act="quick">Chơi ngay</button>
                 </article>
                 <button type="button" class="board-feature-card is-soon tint-chess" data-pick-game="chess">
-                  <span class="board-game-icon">♔</span>
+                  ${renderGameThumb("chess", "featured")}
                   <span class="board-game-title">Cờ vua</span>
                   <span class="board-feature-meta"><span class="stars">★★★★☆</span> 4.8 · 14 online</span>
                 </button>
                 <button type="button" class="board-feature-card is-soon tint-uno" data-pick-game="uno">
-                  <span class="board-game-icon">🃏</span>
+                  ${renderGameThumb("uno", "featured")}
                   <span class="board-game-title">UNO</span>
                   <span class="board-feature-meta"><span class="stars">★★★★☆</span> 4.6 · 8 online</span>
                 </button>
