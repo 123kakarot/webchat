@@ -481,16 +481,38 @@
 /* —— Play arena (cinematic wood board) —— */
 .xq-play-dash {
   --xq-play-nav: 200px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .xq-play-dash-main {
   min-width: 0;
+  max-width: 100%;
   grid-column: 2 / -1;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Mobile: one column — do NOT leave main on grid col 2 (implicit track overflows) */
+@media (max-width: 820px) {
+  .xq-play-dash {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .xq-play-dash-main {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .xq-play-dash .caro-dash-nav {
+    display: none;
+  }
 }
 
 .xq-play-dash .xq-play-arena {
   padding: 0.5rem 0.75rem 1rem;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .xq-tourney-card {
@@ -693,6 +715,14 @@
   flex-direction: column;
   gap: 0.65rem;
   align-items: stretch;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.xq-player-card,
+.xq-play-header {
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .xq-player-card {
@@ -802,6 +832,9 @@
   flex-direction: column;
   align-items: center;
   gap: 0.55rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .xq-board-glow {
@@ -817,6 +850,9 @@
 
 .xq-board-wrap.wood {
   position: relative;
+  width: 100%;
+  max-width: min(100%, 520px);
+  box-sizing: border-box;
   padding: 1.25rem 1.35rem 1.3rem;
   border-radius: 22px;
   background:
@@ -831,7 +867,8 @@
 
 .xq-board {
   position: relative;
-  width: min(94vw, 480px);
+  width: 100%;
+  max-width: 480px;
   aspect-ratio: 800 / 900;
   margin: 0 auto;
   border-radius: 8px;
@@ -1180,6 +1217,29 @@
   }
   .xq-play-right {
     order: 3;
+  }
+  .xq-play-dash .xq-play-arena {
+    padding: 0.4rem 0.45rem 0.85rem;
+  }
+  .xq-board-wrap.wood {
+    padding: 0.55rem 0.55rem 0.65rem;
+    border-radius: 14px;
+  }
+  .xq-piece {
+    font-size: clamp(0.72rem, 4.8vw, 1.05rem);
+    border-width: 2px;
+  }
+  .xq-play-header {
+    gap: 0.45rem;
+  }
+  .xq-play-timer-pill {
+    padding: 0.35rem 0.65rem;
+  }
+  .xq-play-timer-pill strong {
+    font-size: 1rem;
+  }
+  .xq-player-card {
+    padding: 0.45rem 0.55rem;
   }
 }
 
