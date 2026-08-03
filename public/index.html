@@ -5642,7 +5642,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
-        padding: clamp(1.25rem, 4vh, 2.5rem) 1rem calc(1.5rem + env(safe-area-inset-bottom));
+        padding: clamp(1.1rem, 3.5vh, 2.25rem) 0.5rem calc(1.35rem + env(safe-area-inset-bottom));
         background: #000;
         overflow: hidden;
         opacity: 1;
@@ -5651,6 +5651,8 @@
 
       .hub .hub-stage {
         overflow: visible;
+        width: 100vw;
+        max-width: none;
       }
 
       .hub[hidden] {
@@ -5751,14 +5753,14 @@
         position: relative;
         z-index: 2;
         flex: 1;
-        width: 100%;
-        max-width: 1200px;
+        width: 100vw;
+        max-width: none;
         display: flex;
         align-items: center;
         justify-content: center;
-        perspective: 1100px;
-        perspective-origin: 50% 42%;
-        min-height: min(52vh, 420px);
+        perspective: 1600px;
+        perspective-origin: 50% 48%;
+        min-height: min(58vh, 460px);
         cursor: grab;
         touch-action: none;
         overflow: visible;
@@ -5771,11 +5773,11 @@
 
       .hub-ring {
         position: relative;
-        width: min(100vw, 960px);
-        height: min(56vh, 380px);
-        min-height: 300px;
+        width: min(100vw, 1100px);
+        height: min(58vh, 400px);
+        min-height: 320px;
         transform-style: preserve-3d;
-        transform: translateZ(0);
+        transform: translateZ(-120px);
         overflow: visible;
       }
 
@@ -5794,9 +5796,9 @@
         position: absolute;
         left: 50%;
         top: 50%;
-        width: min(200px, 30vw);
-        height: min(268px, 44vw);
-        max-height: 300px;
+        width: min(188px, 34vw);
+        height: min(252px, 48vw);
+        max-height: 290px;
         margin: 0;
         padding: 0;
         border: none;
@@ -5807,13 +5809,14 @@
         text-align: center;
         overflow: visible;
         transform-style: preserve-3d;
-        backface-visibility: hidden;
+        backface-visibility: visible;
+        -webkit-backface-visibility: visible;
         transform-origin: 50% 50%;
-        will-change: transform, opacity;
+        will-change: transform, opacity, filter;
         transition:
-          transform 1.15s cubic-bezier(0.22, 1, 0.36, 1),
+          transform 1.05s cubic-bezier(0.22, 1, 0.36, 1),
           opacity 0.55s ease,
-          visibility 0.55s ease;
+          filter 0.55s ease;
         -webkit-tap-highlight-color: transparent;
       }
 
@@ -5829,21 +5832,21 @@
         border-radius: 24px;
         overflow: hidden;
         background: linear-gradient(
-          145deg,
-          rgba(255, 255, 255, 0.12) 0%,
-          rgba(0, 80, 120, 0.08) 22%,
-          rgba(4, 16, 32, 0.42) 55%,
-          rgba(2, 8, 18, 0.55) 100%
+          148deg,
+          rgba(255, 255, 255, 0.2) 0%,
+          rgba(0, 180, 220, 0.1) 18%,
+          rgba(8, 28, 52, 0.38) 48%,
+          rgba(4, 14, 28, 0.5) 100%
         );
-        border: 1px solid rgba(0, 229, 255, 0.48);
+        border: 1px solid rgba(0, 229, 255, 0.42);
         box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.42),
-          inset 1px 1px 0 rgba(0, 229, 255, 0.15),
-          inset 0 -1px 0 rgba(0, 0, 0, 0.4),
-          0 0 28px rgba(0, 200, 255, 0.18),
-          0 24px 50px rgba(0, 0, 0, 0.55);
-        backdrop-filter: blur(22px) saturate(1.55);
-        -webkit-backdrop-filter: blur(22px) saturate(1.55);
+          inset 0 1px 0 rgba(255, 255, 255, 0.5),
+          inset 1px 1px 0 rgba(0, 229, 255, 0.2),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+          0 0 32px rgba(0, 200, 255, 0.22),
+          0 20px 44px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(18px) saturate(1.6);
+        -webkit-backdrop-filter: blur(18px) saturate(1.6);
         transition:
           border-color 0.5s ease,
           box-shadow 0.5s ease,
@@ -6106,20 +6109,28 @@
 
       @media (max-width: 640px) {
         .hub-card {
-          width: min(168px, 46vw);
-          height: min(230px, 62vw);
-          padding: 0.9rem 0.75rem 1rem;
-          border-radius: 18px;
+          width: min(152px, 38vw);
+          height: min(210px, 52vw);
+        }
+        .hub-card-inner {
+          padding: 0.95rem 0.7rem 1rem;
+          border-radius: 20px;
         }
         .hub-card-ico {
-          width: 58px;
-          height: 58px;
-          font-size: 1.7rem;
-          border-radius: 16px;
+          width: 64px;
+          height: 64px;
+          border-radius: 18px;
+        }
+        .hub-card-ico svg {
+          width: 38px;
+          height: 38px;
         }
         .hub-nav-btn {
           width: 42px;
           height: 42px;
+        }
+        .hub-stage {
+          min-height: min(50vh, 340px);
         }
       }
 
@@ -6285,7 +6296,7 @@
 
     <section class="gate" id="gate" style="display:none">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v81</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v82</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
@@ -7185,7 +7196,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "81";
+      const CLIENT_BUILD = "82";
       const BASE_DOC_TITLE = "WebChat Hub";
 
       function applyUiTheme(mode) {
@@ -7215,21 +7226,19 @@
       loadUiTheme();
 
       function hubModuleIconSvg(moduleId) {
-        const g = 'stroke="url(#hub-ico-grad)" fill="url(#hub-ico-grad-dim)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"';
-        const gStroke = 'stroke="url(#hub-ico-grad)" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"';
         switch (moduleId) {
           case "chat":
-            return `<svg viewBox="0 0 64 64" aria-hidden="true"><path ${gStroke} d="M14 20h36a4 4 0 0 1 4 4v16a4 4 0 0 1-4 4H28l-10 8v-8h-4a4 4 0 0 1-4-4V24a4 4 0 0 1 4-4z"/><circle cx="26" cy="32" r="2" fill="#b8f5ff"/><circle cx="34" cy="32" r="2" fill="#b8f5ff"/><circle cx="42" cy="32" r="2" fill="#b8f5ff"/></svg>`;
+            return `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="g-chat" x1="10" y1="8" x2="54" y2="56"><stop stop-color="#7af0ff"/><stop offset="1" stop-color="#4f8cff"/></linearGradient></defs><path fill="url(#g-chat)" d="M14 16h36a6 6 0 0 1 6 6v16a6 6 0 0 1-6 6H30l-12 10v-10h-4a6 6 0 0 1-6-6V22a6 6 0 0 1 6-6z" opacity="0.95"/><circle cx="26" cy="30" r="2.6" fill="#041018"/><circle cx="34" cy="30" r="2.6" fill="#041018"/><circle cx="42" cy="30" r="2.6" fill="#041018"/></svg>`;
           case "board":
-            return `<svg viewBox="0 0 64 64" aria-hidden="true"><path ${g} d="M18 14h28v28H18z" opacity="0.35"/><path ${gStroke} d="M22 18h20v20H22z"/><path ${gStroke} d="M28 22h8M28 28h8M28 34h5"/><circle cx="40" cy="40" r="10" fill="rgba(94,231,255,0.15)" stroke="url(#hub-ico-grad)" stroke-width="2"/><text x="40" y="44" text-anchor="middle" fill="url(#hub-ico-grad)" font-size="11" font-weight="700" font-family="Orbitron,sans-serif">6</text></svg>`;
+            return `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="g-board" x1="8" y1="8" x2="56" y2="56"><stop stop-color="#ffd36a"/><stop offset="0.55" stop-color="#ff8a4c"/><stop offset="1" stop-color="#ff5ad1"/></linearGradient></defs><rect x="14" y="14" width="36" height="36" rx="10" fill="url(#g-board)"/><circle cx="24" cy="24" r="3.2" fill="#1a0a18"/><circle cx="40" cy="24" r="3.2" fill="#1a0a18"/><circle cx="24" cy="40" r="3.2" fill="#1a0a18"/><circle cx="40" cy="40" r="3.2" fill="#1a0a18"/><circle cx="32" cy="32" r="3.2" fill="#1a0a18"/></svg>`;
           case "books":
-            return `<svg viewBox="0 0 64 64" aria-hidden="true"><path ${g} d="M12 18c8-2 16-2 20 0v32c-4-2-12-2-20 0V18z"/><path ${g} d="M52 18c-8-2-16-2-20 0v32c4-2 12-2 20 0V18z" opacity="0.85"/><path ${gStroke} d="M32 18v32"/></svg>`;
+            return `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="g-book" x1="8" y1="10" x2="56" y2="54"><stop stop-color="#9bffce"/><stop offset="1" stop-color="#38bdf8"/></linearGradient></defs><path fill="url(#g-book)" d="M12 16c9-3 18-3 20 0v34c-2-2.4-11-2.4-20 0V16z"/><path fill="#7dd3fc" d="M52 16c-9-3-18-3-20 0v34c2-2.4 11-2.4 20 0V16z" opacity="0.9"/><path stroke="#e0f7ff" stroke-width="2" d="M32 16v34"/></svg>`;
           case "account":
-            return `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" ${gStroke}/><circle cx="32" cy="26" r="7" ${g}/><path ${g} d="M18 48c3-8 10-12 14-12s11 4 14 12"/></svg>`;
+            return `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="g-acc" x1="12" y1="8" x2="52" y2="56"><stop stop-color="#c4b5fd"/><stop offset="1" stop-color="#38bdf8"/></linearGradient></defs><circle cx="32" cy="32" r="22" fill="none" stroke="url(#g-acc)" stroke-width="3"/><circle cx="32" cy="25" r="8" fill="url(#g-acc)"/><path fill="url(#g-acc)" d="M16 48c3.5-9 10-13.5 16-13.5S44.5 39 48 48c-4.5 4-10 6-16 6s-11.5-2-16-6z"/></svg>`;
           case "about":
-            return `<svg viewBox="0 0 64 64" aria-hidden="true"><path ${g} d="M32 10l6 14 15 2-11 10 3 15-13-7-13 7 3-15-11-10 15-2z"/><circle cx="32" cy="32" r="24" ${gStroke} opacity="0.45"/></svg>`;
+            return `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="g-about" x1="10" y1="8" x2="54" y2="56"><stop stop-color="#fff1a8"/><stop offset="0.5" stop-color="#5ee7ff"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs><path fill="url(#g-about)" d="M32 8l7.2 14.6 16.1 2.3-11.7 11.4 2.8 16.1L32 44.6 17.6 52.4l2.8-16.1L8.7 24.9l16.1-2.3z"/><circle cx="32" cy="32" r="24" fill="none" stroke="#7af0ff" stroke-width="1.5" opacity="0.45"/></svg>`;
           default:
-            return `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="20" ${gStroke}/></svg>`;
+            return `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="20" fill="#5ee7ff"/></svg>`;
         }
       }
 
@@ -7312,12 +7321,12 @@
         return 360 / hubModuleCount();
       }
 
-      function hubRadius() {
+      function hubMetrics() {
         const w = window.innerWidth;
-        if (w < 480) return 210;
-        if (w < 768) return 280;
-        if (w < 1200) return 360;
-        return 420;
+        if (w < 480) return { radius: 155, spacing: 92, tilt: 48 };
+        if (w < 768) return { radius: 190, spacing: 118, tilt: 50 };
+        if (w < 1100) return { radius: 230, spacing: 148, tilt: 52 };
+        return { radius: 260, spacing: 168, tilt: 54 };
       }
 
       function updateHubEnterLabel() {
@@ -7327,10 +7336,8 @@
         const title = HUB_MODULES[hubIndex].title.toUpperCase();
         enter.textContent = "Vào · " + title;
         window.setTimeout(() => enter.classList.remove("is-switching"), 380);
-        const prev = document.getElementById("hub-prev");
-        const next = document.getElementById("hub-next");
-        prev?.classList.toggle("is-lit", true);
-        next?.classList.toggle("is-lit", false);
+        document.getElementById("hub-prev")?.classList.add("is-lit");
+        document.getElementById("hub-next")?.classList.remove("is-lit");
       }
 
       function hubCardOffset(i) {
@@ -7343,28 +7350,35 @@
 
       function applyHubLayout({ dragging = false } = {}) {
         if (!hubRing) return;
-        const step = hubStepDeg();
-        const radius = hubRadius();
-        const dragDeg = dragging ? hubDragPx * 0.11 : 0;
+        const { radius, spacing, tilt } = hubMetrics();
+        const dragOff = dragging ? hubDragPx / Math.max(spacing, 1) : 0;
         hubRing.classList.toggle("is-dragging", dragging);
-        hubRing.style.transform = `translateZ(-${Math.round(radius * 0.08)}px)`;
+        hubRing.style.transform = "translateZ(-140px)";
 
         hubCardEls.forEach((btn, i) => {
-          const off = hubCardOffset(i);
-          const angle = off * step + dragDeg;
-          const active = off === 0;
+          const baseOff = hubCardOffset(i);
+          const off = baseOff - dragOff;
           const abs = Math.abs(off);
-          btn.classList.toggle("is-active", active);
-          btn.classList.toggle("is-side", abs === 1);
-          btn.classList.toggle("is-far", abs > 2);
-          btn.style.visibility = abs > 2 ? "hidden" : "visible";
-          btn.style.zIndex = String(50 - abs);
-          btn.style.pointerEvents = abs > 2 ? "none" : "auto";
-          const scale = active ? 1.02 : abs === 1 ? 0.86 : 0.72;
-          const zDist = radius + (active ? 36 : 0) - abs * 8;
-          btn.style.opacity = String(active ? 1 : abs === 1 ? 0.72 : 0.38);
+          const active = Math.abs(baseOff) < 0.01 && !dragging;
+          const nearActive = abs < 0.35;
+          btn.classList.toggle("is-active", nearActive && !dragging);
+          btn.classList.toggle("is-side", abs >= 0.35 && abs < 1.6);
+          btn.classList.toggle("is-far", abs >= 1.6);
+          btn.style.visibility = "visible";
+          btn.style.zIndex = String(Math.round(80 - abs * 12));
+          btn.style.pointerEvents = abs > 2.2 ? "none" : "auto";
+
+          const angle = Math.max(-68, Math.min(68, off * tilt));
+          const x = off * spacing;
+          const z = radius - abs * (radius * 0.42) + (nearActive ? 28 : 0);
+          const scale = Math.max(0.68, 1.04 - abs * 0.14);
+          const opacity = Math.max(0.55, 1 - abs * 0.16);
+          const blur = abs > 1.5 ? Math.min(1.2, (abs - 1.5) * 0.8) : 0;
+
+          btn.style.opacity = String(opacity);
+          btn.style.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : "none";
           btn.style.transform =
-            `translate(-50%, -50%) rotateY(${angle.toFixed(2)}deg) translateZ(${zDist}px) scale(${scale.toFixed(3)})`;
+            `translate(-50%, -50%) translateX(${x.toFixed(1)}px) rotateY(${angle.toFixed(2)}deg) translateZ(${z.toFixed(1)}px) scale(${scale.toFixed(3)})`;
         });
 
         hubDotEls.forEach((dot, i) => {
@@ -7534,9 +7548,10 @@
         if (!hubDragActive) return;
         hubDragActive = false;
         hubStage?.classList.remove("is-dragging");
-        const threshold = Math.min(72, window.innerWidth * 0.12);
-        if (Math.abs(hubDragPx) >= threshold) {
-          setHubIndex(hubIndex + (hubDragPx < 0 ? 1 : -1));
+        const { spacing } = hubMetrics();
+        const steps = Math.round(-hubDragPx / Math.max(spacing * 0.55, 40));
+        if (steps !== 0) {
+          setHubIndex(hubIndex + steps);
         } else {
           hubDragPx = 0;
           applyHubLayout();
