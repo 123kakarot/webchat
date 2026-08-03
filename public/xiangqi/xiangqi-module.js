@@ -267,35 +267,107 @@ export function createXiangqiModule(deps) {
     return false;
   }
 
+  /** Toạ độ pixel trên SVG bàn chuẩn (có sông giữa). */
+  function boardPoint(r, c) {
+    const x = c * 100;
+    const y = r <= 4 ? r * 100 : 500 + (r - 5) * 100;
+    return { x, y };
+  }
+
+  function renderBoardMarkers() {
+    // Dấu góc truyền thống quanh ô Pháo / Tốt
+    const spots = [
+      [2, 1],
+      [2, 7],
+      [7, 1],
+      [7, 7],
+      [3, 0],
+      [3, 2],
+      [3, 4],
+      [3, 6],
+      [3, 8],
+      [6, 0],
+      [6, 2],
+      [6, 4],
+      [6, 6],
+      [6, 8],
+    ];
+    const arm = 14;
+    const gap = 5;
+    return spots
+      .map(([r, c]) => {
+        const { x, y } = boardPoint(r, c);
+        const parts = [];
+        // 4 góc hướng vào giao điểm
+        if (c > 0) {
+          parts.push(`M${x - arm},${y - gap} H${x - gap} V${y - arm}`);
+          parts.push(`M${x - arm},${y + gap} H${x - gap} V${y + arm}`);
+        }
+        if (c < 8) {
+          parts.push(`M${x + arm},${y - gap} H${x + gap} V${y - arm}`);
+          parts.push(`M${x + arm},${y + gap} H${x + gap} V${y + arm}`);
+        }
+        // Biên trái/phải: chỉ vẽ phía trong bàn
+        if (c === 0) {
+          parts.length = 0;
+          parts.push(`M${x + gap},${y - arm} V${y - gap} H${x + arm}`);
+          parts.push(`M${x + gap},${y + arm} V${y + gap} H${x + arm}`);
+        }
+        if (c === 8) {
+          parts.length = 0;
+          parts.push(`M${x - gap},${y - arm} V${y - gap} H${x - arm}`);
+          parts.push(`M${x - gap},${y + arm} V${y + gap} H${x - arm}`);
+        }
+        return `<path d="${parts.join(" ")}" />`;
+      })
+      .join("");
+  }
+
   function renderBoardHtml(board, interactive) {
-    const w = 8;
-    const h = 9;
-    // Palace diagonals + river text in SVG (viewBox 0..8 x 0..9)
-    let lines = "";
-    for (let c = 0; c <= 8; c++) {
-      lines += `<line x1="${c}" y1="0" x2="${c}" y2="9" />`;
-    }
+    const VB_W = 800;
+    const VB_H = 900;
+    let grid = "";
+
+    // Viền kép ngoài
+    grid += `<rect x="0" y="0" width="${VB_W}" height="${VB_H}" fill="none" stroke-width="6" />`;
+    grid += `<rect x="8" y="8" width="${VB_W - 16}" height="${VB_H - 16}" fill="none" stroke-width="2" opacity="0.55" />`;
+
+    // 10 đường ngang (0..4 và 5..9 với khoảng sông 400–500)
     for (let r = 0; r <= 9; r++) {
-      // River: no vertical through middle for columns 1-7? Standard xiangqi keeps horizontal river gap visually
-      lines += `<line x1="0" y1="${r}" x2="8" y2="${r}" />`;
+      const y = boardPoint(r, 0).y;
+      grid += `<line x1="0" y1="${y}" x2="${VB_W}" y2="${y}" />`;
     }
-    // Palace X
-    lines += `<line x1="3" y1="0" x2="5" y2="2" /><line x1="5" y1="0" x2="3" y2="2" />`;
-    lines += `<line x1="3" y1="7" x2="5" y2="9" /><line x1="5" y1="7" x2="3" y2="9" />`;
+
+    // 9 đường dọc — ĐỨT ở sông (không xuyên 楚河漢界)
+    for (let c = 0; c <= 8; c++) {
+      const x = c * 100;
+      grid += `<line x1="${x}" y1="0" x2="${x}" y2="400" />`;
+      grid += `<line x1="${x}" y1="500" x2="${x}" y2="900" />`;
+    }
+
+    // Cửu cung (X)
+    grid += `<line x1="300" y1="0" x2="500" y2="200" /><line x1="500" y1="0" x2="300" y2="200" />`;
+    grid += `<line x1="300" y1="700" x2="500" y2="900" /><line x1="500" y1="700" x2="300" y2="900" />`;
+
+    // Chữ sông
+    const river = `
+      <text x="200" y="458" text-anchor="middle" class="xq-river-txt">楚 河</text>
+      <text x="600" y="458" text-anchor="middle" class="xq-river-txt">漢 界</text>`;
 
     let points = "";
     for (let r = 0; r < 10; r++) {
       for (let c = 0; c < 9; c++) {
         const p = board[r][c];
+        const { x, y } = boardPoint(r, c);
+        const left = (x / VB_W) * 100;
+        const top = (y / VB_H) * 100;
         const isSel = selected && selected[0] === r && selected[1] === c;
         const isT = targets.some(([tr, tc]) => tr === r && tc === c);
-        const left = (c / w) * 100;
-        const top = (r / h) * 100;
         points += `<button type="button" class="xq-point${isSel ? " is-selected" : ""}${isT ? " is-target" : ""}${
           p !== "." ? " has-piece" : ""
         }" style="left:${left}%;top:${top}%" data-xq-r="${r}" data-xq-c="${c}" ${
           interactive ? "" : "tabindex=-1"
-        }>`;
+        } aria-label="${r},${c}">`;
         points += `<span class="xq-dot-hint" aria-hidden="true"></span>`;
         if (p !== ".") {
           const side = pieceSide(p) === SIDE_RED ? "red" : "black";
@@ -306,10 +378,11 @@ export function createXiangqiModule(deps) {
     }
 
     return `<div class="xq-board" data-xq-board-root role="grid" aria-label="Bàn cờ tướng">
-      <svg class="xq-board-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
-        <g class="xq-grid-lines" fill="none" stroke="#4a2e12" stroke-width="0.045">${lines}</g>
-        <text x="2" y="4.62" text-anchor="middle" class="xq-river-txt">楚 河</text>
-        <text x="6" y="4.62" text-anchor="middle" class="xq-river-txt">漢 界</text>
+      <svg class="xq-board-svg" viewBox="0 0 ${VB_W} ${VB_H}" preserveAspectRatio="none" aria-hidden="true">
+        <rect class="xq-board-face" x="0" y="0" width="${VB_W}" height="${VB_H}" />
+        <g class="xq-grid-lines" fill="none" stroke="#3d2410" stroke-linecap="square">${grid}</g>
+        <g class="xq-pos-marks" fill="none" stroke="#3d2410" stroke-width="2.2">${renderBoardMarkers()}</g>
+        ${river}
       </svg>
       <div class="xq-points">${points}</div>
     </div>`;

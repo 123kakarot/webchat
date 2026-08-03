@@ -817,31 +817,26 @@
 
 .xq-board-wrap.wood {
   position: relative;
-  padding: 1.35rem 1.4rem 1.4rem;
+  padding: 1.25rem 1.35rem 1.3rem;
   border-radius: 22px;
   background:
-    linear-gradient(145deg, rgba(255, 210, 140, 0.14), transparent 42%),
-    linear-gradient(165deg, #5a3a1c 0%, #3d2610 45%, #2a180a 100%);
+    linear-gradient(145deg, rgba(255, 210, 140, 0.12), transparent 42%),
+    linear-gradient(165deg, #4a3018 0%, #2e1c0c 55%, #1a1008 100%);
   border: 1px solid rgba(255, 180, 90, 0.35);
   box-shadow:
     0 28px 60px rgba(0, 0, 0, 0.55),
-    0 0 50px rgba(59, 130, 246, 0.22),
-    inset 0 1px 0 rgba(255, 220, 160, 0.2);
+    0 0 50px rgba(59, 130, 246, 0.18),
+    inset 0 1px 0 rgba(255, 220, 160, 0.18);
 }
 
 .xq-board {
   position: relative;
-  width: min(92vw, 460px);
-  aspect-ratio: 8 / 9;
+  width: min(94vw, 480px);
+  aspect-ratio: 800 / 900;
   margin: 0 auto;
-  border-radius: 10px;
-  border: 3px solid #6b3f18;
-  background:
-    repeating-linear-gradient(88deg, transparent, transparent 2px, rgba(80, 40, 10, 0.06) 2px, rgba(80, 40, 10, 0.06) 3px),
-    radial-gradient(ellipse at 50% 50%, rgba(255, 220, 150, 0.18), transparent 65%),
-    #c49a5c;
-  box-shadow: inset 0 0 36px rgba(60, 30, 8, 0.32);
+  border-radius: 8px;
   overflow: visible;
+  filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.45));
 }
 
 .xq-board-svg {
@@ -851,20 +846,31 @@
   height: 100%;
   pointer-events: none;
   z-index: 0;
+  border-radius: 6px;
+}
+
+.xq-board-face {
+  fill: #c9a06a;
+}
+
+.xq-grid-lines {
+  stroke-width: 3.2;
 }
 
 .xq-river-txt {
-  fill: rgba(70, 35, 10, 0.42);
-  font-size: 0.55px;
-  font-family: "Ma Shan Zheng", "Noto Serif SC", serif;
+  fill: #4a2e14;
+  fill-opacity: 0.55;
+  font-size: 42px;
+  font-family: "Ma Shan Zheng", "Noto Serif SC", "KaiTi", serif;
+  letter-spacing: 8px;
 }
 
 .xq-points { position: absolute; inset: 0; z-index: 1; }
 
 .xq-point {
   position: absolute;
-  width: 11.5%;
-  height: 10.2%;
+  width: 12%;
+  height: 10.5%;
   transform: translate(-50%, -50%);
   border: none;
   background: transparent;
