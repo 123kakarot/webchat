@@ -12,6 +12,7 @@
       href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Orbitron:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="/caro/caro-ui.css" />
     <style>
       :root {
         --bg: #080b14;
@@ -6294,9 +6295,11 @@
       </div>
     </section>
 
+    <section class="board-shell" id="board-shell" hidden aria-label="Board Game Caro"></section>
+
     <section class="gate" id="gate" style="display:none">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v82</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v83</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
@@ -7196,7 +7199,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "82";
+      const CLIENT_BUILD = "83";
       const BASE_DOC_TITLE = "WebChat Hub";
 
       function applyUiTheme(mode) {
@@ -7267,10 +7270,10 @@
         {
           id: "board",
           title: "Board game",
-          sub: "Cờ · bài · phòng chơi cùng bạn",
+          sub: "Cờ caro · AI · online realtime",
           ico: "🎲",
           stubTitle: "Board game",
-          stubDesc: "Sảnh game đang được dựng — sắp có bàn chơi realtime.",
+          stubDesc: "Đang mở sảnh Cờ Caro…",
         },
         {
           id: "books",
@@ -7305,11 +7308,13 @@
       let hubDragActive = false;
       let hubDragMoved = false;
       let hubDragStartX = 0;
+      let caroApp = null;
       const hubEl = document.getElementById("hub");
       const hubStage = document.getElementById("hub-stage");
       const hubRing = document.getElementById("hub-ring");
       const hubDots = document.getElementById("hub-dots");
       const moduleStub = document.getElementById("module-stub");
+      const boardShell = document.getElementById("board-shell");
       const hubCardEls = [];
       const hubDotEls = [];
 
@@ -7442,6 +7447,10 @@
       function showHub() {
         hubPreferStay = true;
         if (moduleStub) moduleStub.hidden = true;
+        if (boardShell) boardShell.hidden = true;
+        try {
+          caroApp?.close?.();
+        } catch (_) {}
         gate.style.display = "none";
         hideRoomGate();
         appShell.classList.remove("active", "show-chat", "contacts-mode", "notifications-mode");
@@ -7476,6 +7485,50 @@
         gate.style.display = "none";
       }
 
+      async function ensureCaroApp() {
+        if (caroApp) return caroApp;
+        const { mountCaroApp } = await import("/caro/caro-app.js");
+        caroApp = mountCaroApp({
+          root: boardShell,
+          getPlayerName: () => myName || "",
+          ensureLogin: async () => {
+            if (myName) return true;
+            hubPreferStay = false;
+            if (boardShell) boardShell.hidden = true;
+            gate.style.display = "";
+            nameInput?.focus();
+            joinError.textContent = "Nhập tên để chơi Caro online / lưu hồ sơ.";
+            joinError.hidden = false;
+            return false;
+          },
+          socket,
+          onBackHub: () => {
+            caroApp?.close?.();
+            if (boardShell) boardShell.hidden = true;
+            showHub();
+          },
+          onShareToChat: (text) => {
+            try {
+              sessionStorage.setItem("webchat-share-draft", String(text || ""));
+            } catch (_) {}
+          },
+        });
+        return caroApp;
+      }
+
+      async function openBoardApp() {
+        hubPreferStay = false;
+        if (moduleStub) moduleStub.hidden = true;
+        gate.style.display = "none";
+        hideRoomGate();
+        appShell.classList.remove("active", "show-chat", "contacts-mode", "notifications-mode");
+        if (hubEl) hubEl.hidden = true;
+        const app = await ensureCaroApp();
+        if (boardShell) boardShell.hidden = false;
+        app.open();
+        document.title = "Board Game · Caro";
+      }
+
       function enterHubModule() {
         const mod = HUB_MODULES[hubIndex];
         if (!mod) return;
@@ -7492,6 +7545,15 @@
             }
             gate.style.display = "";
             nameInput?.focus();
+          });
+          return;
+        }
+        if (mod.id === "board") {
+          hideHub(() => {
+            openBoardApp().catch((err) => {
+              console.error(err);
+              showModuleStub(mod);
+            });
           });
           return;
         }
@@ -8721,6 +8783,10 @@
         hubPreferStay = false;
         if (hubEl) hubEl.hidden = true;
         if (moduleStub) moduleStub.hidden = true;
+        if (boardShell) boardShell.hidden = true;
+        try {
+          caroApp?.close?.();
+        } catch (_) {}
         gate.style.display = "none";
         hideRoomGate();
         appShell.classList.add("active");

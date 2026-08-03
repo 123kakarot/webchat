@@ -8,6 +8,7 @@ import multer from "multer";
 import crypto from "crypto";
 import { validateDisplayName } from "./nameFilter.js";
 import { maybeUploadToObjectStorage } from "./storage.js";
+import { attachCaroServer } from "./caro-server.js";
 import {
   initDb,
   isPersistent,
@@ -69,7 +70,7 @@ import {
   getUserPublicId,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "82");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "83");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -483,6 +484,7 @@ io.on("connection", (socket) => {
     if (joined) {
       const existing = online.get(socket.id);
       if (existing?.name) {
+        socket.data.name = existing.name;
         let publicId = "";
         try {
           publicId = (await ensureUserPublicId(existing.name)) || "";
@@ -522,6 +524,7 @@ io.on("connection", (socket) => {
     const clientId = ensureClientId(rawClientId);
 
     joined = true;
+    socket.data.name = trimmed;
     online.set(socket.id, {
       id: socket.id,
       name: trimmed,
@@ -1730,6 +1733,7 @@ const HOST = process.env.HOST || "0.0.0.0";
 
 await initDb();
 await hydrateReactionCache([]);
+attachCaroServer(io);
 
 httpServer.listen(PORT, HOST, () => {
   console.log(`Chat listening on ${HOST}:${PORT} (persistent=${isPersistent()})`);
