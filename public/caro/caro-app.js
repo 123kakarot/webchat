@@ -436,11 +436,11 @@ export function mountCaroApp(ctx) {
         <path d="M0 80 L72 20 L144 80 L72 140 Z" fill="none" stroke="#3b82f6" stroke-width="1"/>
         ${[0, 1, 2, 3, 4].map((i) => `<line x1="${i * 18}" y1="0" x2="${i * 18 + 36}" y2="120" stroke="#2563eb" stroke-width="0.5" opacity="0.6"/>`).join("")}
       </g>
-      <circle cx="118" cy="72" r="14" fill="#5ee7ff" filter="url(#caroHeroGlow)"/>
+      <circle cx="118" cy="72" r="14" fill="#5ee7ff" filter="url(#caroHeroGlow)" class="caro-hero-stone s1"/>
       <text x="118" y="77" text-anchor="middle" fill="#031018" font-size="14" font-weight="700">X</text>
-      <circle cx="142" cy="96" r="14" fill="#ff7ab8" filter="url(#caroHeroGlow)"/>
+      <circle cx="142" cy="96" r="14" fill="#ff7ab8" filter="url(#caroHeroGlow)" class="caro-hero-stone s2"/>
       <text x="142" y="101" text-anchor="middle" fill="#1a0510" font-size="14" font-weight="700">O</text>
-      <circle cx="96" cy="96" r="14" fill="#5ee7ff" filter="url(#caroHeroGlow)" opacity="0.9"/>
+      <circle cx="96" cy="96" r="14" fill="#5ee7ff" filter="url(#caroHeroGlow)" class="caro-hero-stone s3"/>
       <text x="96" y="101" text-anchor="middle" fill="#031018" font-size="14" font-weight="700">X</text>
     </svg>`;
   }
@@ -522,42 +522,50 @@ export function mountCaroApp(ctx) {
           </header>
 
           <div class="caro-dash-scroll">
-            <section class="caro-dash-hero">
+            <section class="caro-dash-hero caro-reveal" style="--i:0">
               <div class="caro-dash-hero-text">
                 <p class="caro-dash-kicker">Trí tuệ · Chiến thuật · Thử thách</p>
                 <h1>CỜ CARO</h1>
                 <p class="caro-dash-lead">AI, local hai người, phòng online và Quick Match — đồng bộ phong cách WebChat Hub.</p>
                 <button type="button" class="caro-dash-play-now" data-act="quick">
+                  <span class="caro-dash-play-glow" aria-hidden="true"></span>
                   ${quickWaiting ? "Đang ghép…" : "Chơi ngay"}
                 </button>
               </div>
-              <div class="caro-dash-hero-art">${heroBoardSvg()}</div>
+              <div class="caro-dash-hero-art">
+                <div class="caro-hero-orbit" aria-hidden="true"></div>
+                ${heroBoardSvg()}
+              </div>
             </section>
 
-            <div class="caro-dash-quick">
+            <div class="caro-dash-quick caro-reveal" style="--i:1">
               <button type="button" class="caro-quick-tile tile-blue" data-act="quick">
+                <span class="tile-shine" aria-hidden="true"></span>
                 <span class="tile-ico">⚡</span>
                 <span class="tile-title">Quick Match</span>
                 <span class="tile-sub">Tìm đối thủ ngay</span>
               </button>
               <button type="button" class="caro-quick-tile tile-purple" data-act="ai">
+                <span class="tile-shine" aria-hidden="true"></span>
                 <span class="tile-ico">🤖</span>
                 <span class="tile-title">Chơi với AI</span>
                 <span class="tile-sub">4 cấp độ khó</span>
               </button>
               <button type="button" class="caro-quick-tile tile-green" data-act="local">
+                <span class="tile-shine" aria-hidden="true"></span>
                 <span class="tile-ico">👥</span>
                 <span class="tile-title">Chơi Local</span>
                 <span class="tile-sub">2 người / 1 máy</span>
               </button>
               <button type="button" class="caro-quick-tile tile-gold" data-act="create">
+                <span class="tile-shine" aria-hidden="true"></span>
                 <span class="tile-ico">＋</span>
                 <span class="tile-title">Tạo phòng</span>
                 <span class="tile-sub">Tùy luật &amp; timer</span>
               </button>
             </div>
 
-            <div class="caro-dash-mid">
+            <div class="caro-dash-mid caro-reveal" style="--i:2">
               <section class="caro-dash-card caro-dash-rooms">
                 <div class="caro-dash-card-head">
                   <h2>Phòng game công khai</h2>
@@ -628,7 +636,7 @@ export function mountCaroApp(ctx) {
               </section>
             </div>
 
-            <div class="caro-dash-bottom">
+            <div class="caro-dash-bottom caro-reveal" style="--i:3">
               <section class="caro-dash-card caro-dash-rules">
                 <h2>Luật chơi nhanh</h2>
                 <ul>
@@ -664,8 +672,8 @@ export function mountCaroApp(ctx) {
           </div>
         </div>
 
-        <aside class="caro-dash-rail">
-          <section class="caro-dash-profile card-glow">
+        <aside class="caro-dash-rail caro-reveal" style="--i:2">
+          <section class="caro-dash-profile card-glow caro-profile-glow">
             <div class="caro-dash-avatar lg">${escapeHtml(playerInitial())}</div>
             <h3>${escapeHtml(playerName())}</h3>
             <p class="caro-muted">Level ${level}</p>
@@ -1128,7 +1136,9 @@ export function mountCaroApp(ctx) {
     const isDash = view === "caro-home";
 
     if (isDash) {
-      root.innerHTML = `<div class="caro-shell-dash">${body}${
+      root.innerHTML = `<div class="caro-shell-dash">
+        <div class="caro-dash-bg" aria-hidden="true"></div>
+        ${body}${
         quickWaiting ? '<div class="caro-dash-toast-bar">Đang ghép Quick Match…</div>' : ""
       }</div>`;
       startTimerUi();
