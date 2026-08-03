@@ -16,11 +16,9 @@ const STORAGE_THEME = "caro-board-theme";
 /** @type {{ id: string, title: string, sub: string, status: "live"|"soon", icon: string, art: string }[]} */
 const BOARD_GAMES = [
   { id: "caro", title: "Cờ Caro", sub: "AI · 2 người · online realtime", status: "live", icon: "⊞", art: "/caro/games/caro.png" },
-  { id: "xiangqi", title: "Cờ tướng", sub: "Xiangqi · cờ Trung Hoa", status: "soon", icon: "帥", art: "/caro/games/xiangqi.svg" },
-  { id: "chess", title: "Cờ vua", sub: "Chess · cờ quốc tế", status: "soon", icon: "♔", art: "/caro/games/chess.svg" },
-  { id: "go", title: "Cờ vây", sub: "Go · Baduk · Weiqi", status: "soon", icon: "⚫", art: "/caro/games/go.svg" },
-  { id: "checkers", title: "Cờ đam", sub: "Checkers · damka", status: "soon", icon: "⛀", art: "/caro/games/checkers.svg" },
-  { id: "shogi", title: "Shogi", sub: "Cờ Nhật Bản", status: "soon", icon: "☖", art: "/caro/games/shogi.svg" },
+  { id: "xiangqi", title: "Cờ tướng", sub: "Xiangqi · cờ Trung Hoa", status: "soon", icon: "帥", art: "/caro/games/xiangqi.png" },
+  { id: "chess", title: "Cờ vua", sub: "Chess · cờ quốc tế", status: "soon", icon: "♔", art: "/caro/games/chess.png" },
+  { id: "go", title: "Cờ vây", sub: "Go · Baduk · Weiqi", status: "soon", icon: "⚫", art: "/caro/games/go.png" },
 ];
 
 const GAME_ART = {
@@ -36,11 +34,11 @@ function gameArtUrl(id) {
 }
 
 function renderGameThumb(id, variant = "card") {
-  const url = gameArtUrl(id);
+  const url = `${gameArtUrl(id)}?v=96`;
   const title = gameById(id)?.title || (id === "uno" ? "UNO" : id);
   const safeTitle = String(title).replace(/"/g, "&quot;");
   return `<span class="board-game-thumb thumb-${variant}" role="img" aria-label="${safeTitle}">
-    <img src="${url}" alt="" loading="lazy" decoding="async" />
+    <img src="${url}" alt="" loading="lazy" decoding="async" onerror="this.closest('.board-game-thumb')?.classList.add('is-fallback')" />
   </span>`;
 }
 
