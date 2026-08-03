@@ -526,3 +526,129 @@
   position: relative;
   min-height: calc(100% - 0.5rem);
 }
+
+/* —— Board game portal (multi-game sảnh) —— */
+.board-portal-banner h1 {
+  letter-spacing: 0.14em;
+}
+
+.board-games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(168px, 42vw), 1fr));
+  gap: 0.85rem;
+}
+
+.board-game-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.35rem;
+  padding: 1.15rem 0.85rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 229, 255, 0.32);
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(8, 28, 52, 0.55) 45%,
+    rgba(4, 14, 28, 0.72) 100%
+  );
+  color: var(--caro-text);
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.board-game-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(0, 240, 255, 0.55);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 0 28px rgba(0, 200, 255, 0.18);
+}
+
+.board-game-card.is-live {
+  border-color: rgba(0, 240, 255, 0.52);
+}
+
+.board-game-card.is-soon {
+  opacity: 0.88;
+}
+
+.board-game-shine {
+  position: absolute;
+  top: -40%;
+  left: -30%;
+  width: 80%;
+  height: 70%;
+  background: radial-gradient(ellipse at 30% 30%, rgba(255, 255, 255, 0.35), transparent 65%);
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.board-game-icon {
+  position: relative;
+  z-index: 1;
+  font-size: 2rem;
+  line-height: 1;
+  width: 3.25rem;
+  height: 3.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(0, 40, 70, 0.45);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  box-shadow: 0 0 20px rgba(0, 200, 255, 0.12);
+}
+
+.board-game-title {
+  position: relative;
+  z-index: 1;
+  font-family: Orbitron, "Be Vietnam Pro", sans-serif;
+  font-size: 0.92rem;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.board-game-sub {
+  position: relative;
+  z-index: 1;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--caro-muted);
+  min-height: 2.5em;
+}
+
+.board-game-badge {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.35rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  color: var(--caro-cyan);
+}
+
+.board-game-card.is-live .board-game-badge {
+  background: rgba(0, 200, 255, 0.15);
+}
+
+.board-portal-hint {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--caro-muted);
+  margin-top: 0.25rem;
+}
+
+.board-soon-panel {
+  text-align: center;
+}
+
+.board-soon-icon {
+  font-size: 2.75rem;
+  margin-bottom: 0.5rem;
+  filter: drop-shadow(0 0 12px rgba(0, 200, 255, 0.35));
+}

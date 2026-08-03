@@ -13,6 +13,16 @@ const STORAGE_STATS = "caro-local-stats";
 const STORAGE_SOUND = "caro-sound";
 const STORAGE_THEME = "caro-board-theme";
 
+/** @type {{ id: string, title: string, sub: string, status: "live"|"soon", icon: string }[]} */
+const BOARD_GAMES = [
+  { id: "caro", title: "Cờ Caro", sub: "AI · 2 người · online realtime", status: "live", icon: "⊞" },
+  { id: "xiangqi", title: "Cờ tướng", sub: "Xiangqi · cờ Trung Hoa", status: "soon", icon: "帥" },
+  { id: "chess", title: "Cờ vua", sub: "Chess · cờ quốc tế", status: "soon", icon: "♔" },
+  { id: "go", title: "Cờ vây", sub: "Go · Baduk · Weiqi", status: "soon", icon: "⚫" },
+  { id: "checkers", title: "Cờ đam", sub: "Checkers · damka", status: "soon", icon: "⛀" },
+  { id: "shogi", title: "Shogi", sub: "Cờ Nhật Bản", status: "soon", icon: "☖" },
+];
+
 /**
  * @param {{
  *  root: HTMLElement,
@@ -26,7 +36,8 @@ const STORAGE_THEME = "caro-board-theme";
 export function mountCaroApp(ctx) {
   const root = ctx.root;
   /** @type {any} */
-  let view = "launcher";
+  let view = "board-hub";
+  let gameSoonId = "chess";
   /** @type {any} */
   let localMatch = null;
   /** @type {any} */
@@ -277,21 +288,28 @@ export function mountCaroApp(ctx) {
     if (localMatch.turn !== STONE_O || aiBusy) return;
     aiBusy = true;
     render();
-    const delay = aiThinkDelay(localMatch.aiLevel);
-    await new Promise((r) => setTimeout(r, delay));
-    if (!localMatch || localMatch.status !== "playing") {
+    try {
+      const delay = aiThinkDelay(localMatch.aiLevel);
+      await new Promise((r) => setTimeout(r, delay));
+      if (!localMatch || localMatch.status !== "playing" || localMatch.turn !== STONE_O) return;
+      const move = pickAiMove(localMatch.board, STONE_O, localMatch.aiLevel, localMatch.mode);
+      if (move) doLocalMove(move.r, move.c, { fromAi: true });
+      else render();
+    } finally {
       aiBusy = false;
-      return;
+      render();
     }
-    const move = pickAiMove(localMatch.board, STONE_O, localMatch.aiLevel, localMatch.mode);
-    aiBusy = false;
-    if (move) doLocalMove(move.r, move.c);
-    else render();
   }
 
-  function doLocalMove(r, c) {
-    if (!localMatch || localMatch.status !== "playing" || aiBusy) return;
-    if (localMatch.modeKind === "ai" && localMatch.turn !== localMatch.meStone) return;
+  function doLocalMove(r, c, opts = {}) {
+    if (!localMatch || localMatch.status !== "playing") return;
+    if (aiBusy && !opts.fromAi) return;
+    if (
+      localMatch.modeKind === "ai" &&
+      !opts.fromAi &&
+      localMatch.turn !== localMatch.meStone
+    )
+      return;
     const res = applyMove(localMatch, r, c);
     if (!res.ok) {
       toast(res.reason || "Không đánh được");
@@ -342,7 +360,47 @@ export function mountCaroApp(ctx) {
     return html;
   }
 
-  function renderLauncher() {
+  function renderBoardHub() {
+    return `
+      <div class="caro-launcher board-portal">
+        <section class="caro-banner board-portal-banner">
+          <h1>SẢNH BOARD GAME</h1>
+          <p>Chọn loại cờ để vào sảnh riêng — hiện <strong>Cờ Caro</strong> đã chơi được; các game khác đang được bổ sung.</p>
+        </section>
+        <div class="board-games-grid">
+          ${BOARD_GAMES.map(
+            (g) => `
+            <button type="button" class="board-game-card ${g.status === "live" ? "is-live" : "is-soon"}" data-pick-game="${g.id}">
+              <span class="board-game-shine" aria-hidden="true"></span>
+              <span class="board-game-icon" aria-hidden="true">${g.icon}</span>
+              <span class="board-game-title">${escapeHtml(g.title)}</span>
+              <span class="board-game-sub">${escapeHtml(g.sub)}</span>
+              <span class="board-game-badge">${g.status === "live" ? "Chơi ngay" : "Sắp ra mắt"}</span>
+            </button>`
+          ).join("")}
+        </div>
+        <p class="board-portal-hint">Mẹo: Caro hỗ trợ Quick Match, phòng online và replay local.</p>
+      </div>`;
+  }
+
+  function renderGameSoon() {
+    const g = BOARD_GAMES.find((x) => x.id === gameSoonId) || BOARD_GAMES[1];
+    return `
+      <div class="caro-launcher" style="max-width:520px;margin-top:2rem">
+        <section class="caro-panel board-soon-panel">
+          <div class="board-soon-icon" aria-hidden="true">${g.icon}</div>
+          <h2>${escapeHtml(g.title)}</h2>
+          <p class="caro-muted">${escapeHtml(g.sub)}</p>
+          <p style="margin-top:0.75rem;line-height:1.55">Game này đang được xây dựng trong sảnh Board Game. Bạn có thể chơi <strong>Cờ Caro</strong> ngay trong lúc chờ.</p>
+          <div class="caro-form-actions" style="margin-top:1.25rem">
+            <button type="button" class="caro-btn primary" data-act="open-caro">Vào Cờ Caro</button>
+            <button type="button" class="caro-btn ghost" data-act="board-portal">← Sảnh game</button>
+          </div>
+        </section>
+      </div>`;
+  }
+
+  function renderCaroHome() {
     const stats = loadStats();
     const hist = loadLocalHistory().slice(0, 5);
     return `
@@ -554,7 +612,7 @@ export function mountCaroApp(ctx) {
           <div class="caro-form-actions">
             <button type="button" class="caro-btn" data-act="resign-local" ${finished ? "disabled" : ""}>Đầu hàng</button>
             <button type="button" class="caro-btn" data-act="draw-local" ${finished ? "disabled" : ""}>Xin hòa</button>
-            <button type="button" class="caro-btn ghost" data-act="home">Về launcher</button>
+            <button type="button" class="caro-btn ghost" data-act="board-portal">← Sảnh game</button>
           </div>
         </div>
         <aside class="caro-side">
@@ -772,28 +830,38 @@ export function mountCaroApp(ctx) {
       .replace(/"/g, "&quot;");
   }
 
+  function topBrandHtml() {
+    if (view === "board-hub" || view === "game-soon") {
+      return `BOARD <span>GAME</span>`;
+    }
+    return `CỜ <span>CARO</span>`;
+  }
+
+  function viewTitle() {
+    if (view === "board-hub") return "Sảnh game";
+    if (view === "game-soon") {
+      const g = BOARD_GAMES.find((x) => x.id === gameSoonId);
+      return g?.title || "Sắp ra mắt";
+    }
+    if (view === "caro-home") return "Caro";
+    if (view === "ai-setup") return "AI";
+    if (view === "create") return "Tạo phòng";
+    if (view === "join") return "Tham gia";
+    if (view === "lobby") return "Lobby";
+    if (view === "history") return "Lịch sử";
+    if (view === "rank") return "Xếp hạng";
+    if (view === "replay") return "Replay";
+    if (view === "local-game" || view === "online-game") return "Đang chơi";
+    return "Board";
+  }
+
   function render() {
-    const title =
-      view === "launcher"
-        ? "Board Game"
-        : view === "ai-setup"
-          ? "AI"
-          : view === "create"
-            ? "Tạo phòng"
-            : view === "join"
-              ? "Tham gia"
-              : view === "lobby"
-                ? "Lobby"
-                : view === "history"
-                  ? "Lịch sử"
-                  : view === "rank"
-                    ? "Xếp hạng"
-                    : view === "replay"
-                      ? "Replay"
-                      : "Cờ Caro";
+    const title = viewTitle();
 
     let body = "";
-    if (view === "launcher") body = renderLauncher();
+    if (view === "board-hub") body = renderBoardHub();
+    else if (view === "game-soon") body = renderGameSoon();
+    else if (view === "caro-home") body = renderCaroHome();
     else if (view === "ai-setup") body = renderAiSetup();
     else if (view === "create") body = renderCreate();
     else if (view === "join") body = renderJoin();
@@ -804,13 +872,20 @@ export function mountCaroApp(ctx) {
     else if (view === "rank") body = renderRank();
     else if (view === "replay") body = renderReplay();
 
+    const inCaro = !["board-hub", "game-soon"].includes(view);
+
     root.innerHTML = `
       <div class="caro-top">
-        <div class="caro-brand">BOARD <span>CARO</span> · ${escapeHtml(title)}${
+        <div class="caro-brand">${topBrandHtml()} · ${escapeHtml(title)}${
           quickWaiting ? ' <span class="caro-ai-thinking">Đang ghép…</span>' : ""
         }</div>
         <div class="caro-top-actions">
-          <button type="button" class="caro-btn ghost" data-act="home">Launcher</button>
+          ${
+            inCaro
+              ? `<button type="button" class="caro-btn ghost" data-act="board-portal">← Sảnh game</button>
+                 <button type="button" class="caro-btn ghost" data-act="caro-home">Caro</button>`
+              : ""
+          }
           <button type="button" class="caro-btn ghost" data-act="back-hub">← Hub</button>
         </div>
       </div>
@@ -867,7 +942,7 @@ export function mountCaroApp(ctx) {
   }
 
   root.addEventListener("click", async (e) => {
-    const t = e.target.closest("[data-act], [data-join-code], [data-replay], [data-replay-server], .caro-cell");
+    const t = e.target.closest("[data-act], [data-pick-game], [data-join-code], [data-replay], [data-replay-server], .caro-cell");
     if (!t) return;
 
     if (t.matches(".caro-cell") && view === "local-game") {
@@ -881,6 +956,21 @@ export function mountCaroApp(ctx) {
     }
 
     const act = t.dataset.act;
+    const pickGame = t.dataset.pickGame;
+    if (pickGame) {
+      const g = BOARD_GAMES.find((x) => x.id === pickGame);
+      if (!g) return;
+      if (g.status === "live") {
+        view = "caro-home";
+        refreshMeta().then(() => render());
+        render();
+      } else {
+        gameSoonId = g.id;
+        view = "game-soon";
+        render();
+      }
+      return;
+    }
     const joinCode = t.dataset.joinCode;
     if (joinCode) {
       if (!(await requireLogin())) return;
@@ -902,10 +992,27 @@ export function mountCaroApp(ctx) {
       ctx.onBackHub?.();
       return;
     }
+    if (act === "board-portal") {
+      stopReplayPlay();
+      stopTimer();
+      localMatch = null;
+      quickWaiting = false;
+      sockEmit("caro:leave", {});
+      sockEmit("caro:cancel_quick", {});
+      view = "board-hub";
+      render();
+      return;
+    }
+    if (act === "caro-home" || act === "open-caro") {
+      view = "caro-home";
+      refreshMeta().then(() => render());
+      render();
+      return;
+    }
     if (act === "home") {
       stopReplayPlay();
       localMatch = null;
-      view = "launcher";
+      view = "caro-home";
       refreshMeta().then(() => render());
       render();
       return;
@@ -1037,7 +1144,7 @@ export function mountCaroApp(ctx) {
     if (act === "leave-online") {
       await sockEmit("caro:leave", {});
       onlineRoom = null;
-      view = "launcher";
+      view = "caro-home";
       render();
       return;
     }
@@ -1175,17 +1282,14 @@ export function mountCaroApp(ctx) {
   });
 
   bindSocket();
-  view = "launcher";
+  view = "board-hub";
   render();
-  refreshMeta().then(() => {
-    if (view === "launcher") render();
-  });
 
   return {
     open() {
       root.hidden = false;
       bindSocket();
-      view = "launcher";
+      view = "board-hub";
       render();
       refreshMeta().then(() => render());
     },

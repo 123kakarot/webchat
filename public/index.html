@@ -6321,7 +6321,7 @@
 
     <section class="gate" id="gate" style="display:none">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v84</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v86</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
@@ -7221,7 +7221,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "84";
+      const CLIENT_BUILD = "86";
       const BASE_DOC_TITLE = "WebChat Hub";
 
       function applyUiTheme(mode) {
@@ -7292,10 +7292,10 @@
         {
           id: "board",
           title: "Board game",
-          sub: "Cờ caro · AI · online realtime",
+          sub: "Caro · cờ vua · tướng · vây · …",
           ico: "🎲",
           stubTitle: "Board game",
-          stubDesc: "Đang mở sảnh Cờ Caro…",
+          stubDesc: "Đang mở sảnh Board Game…",
         },
         {
           id: "books",
@@ -7550,7 +7550,7 @@
         const app = await ensureCaroApp();
         if (boardShell) boardShell.hidden = false;
         app.open();
-        document.title = "Board Game · Caro";
+        document.title = "Board Game · Sảnh";
       }
 
       function enterHubModule() {

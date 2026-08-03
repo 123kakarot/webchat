@@ -10,10 +10,10 @@ import {
 } from "./caro-engine.js";
 
 const DIFFICULTY = {
-  easy: { depth: 1, random: 0.45, thinkMin: 350, thinkMax: 900 },
-  medium: { depth: 2, random: 0.18, thinkMin: 500, thinkMax: 1200 },
-  hard: { depth: 3, random: 0.04, thinkMin: 700, thinkMax: 1600 },
-  impossible: { depth: 4, random: 0, thinkMin: 900, thinkMax: 2000 },
+  easy: { depth: 1, random: 0.45, thinkMin: 180, thinkMax: 450 },
+  medium: { depth: 2, random: 0.18, thinkMin: 280, thinkMax: 650 },
+  hard: { depth: 3, random: 0.04, thinkMin: 400, thinkMax: 900 },
+  impossible: { depth: 4, random: 0, thinkMin: 550, thinkMax: 1100 },
 };
 
 export function aiThinkDelay(level = "medium") {
