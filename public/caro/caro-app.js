@@ -384,33 +384,28 @@ export function mountCaroApp(ctx) {
   }
 
   function renderBoardHub() {
-    const stats = loadStats();
-    const rooms = filteredPublicRooms().slice(0, 4);
-    const liveMatches = (publicRooms || []).filter((r) => r.status === "playing").length;
     const online = dashOnlineCount();
     const lbSlice = (leaderboard || []).slice(0, 5);
-    const topName = lbSlice[0]?.name || "—";
-    const winRate = stats.played ? Math.round((stats.win / stats.played) * 100) : 0;
-    const level = Math.max(1, Math.min(99, Math.floor((stats.elo - 880) / 28)));
-
-    const featured = [
-      { ...BOARD_GAMES[0], hot: true, rating: "4.9", players: String(online) },
-      { ...BOARD_GAMES[1], hot: false, rating: "—", players: "—" },
-      { ...BOARD_GAMES[2], hot: false, rating: "—", players: "—" },
-      { id: "uno", title: "UNO", sub: "Party · online", status: "soon", icon: "🃏", hot: false, rating: "4.7", players: "42" },
+    const level = Math.max(1, Math.min(99, Math.floor((loadStats().elo - 880) / 28)));
+    const allGames = [
+      ...BOARD_GAMES.map((g) => ({
+        ...g,
+        suggest: g.id === "caro",
+        rating: g.id === "caro" ? "4.9" : "—",
+        players: g.id === "caro" ? online : "—",
+      })),
+      { id: "uno", title: "UNO", sub: "Party · bài", status: "soon", icon: "🃏", suggest: false, rating: "4.7", players: "42" },
     ];
 
     return `
-      <div class="caro-dash caro-dash-hub">
+      <div class="caro-dash caro-dash-hub caro-dash-discover">
         <aside class="caro-dash-nav" aria-label="WebChat Hub">
           <div class="caro-dash-logo">
             <span class="caro-dash-logo-ico" aria-hidden="true">◈</span>
             <span>WebChat<br><small class="caro-dash-logo-sub">Board Game Hub</small></span>
           </div>
           <nav class="caro-dash-menu">${renderWebchatHubNav("board")}</nav>
-          <div class="caro-dash-online-pill">
-            <span class="caro-dash-dot"></span> ${online} online
-          </div>
+          <div class="caro-dash-online-pill"><span class="caro-dash-dot"></span> ${online} online</div>
           <div class="caro-dash-nav-foot">
             <button type="button" class="caro-dash-link" data-act="back-hub">← Về Hub chính</button>
           </div>
@@ -418,134 +413,81 @@ export function mountCaroApp(ctx) {
 
         <div class="caro-dash-main">
           <header class="caro-dash-header">
-            <div class="caro-breadcrumb">Board Game <span>/ Sảnh game</span></div>
+            <div class="caro-breadcrumb">Board Game <span>/ Khám phá</span></div>
             <div class="caro-dash-header-user">
               <button type="button" class="caro-dash-bell" data-act="caro-notify" aria-label="Thông báo">🔔</button>
               <div class="caro-dash-user-chip">
                 <span class="caro-dash-avatar">${escapeHtml(playerInitial())}</span>
                 <span class="caro-dash-user-meta">
                   <strong>${escapeHtml(playerName())}</strong>
-                  <span>${ctx.socket?.connected ? "Online" : "Offline"} · LV ${level}</span>
+                  <span>LV ${level}</span>
                 </span>
               </div>
             </div>
           </header>
 
           <div class="caro-dash-scroll">
-            <section class="caro-dash-hero caro-reveal" style="--i:0">
+            <section class="caro-dash-hero caro-hub-hero-lite caro-reveal" style="--i:0">
               <div class="caro-dash-hero-text">
-                <p class="caro-dash-kicker">Nhiều loại cờ · Một sảnh chung</p>
+                <p class="caro-dash-kicker">Chọn game · Vào sảnh riêng · Rồi mới chơi</p>
                 <h1 class="caro-hub-title">BOARD <em>GAME</em></h1>
-                <p class="caro-dash-lead"><strong>Cờ Caro</strong> đã sẵn sàng — AI, local, Quick Match &amp; phòng online. Các game khác đang mở dần.</p>
-                <button type="button" class="caro-dash-play-now" data-pick-game="caro">
-                  <span class="caro-dash-play-glow" aria-hidden="true"></span>
-                  Vào Cờ Caro
-                </button>
+                <p class="caro-dash-lead">Trang này chỉ <strong>giới thiệu &amp; gợi ý</strong>. Bấm vào từng game để mở sảnh (Quick Match, AI, phòng… nằm trong sảnh đó).</p>
               </div>
-              <div class="caro-dash-hero-art">
-                <div class="caro-hero-orbit"></div>
-                ${heroBoardSvg()}
+              <div class="caro-dash-hero-art caro-hub-hero-icons" aria-hidden="true">
+                <span>⊞</span><span>♔</span><span>帥</span><span>⚫</span>
               </div>
             </section>
 
-            <div class="caro-hub-stats caro-reveal" style="--i:1">
-              <div class="caro-hub-stat"><span>Online</span><strong>${online}</strong></div>
-              <div class="caro-hub-stat"><span>Trận đang chơi</span><strong>${liveMatches}</strong></div>
-              <div class="caro-hub-stat"><span>Top tuần</span><strong>${escapeHtml(topName)}</strong></div>
-              <div class="caro-hub-stat"><span>Chuỗi thắng bạn</span><strong>${stats.streak}</strong></div>
-            </div>
-
-            <div class="caro-dash-quick caro-reveal" style="--i:1">
-              <button type="button" class="caro-quick-tile tile-blue" data-pick-game="caro" data-hub-focus="quick">
-                <span class="tile-shine"></span><span class="tile-ico">⚡</span>
-                <span class="tile-title">Quick Match</span><span class="tile-sub">Caro · ghép nhanh</span>
-              </button>
-              <button type="button" class="caro-quick-tile tile-purple" data-pick-game="caro" data-hub-focus="ai">
-                <span class="tile-shine"></span><span class="tile-ico">🤖</span>
-                <span class="tile-title">Chơi với AI</span><span class="tile-sub">4 cấp độ</span>
-              </button>
-              <button type="button" class="caro-quick-tile tile-green" data-pick-game="caro" data-hub-focus="local">
-                <span class="tile-shine"></span><span class="tile-ico">👥</span>
-                <span class="tile-title">Chơi Local</span><span class="tile-sub">2 người / máy</span>
-              </button>
-              <button type="button" class="caro-quick-tile tile-gold" data-pick-game="caro" data-hub-focus="create">
-                <span class="tile-shine"></span><span class="tile-ico">＋</span>
-                <span class="tile-title">Tạo phòng</span><span class="tile-sub">Caro online</span>
-              </button>
-            </div>
-
-            <section class="caro-dash-card caro-reveal" style="--i:2">
+            <section class="caro-dash-card caro-reveal" style="--i:1">
               <div class="caro-dash-card-head">
-                <h2>Game nổi bật</h2>
+                <h2>Gợi ý cho bạn</h2>
+                <span class="caro-muted" style="font-size:0.75rem">Mới · phổ biến</span>
               </div>
-              <div class="board-featured-scroll">
-                ${featured
+              <div class="board-suggest-row">
+                ${allGames
+                  .filter((g) => g.suggest)
                   .map(
                     (g) => `
-                  <button type="button" class="board-feature-card ${g.status === "live" ? "is-live" : "is-soon"}" data-pick-game="${g.id}">
-                    ${g.hot ? '<span class="board-feature-hot">HOT</span>' : ""}
+                  <article class="board-suggest-card is-live">
+                    <span class="board-feature-hot">GỢI Ý</span>
+                    <span class="board-game-icon lg">${g.icon}</span>
+                    <h3>${escapeHtml(g.title)}</h3>
+                    <p class="caro-muted">${escapeHtml(g.sub)}</p>
+                    <p class="board-feature-meta">★ ${g.rating} · ${g.players} đang chơi</p>
+                    <button type="button" class="caro-btn primary" data-pick-game="${g.id}">Vào sảnh game</button>
+                  </article>`
+                  )
+                  .join("")}
+                <div class="board-suggest-tip">
+                  <p><strong>Mẹo:</strong> Cờ Caro có AI, local 2 người, Quick Match và phòng online — tất cả trong sảnh Cờ Caro, không chơi trực tiếp tại đây.</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="caro-dash-card caro-reveal" style="--i:2">
+              <div class="caro-dash-card-head"><h2>Tất cả game</h2></div>
+              <div class="board-hub-grid">
+                ${allGames
+                  .map(
+                    (g) => `
+                  <button type="button" class="board-hub-game ${g.status === "live" ? "is-live" : "is-soon"}" data-pick-game="${g.id}">
+                    <span class="board-game-shine"></span>
                     <span class="board-game-icon">${g.icon}</span>
                     <span class="board-game-title">${escapeHtml(g.title)}</span>
-                    <span class="board-game-sub">${escapeHtml(g.sub || "")}</span>
-                    <span class="board-feature-meta">★ ${g.rating} · ${g.players} online</span>
+                    <span class="board-game-sub">${escapeHtml(g.sub)}</span>
+                    <span class="board-game-badge">${g.status === "live" ? "Vào sảnh" : "Sắp ra mắt"}</span>
                   </button>`
                   )
                   .join("")}
               </div>
             </section>
-
-            <div class="caro-dash-mid caro-reveal" style="--i:3">
-              <section class="caro-dash-card">
-                <div class="caro-dash-card-head">
-                  <h2>Phòng chơi công khai</h2>
-                  <button type="button" class="caro-dash-link" data-act="refresh-rooms">Làm mới</button>
-                </div>
-                <div class="caro-dash-room-list">
-                  ${
-                    rooms.length
-                      ? rooms
-                          .map(
-                            (r) => `<article class="caro-room-row">
-                              <div><strong>${escapeHtml(r.name || "Phòng Caro")}</strong>
-                              <div class="caro-muted">${r.size}x${r.size} · ${escapeHtml(r.mode || "freestyle")}</div></div>
-                              <div class="caro-room-meta"><span>${r.players?.length || 0}/2</span>
-                              <button type="button" class="caro-btn sm" data-join-code="${r.code}">Tham gia</button></div>
-                            </article>`
-                          )
-                          .join("")
-                      : `<p class="caro-empty">Chưa có phòng — vào Cờ Caro để tạo hoặc Quick Match.</p>`
-                  }
-                </div>
-              </section>
-              <section class="caro-dash-card caro-dash-event">
-                <h2>Sự kiện</h2>
-                <div class="caro-event-box">
-                  <span class="caro-event-ico">🏆</span>
-                  <div>
-                    <strong>Caro Season 1</strong>
-                    <p class="caro-muted">Tích điểm ELO · phần thưởng danh dự (demo)</p>
-                  </div>
-                </div>
-                <button type="button" class="caro-btn primary sm" style="width:100%;margin-top:0.75rem" data-pick-game="caro">Tham gia</button>
-              </section>
-            </div>
           </div>
         </div>
 
-        <aside class="caro-dash-rail caro-reveal" style="--i:2">
+        <aside class="caro-dash-rail caro-reveal" style="--i:1">
           <section class="caro-dash-card">
-            <h2>Người chơi online</h2>
-            <ul class="caro-online-list">
-              ${(lbSlice.slice(0, 4).length ? lbSlice.slice(0, 4) : [{ name: "—" }])
-                .map(
-                  (p, i) => `<li>
-                    <span class="caro-dash-avatar sm">${escapeHtml(String(p.name || "?")[0].toUpperCase())}</span>
-                    <span>${escapeHtml(p.name || "Khách")}</span>
-                    <span class="caro-muted">${i === 0 ? "Caro" : "Lobby"}</span>
-                  </li>`
-                )
-                .join("")}
-            </ul>
+            <h2>Cộng đồng</h2>
+            <p class="caro-muted" style="font-size:0.82rem;line-height:1.5">Xếp hạng &amp; phòng online cập nhật khi bạn vào sảnh từng game (ví dụ Cờ Caro).</p>
           </section>
           <section class="caro-dash-card">
             <div class="caro-dash-card-head"><h2>Bảng xếp hạng</h2></div>
@@ -555,20 +497,15 @@ export function mountCaroApp(ctx) {
                   ? lbSlice
                       .map(
                         (row, i) => `<li class="caro-lb-row rank-${i + 1}">
-                        <span class="caro-lb-rank">${i + 1}</span>
-                        <span class="caro-lb-name">${escapeHtml(row.name || "—")}</span>
-                        <span class="caro-lb-elo">${row.elo ?? "—"}</span>
-                      </li>`
+                          <span class="caro-lb-rank">${i + 1}</span>
+                          <span class="caro-lb-name">${escapeHtml(row.name || "—")}</span>
+                          <span class="caro-lb-elo">${row.elo ?? "—"}</span>
+                        </li>`
                       )
                       .join("")
-                  : `<li class="caro-empty">Chưa có dữ liệu.</li>`
+                  : `<li class="caro-empty">Vào Cờ Caro để xem chi tiết.</li>`
               }
             </ol>
-          </section>
-          <section class="caro-dash-profile card-glow caro-profile-glow">
-            <div class="caro-dash-avatar lg">${escapeHtml(playerInitial())}</div>
-            <h3>${escapeHtml(playerName())}</h3>
-            <p class="caro-muted">Win rate ${winRate}% · ELO ${stats.elo}</p>
           </section>
         </aside>
       </div>`;
@@ -650,6 +587,10 @@ export function mountCaroApp(ctx) {
     const achAi = Math.min(100, stats.aiHardWins * 25);
     const achStreak = Math.min(100, stats.streak * 20);
 
+    const liveMatches = (publicRooms || []).filter((r) => r.status === "playing").length;
+    const online = dashOnlineCount();
+    const topStreak = stats.streak;
+
     const roomTabs = [
       { id: "all", label: "Tất cả" },
       { id: "wait", label: "Chờ vào" },
@@ -657,50 +598,28 @@ export function mountCaroApp(ctx) {
     ];
 
     return `
-      <div class="caro-dash">
-        <aside class="caro-dash-nav" aria-label="Menu Caro">
+      <div class="caro-dash caro-dash-play">
+        <aside class="caro-dash-nav" aria-label="WebChat Hub">
           <div class="caro-dash-logo">
             <span class="caro-dash-logo-ico" aria-hidden="true">⊞</span>
-            <span>Cờ Caro</span>
+            <span>Cờ Caro<br><small class="caro-dash-logo-sub">Sảnh chơi</small></span>
           </div>
-          <nav class="caro-dash-menu">
-            <button type="button" class="caro-dash-menu-item is-active" data-act="caro-home">
-              <span class="ico">⌂</span> Trang chủ
-            </button>
-            <button type="button" class="caro-dash-menu-item" data-act="ai">
-              <span class="ico">▶</span> Chơi ngay
-            </button>
-            <button type="button" class="caro-dash-menu-item" data-act="join">
-              <span class="ico">⎈</span> Phòng game
-            </button>
-            <button type="button" class="caro-dash-menu-item" data-act="rank">
-              <span class="ico">★</span> Xếp hạng
-            </button>
-            <button type="button" class="caro-dash-menu-item" data-act="history">
-              <span class="ico">↺</span> Lịch sử
-            </button>
-            <button type="button" class="caro-dash-menu-item" data-act="caro-achievements">
-              <span class="ico">🏅</span> Thành tựu
-            </button>
-            <button type="button" class="caro-dash-menu-item" data-act="caro-settings">
-              <span class="ico">⚙</span> Cài đặt
-            </button>
-          </nav>
+          <nav class="caro-dash-menu">${renderWebchatHubNav("board")}</nav>
           <label class="caro-dash-sound">
             <input type="checkbox" data-act="sound" ${soundOn ? "checked" : ""} />
             <span>Âm thanh</span>
           </label>
           <div class="caro-dash-nav-foot">
-            <button type="button" class="caro-dash-link" data-act="board-portal">← Sảnh game</button>
-            <button type="button" class="caro-dash-link" data-act="back-hub">← Hub</button>
+            <button type="button" class="caro-dash-link" data-act="board-portal">← Sảnh Board Game</button>
+            <button type="button" class="caro-dash-link" data-act="back-hub">← Hub chính</button>
           </div>
         </aside>
 
         <div class="caro-dash-main">
           <header class="caro-dash-header">
-            <div class="caro-dash-online">
-              <span class="caro-dash-dot"></span>
-              ${dashOnlineCount()} người online
+            <div class="caro-breadcrumb">
+              <button type="button" class="caro-crumb-link" data-act="board-portal">Board Game</button>
+              <span>/ Cờ Caro</span>
             </div>
             <div class="caro-dash-header-user">
               <button type="button" class="caro-dash-bell" aria-label="Thông báo" data-act="caro-notify">🔔</button>
@@ -717,9 +636,9 @@ export function mountCaroApp(ctx) {
           <div class="caro-dash-scroll">
             <section class="caro-dash-hero caro-reveal" style="--i:0">
               <div class="caro-dash-hero-text">
-                <p class="caro-dash-kicker">Trí tuệ · Chiến thuật · Thử thách</p>
-                <h1>CỜ CARO</h1>
-                <p class="caro-dash-lead">AI, local hai người, phòng online và Quick Match — đồng bộ phong cách WebChat Hub.</p>
+                <p class="caro-dash-kicker">Trí tuệ · Chiến thuật · Thư giãn</p>
+                <h1 class="caro-title-gradient">CỜ CARO</h1>
+                <p class="caro-dash-lead">Chơi tại đây — AI, local, Quick Match &amp; phòng online.</p>
                 <button type="button" class="caro-dash-play-now" data-act="quick">
                   <span class="caro-dash-play-glow" aria-hidden="true"></span>
                   ${quickWaiting ? "Đang ghép…" : "Chơi ngay"}
@@ -731,34 +650,69 @@ export function mountCaroApp(ctx) {
               </div>
             </section>
 
-            <div class="caro-dash-quick caro-reveal" style="--i:1">
-              <button type="button" class="caro-quick-tile tile-blue" data-act="quick">
-                <span class="tile-shine" aria-hidden="true"></span>
+            <div class="caro-hub-stats caro-reveal" style="--i:1">
+              <div class="caro-hub-stat"><span>Online</span><strong>${online}</strong></div>
+              <div class="caro-hub-stat"><span>Trận đang chơi</span><strong>${liveMatches}</strong></div>
+              <div class="caro-hub-stat"><span>Top tuần</span><strong>${escapeHtml(lbSlice[0]?.name || "—")}</strong></div>
+              <div class="caro-hub-stat"><span>Chuỗi thắng</span><strong>${topStreak}</strong></div>
+            </div>
+
+            <div class="caro-mode-row caro-reveal" style="--i:1">
+              <article class="caro-mode-card mode-blue">
                 <span class="tile-ico">⚡</span>
-                <span class="tile-title">Quick Match</span>
-                <span class="tile-sub">Tìm đối thủ ngay</span>
-              </button>
-              <button type="button" class="caro-quick-tile tile-purple" data-act="ai">
-                <span class="tile-shine" aria-hidden="true"></span>
+                <h3>Quick Match</h3>
+                <p>Tìm đối thủ ngay</p>
+                <button type="button" class="caro-mode-play" data-act="quick">Chơi ngay</button>
+              </article>
+              <article class="caro-mode-card mode-purple">
                 <span class="tile-ico">🤖</span>
-                <span class="tile-title">Chơi với AI</span>
-                <span class="tile-sub">4 cấp độ khó</span>
-              </button>
-              <button type="button" class="caro-quick-tile tile-green" data-act="local">
-                <span class="tile-shine" aria-hidden="true"></span>
+                <h3>Chơi với AI</h3>
+                <p>4 cấp độ khó</p>
+                <button type="button" class="caro-mode-play" data-act="ai">Chơi ngay</button>
+              </article>
+              <article class="caro-mode-card mode-teal">
                 <span class="tile-ico">👥</span>
-                <span class="tile-title">Chơi Local</span>
-                <span class="tile-sub">2 người / 1 máy</span>
-              </button>
+                <h3>Chơi Local</h3>
+                <p>2 người / 1 máy</p>
+                <button type="button" class="caro-mode-play" data-act="local">Chơi ngay</button>
+              </article>
+            </div>
+
+            <section class="caro-dash-card caro-reveal" style="--i:2">
+              <div class="caro-dash-card-head"><h2>Game nổi bật</h2></div>
+              <div class="board-featured-scroll">
+                <article class="board-feature-card is-live">
+                  <span class="board-feature-hot">HOT</span>
+                  <span class="board-game-icon">⊞</span>
+                  <span class="board-game-title">Cờ Caro</span>
+                  <span class="board-feature-meta">★ 4.9 · ${online} online</span>
+                  <button type="button" class="caro-btn sm primary" data-act="caro-home">Chơi ngay</button>
+                </article>
+                <button type="button" class="board-feature-card is-soon" data-pick-game="chess">
+                  <span class="board-game-icon">♔</span>
+                  <span class="board-game-title">Cờ vua</span>
+                  <span class="board-feature-meta">Sắp ra mắt</span>
+                </button>
+                <button type="button" class="board-feature-card is-soon" data-pick-game="uno">
+                  <span class="board-game-icon">🃏</span>
+                  <span class="board-game-title">UNO</span>
+                  <span class="board-feature-meta">★ 4.7</span>
+                </button>
+              </div>
+            </section>
+
+            <div class="caro-dash-quick caro-dash-quick-sub caro-reveal" style="--i:2">
               <button type="button" class="caro-quick-tile tile-gold" data-act="create">
-                <span class="tile-shine" aria-hidden="true"></span>
-                <span class="tile-ico">＋</span>
-                <span class="tile-title">Tạo phòng</span>
-                <span class="tile-sub">Tùy luật &amp; timer</span>
+                <span class="tile-shine"></span><span class="tile-ico">＋</span>
+                <span class="tile-title">Tạo phòng</span><span class="tile-sub">Tùy luật &amp; timer</span>
+              </button>
+              <button type="button" class="caro-quick-tile tile-blue" data-act="join">
+                <span class="tile-shine"></span><span class="tile-ico">⎈</span>
+                <span class="tile-title">Tham gia</span><span class="tile-sub">Nhập mã phòng</span>
               </button>
             </div>
 
-            <div class="caro-dash-mid caro-reveal" style="--i:2">
+            <div class="caro-dash-mid caro-reveal" style="--i:3">
               <section class="caro-dash-card caro-dash-rooms">
                 <div class="caro-dash-card-head">
                   <h2>Phòng game công khai</h2>
@@ -1430,40 +1384,9 @@ export function mountCaroApp(ctx) {
       }
       const g = BOARD_GAMES.find((x) => x.id === pickGame);
       if (!g) return;
-      const focus = t.dataset.hubFocus || "";
       if (g.status === "live") {
         view = "caro-home";
-        refreshMeta().then(async () => {
-          render();
-          if (focus === "ai") {
-            view = "ai-setup";
-            render();
-          } else if (focus === "local") {
-            startLocal({ kind: "local", size: 15, mode: "freestyle", turnSec: 90 });
-          } else if (focus === "create") {
-            if (await requireLogin()) {
-              view = "create";
-              render();
-            }
-          } else if (focus === "quick") {
-            if (!(await requireLogin())) return;
-            quickWaiting = true;
-            render();
-            const res = await sockEmit("caro:quick_match", { playerName: playerName() });
-            if (!res?.ok) {
-              quickWaiting = false;
-              toast(res?.reason || "Lỗi ghép");
-              render();
-              return;
-            }
-            if (res.room) {
-              quickWaiting = false;
-              onlineRoom = res.room;
-              view = "online-game";
-              render();
-            } else toast("Đang chờ đối thủ…");
-          }
-        });
+        refreshMeta().then(() => render());
         render();
       } else {
         gameSoonId = g.id;
