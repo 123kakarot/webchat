@@ -34,7 +34,7 @@ function gameArtUrl(id) {
 }
 
 function renderGameThumb(id, variant = "card") {
-  const url = `${gameArtUrl(id)}?v=97`;
+  const url = `${gameArtUrl(id)}?v=98`;
   const title = gameById(id)?.title || (id === "uno" ? "UNO" : id);
   const safeTitle = String(title).replace(/"/g, "&quot;");
   return `<span class="board-game-thumb thumb-${variant}" role="img" aria-label="${safeTitle}">
@@ -475,11 +475,15 @@ export function mountCaroApp(ctx) {
                     (g) => `
                   <article class="board-suggest-card is-live">
                     <span class="board-feature-hot">GỢI Ý</span>
-                    ${renderGameThumb(g.id, "suggest")}
-                    <h3>${escapeHtml(g.title)}</h3>
-                    <p class="caro-muted">${escapeHtml(g.sub)}</p>
-                    <p class="board-feature-meta">★ ${g.rating} · ${g.players} đang chơi</p>
-                    <button type="button" class="caro-btn primary glow-cyan" data-pick-game="${g.id}">Vào sảnh game</button>
+                    <div class="board-suggest-main">
+                      ${renderGameThumb(g.id, "suggest")}
+                      <div class="board-suggest-copy">
+                        <h3>${escapeHtml(g.title)}</h3>
+                        <p class="caro-muted">${escapeHtml(g.sub)}</p>
+                        <p class="board-feature-meta">★ ${g.rating} · ${g.players} đang chơi</p>
+                        <button type="button" class="caro-btn primary glow-cyan" data-pick-game="${g.id}">Vào sảnh game</button>
+                      </div>
+                    </div>
                   </article>`
                   )
                   .join("")}
