@@ -1,0 +1,411 @@
+/* Xiangqi — Neon Gold theme (WebChat Board) */
+
+.xq-shell {
+  --xq-bg: #07111f;
+  --xq-cell: #18243d;
+  --xq-line: #29d9ff;
+  --xq-glow: #00cfff;
+  --xq-red: #ff4d4d;
+  --xq-red-glow: #ff8a3d;
+  --xq-black: #8fa8c8;
+  --xq-black-glow: #00cfff;
+  --xq-dot: rgba(0, 207, 255, 0.85);
+  color: #e8f6ff;
+}
+
+.xq-home-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 960px) {
+  .xq-home-grid {
+    grid-template-columns: 1fr 320px;
+  }
+}
+
+.xq-hero {
+  position: relative;
+  padding: 1.75rem 1.5rem 2rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(41, 217, 255, 0.35);
+  background: linear-gradient(145deg, rgba(8, 24, 48, 0.95), rgba(7, 17, 31, 0.98));
+  box-shadow: 0 0 40px rgba(0, 207, 255, 0.08);
+  overflow: hidden;
+}
+
+.xq-hero::before {
+  content: "";
+  position: absolute;
+  inset: -40% -20% auto auto;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(255, 77, 77, 0.15), transparent 70%);
+  pointer-events: none;
+}
+
+.xq-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  background: linear-gradient(90deg, #ff6b4a, #ffd166, #29d9ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin: 0.35rem 0 0.75rem;
+}
+
+.xq-kicker {
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(170, 220, 255, 0.75);
+}
+
+.xq-lead {
+  max-width: 42rem;
+  line-height: 1.65;
+  color: rgba(200, 230, 255, 0.82);
+  margin-bottom: 1.25rem;
+}
+
+.xq-info-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.xq-chip {
+  font-size: 0.78rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(41, 217, 255, 0.35);
+  background: rgba(24, 36, 61, 0.8);
+}
+
+.xq-panel {
+  border-radius: 0.85rem;
+  border: 1px solid rgba(41, 217, 255, 0.28);
+  background: rgba(12, 22, 40, 0.88);
+  padding: 1rem 1.1rem;
+}
+
+.xq-panel h3 {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+  color: var(--xq-glow);
+}
+
+.xq-mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.xq-mode-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(41, 217, 255, 0.22);
+  background: rgba(24, 36, 61, 0.55);
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+}
+
+.xq-mode-btn:hover {
+  border-color: rgba(0, 207, 255, 0.55);
+  box-shadow: 0 0 18px rgba(0, 207, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.xq-mode-btn strong {
+  display: block;
+  font-size: 0.92rem;
+}
+
+.xq-mode-btn span {
+  font-size: 0.78rem;
+  color: rgba(170, 200, 220, 0.75);
+}
+
+.xq-mode-divider {
+  height: 1px;
+  background: rgba(41, 217, 255, 0.15);
+  margin: 0.25rem 0;
+}
+
+.xq-ai-levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.xq-ai-levels button {
+  font-size: 0.72rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(255, 138, 61, 0.4);
+  background: rgba(255, 77, 77, 0.12);
+  color: #ffd4c4;
+  cursor: pointer;
+}
+
+.xq-rules-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 720px) {
+  .xq-rules-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.xq-piece-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.35rem;
+  font-size: 0.82rem;
+}
+
+.xq-game-layout {
+  display: grid;
+  gap: 1rem;
+  min-height: 0;
+}
+
+@media (min-width: 1024px) {
+  .xq-game-layout {
+    grid-template-columns: 1fr 300px;
+  }
+}
+
+.xq-game-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.xq-player-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(24, 36, 61, 0.65);
+  border: 1px solid rgba(41, 217, 255, 0.2);
+  font-size: 0.85rem;
+}
+
+.xq-player-bar.in-check {
+  border-color: rgba(255, 77, 77, 0.65);
+  box-shadow: 0 0 20px rgba(255, 77, 77, 0.25);
+}
+
+.xq-board-wrap {
+  position: relative;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--xq-bg);
+  border: 1px solid rgba(41, 217, 255, 0.35);
+  box-shadow: 0 0 32px rgba(0, 207, 255, 0.1);
+}
+
+.xq-board {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(10, 1fr);
+  aspect-ratio: 9 / 10;
+  max-width: min(92vw, 520px);
+  margin: 0 auto;
+  position: relative;
+  background:
+    linear-gradient(var(--xq-line) 1px, transparent 1px) 0 0 / calc(100% / 8) calc(100% / 9),
+    linear-gradient(90deg, var(--xq-line) 1px, transparent 1px) 0 0 / calc(100% / 8) calc(100% / 9);
+  background-color: var(--xq-cell);
+  border: 2px solid rgba(41, 217, 255, 0.45);
+}
+
+.xq-board::after {
+  content: "河 · 漢";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(0.65rem, 2.5vw, 0.85rem);
+  letter-spacing: 0.35em;
+  color: rgba(41, 217, 255, 0.35);
+  pointer-events: none;
+}
+
+.xq-cell {
+  position: relative;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  min-height: 0;
+}
+
+.xq-cell .xq-dot-hint {
+  position: absolute;
+  inset: 38%;
+  border-radius: 50%;
+  background: var(--xq-dot);
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 0.12s, transform 0.12s;
+  pointer-events: none;
+  box-shadow: 0 0 8px var(--xq-glow);
+}
+
+.xq-cell.is-target .xq-dot-hint {
+  opacity: 0.95;
+  transform: scale(1);
+}
+
+.xq-cell.is-selected {
+  z-index: 2;
+}
+
+.xq-cell.is-selected::before {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border: 2px solid rgba(0, 207, 255, 0.75);
+  border-radius: 50%;
+  box-shadow: 0 0 14px rgba(0, 207, 255, 0.45);
+  pointer-events: none;
+}
+
+.xq-piece {
+  position: absolute;
+  inset: 10%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: clamp(0.65rem, 3.2vw, 1rem);
+  transition: transform 0.12s, box-shadow 0.12s;
+  pointer-events: none;
+  user-select: none;
+}
+
+.xq-cell:hover .xq-piece {
+  transform: scale(1.08);
+}
+
+.xq-piece.red {
+  color: #fff5f0;
+  background: radial-gradient(circle at 35% 30%, #ff8a3d, #ff3d3d 65%);
+  border: 2px solid #ffd166;
+  box-shadow: 0 0 12px rgba(255, 138, 61, 0.55);
+}
+
+.xq-piece.black {
+  color: #e8f4ff;
+  background: radial-gradient(circle at 35% 30%, #4a6080, #1a2838 70%);
+  border: 2px solid var(--xq-glow);
+  box-shadow: 0 0 10px rgba(0, 207, 255, 0.35);
+}
+
+.xq-side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-height: min(70vh, 640px);
+}
+
+.xq-move-log {
+  font-size: 0.78rem;
+  max-height: 160px;
+  overflow-y: auto;
+  line-height: 1.5;
+  color: rgba(200, 230, 255, 0.85);
+}
+
+.xq-chat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.xq-chat-box input {
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(41, 217, 255, 0.3);
+  background: rgba(7, 17, 31, 0.9);
+  color: inherit;
+}
+
+.xq-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.xq-checkmate-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 8, 16, 0.82);
+  backdrop-filter: blur(6px);
+}
+
+.xq-checkmate-card {
+  text-align: center;
+  padding: 2rem 2.5rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 215, 102, 0.45);
+  background: linear-gradient(160deg, rgba(24, 36, 61, 0.95), rgba(7, 17, 31, 0.98));
+  box-shadow: 0 0 48px rgba(255, 138, 61, 0.2);
+}
+
+.xq-checkmate-card h2 {
+  font-size: 2rem;
+  letter-spacing: 0.15em;
+  margin: 0.5rem 0;
+  color: #ffd166;
+}
+
+.xq-stat-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.xq-ach {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+}
+
+.xq-ach span {
+  padding: 0.25rem 0.45rem;
+  border-radius: 0.35rem;
+  background: rgba(255, 215, 102, 0.1);
+  border: 1px solid rgba(255, 215, 102, 0.25);
+}
+
+.xq-replay-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+}

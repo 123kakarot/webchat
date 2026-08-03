@@ -7,6 +7,7 @@ import {
   cloneBoard,
 } from "./caro-engine.js";
 import { pickAiMove, aiThinkDelay } from "./caro-ai.js";
+import { createXiangqiModule } from "../xiangqi/xiangqi-module.js";
 
 const STORAGE_HISTORY = "caro-local-history";
 const STORAGE_STATS = "caro-local-stats";
@@ -18,7 +19,7 @@ const STORAGE_UI_SESSION = "caro-ui-session";
 /** @type {{ id: string, title: string, sub: string, status: "live"|"soon", icon: string, art: string }[]} */
 const BOARD_GAMES = [
   { id: "caro", title: "Cờ Caro", sub: "AI · 2 người · online realtime", status: "live", icon: "⊞", art: "/caro/games/caro.png" },
-  { id: "xiangqi", title: "Cờ tướng", sub: "Xiangqi · cờ Trung Hoa", status: "soon", icon: "帥", art: "/caro/games/xiangqi.png" },
+  { id: "xiangqi", title: "Cờ tướng", sub: "Xiangqi · chiến thuật 9×10", status: "live", icon: "帥", art: "/caro/games/xiangqi.png" },
   { id: "chess", title: "Cờ vua", sub: "Chess · cờ quốc tế", status: "soon", icon: "♔", art: "/caro/games/chess.png" },
   { id: "go", title: "Cờ vây", sub: "Go · Baduk · Weiqi", status: "soon", icon: "⚫", art: "/caro/games/go.png" },
 ];
@@ -116,6 +117,14 @@ export function mountCaroApp(ctx) {
       el.hidden = true;
     }, 2200);
   }
+
+  const xiangqi = createXiangqiModule({
+    escapeHtml,
+    playerName,
+    toast,
+    beep,
+    onReplayTick: () => render(),
+  });
 
   function loadLocalHistory() {
     try {
@@ -298,6 +307,10 @@ export function mountCaroApp(ctx) {
     }
     if (s?.view && ["lobby", "online-game"].includes(s.view)) {
       view = "caro-home";
+      return;
+    }
+    if (s?.view === "xiangqi-play" || s?.view === "xiangqi-home") {
+      view = s.view;
       return;
     }
     view = "board-hub";
@@ -718,6 +731,34 @@ export function mountCaroApp(ctx) {
             <button type="button" class="caro-btn ghost" data-act="board-portal">← Sảnh game</button>
           </div>
         </section>
+      </div>`;
+  }
+
+  function renderXiangqiHomeDash() {
+    return `
+      <div class="caro-dash caro-dash-play">
+        <aside class="caro-dash-nav" aria-label="WebChat Hub">
+          <div class="caro-dash-logo">
+            <span class="caro-dash-logo-ico" aria-hidden="true">帥</span>
+            <span>Cờ Tướng<br><small class="caro-dash-logo-sub">Sảnh chơi</small></span>
+          </div>
+          <nav class="caro-dash-menu">${renderWebchatHubNav("board")}</nav>
+          <div class="caro-dash-nav-foot">
+            <button type="button" class="caro-dash-link" data-act="board-portal">← Sảnh Board Game</button>
+            <button type="button" class="caro-dash-link" data-act="back-hub">← Hub chính</button>
+          </div>
+        </aside>
+        <div class="caro-dash-main">
+          <header class="caro-dash-header">
+            <div class="caro-breadcrumb">
+              <button type="button" class="caro-crumb-link" data-act="board-portal">Board Game</button>
+              <span>/ Cờ Tướng</span>
+            </div>
+          </header>
+          <div class="caro-dash-scroll caro-scroll-thin">
+            ${xiangqi.renderHome()}
+          </div>
+        </div>
       </div>`;
   }
 
@@ -1523,6 +1564,9 @@ export function mountCaroApp(ctx) {
     if (view === "board-hub" || view === "game-soon") {
       return `BOARD <span>GAME</span>`;
     }
+    if (view === "xiangqi-home" || view === "xiangqi-play") {
+      return `CỜ <span>TƯỚNG</span>`;
+    }
     return `CỜ <span>CARO</span>`;
   }
 
@@ -1532,6 +1576,8 @@ export function mountCaroApp(ctx) {
       const g = BOARD_GAMES.find((x) => x.id === gameSoonId);
       return g?.title || "Sắp ra mắt";
     }
+    if (view === "xiangqi-home") return "Cờ Tướng";
+    if (view === "xiangqi-play") return "Đang chơi";
     if (view === "caro-home") return "Caro";
     if (view === "ai-setup") return "AI";
     if (view === "create") return "Tạo phòng";
@@ -1560,10 +1606,12 @@ export function mountCaroApp(ctx) {
     else if (view === "history") body = renderHistory();
     else if (view === "rank") body = renderRank();
     else if (view === "replay") body = renderReplay();
+    else if (view === "xiangqi-home") body = renderXiangqiHomeDash();
+    else if (view === "xiangqi-play") body = xiangqi.renderPlay();
 
-    const inCaro = !["board-hub", "game-soon"].includes(view);
+    const inCaro = !["board-hub", "game-soon", "xiangqi-home", "xiangqi-play"].includes(view);
 
-    const isDash = view === "caro-home" || view === "board-hub";
+    const isDash = view === "caro-home" || view === "board-hub" || view === "xiangqi-home";
 
     if (isDash) {
       root.innerHTML = `<div class="caro-shell-dash">
@@ -1645,8 +1693,13 @@ export function mountCaroApp(ctx) {
   }
 
   root.addEventListener("click", async (e) => {
-    const t = e.target.closest("[data-act], [data-pick-game], [data-join-code], [data-replay], [data-replay-server], .caro-cell");
+    const t = e.target.closest("[data-act], [data-pick-game], [data-join-code], [data-replay], [data-replay-server], .caro-cell, [data-xq-r]");
     if (!t) return;
+
+    if (t.matches("[data-xq-r]") && view === "xiangqi-play") {
+      if (xiangqi.handleCellClick(Number(t.dataset.xqR), Number(t.dataset.xqC))) render();
+      return;
+    }
 
     if (t.matches(".caro-cell") && view === "local-game") {
       doLocalMove(Number(t.dataset.r), Number(t.dataset.c));
@@ -1659,6 +1712,12 @@ export function mountCaroApp(ctx) {
     }
 
     const act = t.dataset.act;
+    if (act && act.startsWith("xq-")) {
+      const next = xiangqi.handleAction(act, t);
+      if (next) view = next;
+      render();
+      return;
+    }
     const pickGame = t.dataset.pickGame;
     if (pickGame) {
       if (pickGame === "uno") {
@@ -1669,6 +1728,11 @@ export function mountCaroApp(ctx) {
       }
       const g = BOARD_GAMES.find((x) => x.id === pickGame);
       if (!g) return;
+      if (g.id === "xiangqi") {
+        view = "xiangqi-home";
+        render();
+        return;
+      }
       if (g.status === "live") {
         view = "caro-home";
         refreshMeta().then(() => render());
@@ -1706,6 +1770,7 @@ export function mountCaroApp(ctx) {
       stopTimer();
       localMatch = null;
       quickWaiting = false;
+      xiangqi.clearMatch();
       sockEmit("caro:leave", {});
       sockEmit("caro:cancel_quick", {});
       view = "board-hub";
