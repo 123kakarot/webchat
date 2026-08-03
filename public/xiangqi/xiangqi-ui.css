@@ -741,6 +741,39 @@
   background: linear-gradient(100deg, rgba(48, 22, 18, 0.92), rgba(14, 18, 36, 0.92));
 }
 
+.xq-player-card.is-turn {
+  border-color: rgba(74, 222, 128, 0.65);
+  box-shadow: 0 0 22px rgba(74, 222, 128, 0.28);
+}
+
+.xq-lobby-banner .xq-room-code {
+  font-size: 1.35rem;
+  letter-spacing: 0.18em;
+  font-weight: 800;
+  color: #7dd3fc;
+  margin: 0 0.35rem;
+}
+
+.xq-lobby-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+.xq-lobby-pill {
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  background: rgba(20, 40, 80, 0.65);
+  font-size: 0.78rem;
+}
+
+.xq-lobby-pill.wait {
+  border-style: dashed;
+  color: rgba(180, 210, 240, 0.7);
+}
+
 .xq-player-card.in-check {
   border-color: rgba(255, 70, 70, 0.75);
   box-shadow: 0 0 28px rgba(255, 70, 70, 0.35);

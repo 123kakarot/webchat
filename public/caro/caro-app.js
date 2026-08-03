@@ -128,7 +128,7 @@ export function mountCaroApp(ctx) {
     onBoardUpdate: () => {
       if (view !== "xiangqi-play") return false;
       const m = xiangqi.getMatch();
-      if (!m || m.status !== "playing") {
+      if (!m || (m.status !== "playing" && m.status !== "lobby")) {
         render();
         return true;
       }
@@ -137,7 +137,18 @@ export function mountCaroApp(ctx) {
       render();
       return true;
     },
+    emitOnlineMove: async (mv) => {
+      const res = await sockEmit("xq:move", mv);
+      if (!res?.ok) toast(res?.reason || "Không đi được");
+    },
+    leaveOnline: () => {
+      sockEmit("xq:leave", {});
+      sockEmit("xq:cancel_quick", {});
+      xqQuickWaiting = false;
+    },
   });
+
+  let xqQuickWaiting = false;
 
   function loadLocalHistory() {
     try {
@@ -422,6 +433,20 @@ export function mountCaroApp(ctx) {
       onlineRoom = room;
       view = "online-game";
       toast("Đã ghép trận!");
+      render();
+    });
+    s.on("xq:state", (room) => {
+      xiangqi.applyOnlineRoom(room);
+      if (["xiangqi-home", "xiangqi-friends", "xiangqi-play"].includes(view)) {
+        view = "xiangqi-play";
+        render();
+      }
+    });
+    s.on("xq:quick_matched", ({ room }) => {
+      xqQuickWaiting = false;
+      xiangqi.applyOnlineRoom(room);
+      view = "xiangqi-play";
+      toast("Đã ghép Cờ Tướng!");
       render();
     });
     s.on("connect", () => {
@@ -778,6 +803,52 @@ export function mountCaroApp(ctx) {
           </div>
         </aside>
         <div class="xq-play-dash-main">${xiangqi.renderPlay()}</div>
+      </div>`;
+  }
+
+  function renderXiangqiFriendsDash() {
+    return `
+      <div class="caro-dash caro-dash-play xq-shell">
+        <aside class="caro-dash-nav" aria-label="WebChat Hub">
+          <div class="caro-dash-logo">
+            <span class="caro-dash-logo-ico" aria-hidden="true">帥</span>
+            <span>Cờ Tướng<br><small class="caro-dash-logo-sub">Chơi với bạn</small></span>
+          </div>
+          <nav class="caro-dash-menu">${renderWebchatHubNav("board")}</nav>
+          <div class="caro-dash-nav-foot">
+            <button type="button" class="caro-dash-link" data-act="xq-home">← Sảnh Cờ Tướng</button>
+          </div>
+        </aside>
+        <div class="caro-dash-main">
+          <header class="caro-dash-header">
+            <div class="caro-breadcrumb">
+              <button type="button" class="caro-crumb-link" data-act="xq-home">Cờ Tướng</button>
+              <span>/ Chơi với bạn</span>
+            </div>
+          </header>
+          <div class="caro-dash-scroll caro-scroll-thin" style="padding:1rem">
+            <div class="xq-mode-grid">
+              <button type="button" class="xq-mode-card m-friends" data-act="xq-local">
+                <span class="ico">📱</span>
+                <h3>Cùng máy</h3>
+                <p>2 người luân phiên trên 1 thiết bị · Đỏ đi trước</p>
+                <span class="cta">Chơi ngay</span>
+              </button>
+              <button type="button" class="xq-mode-card m-create" data-act="xq-room-create">
+                <span class="ico">＋</span>
+                <h3>Mời bạn online</h3>
+                <p>Tạo phòng · gửi mã 6 ký tự cho bạn</p>
+                <span class="cta">Tạo phòng</span>
+              </button>
+              <button type="button" class="xq-mode-card m-online" data-act="xq-room-join">
+                <span class="ico">⎈</span>
+                <h3>Nhập mã phòng</h3>
+                <p>Bạn đã có mã mời · vào bàn ngay</p>
+                <span class="cta">Tham gia</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>`;
   }
 
@@ -1696,7 +1767,7 @@ export function mountCaroApp(ctx) {
     if (view === "board-hub" || view === "game-soon") {
       return `BOARD <span>GAME</span>`;
     }
-    if (view === "xiangqi-home" || view === "xiangqi-play") {
+    if (view === "xiangqi-home" || view === "xiangqi-play" || view === "xiangqi-friends") {
       return `CỜ <span>TƯỚNG</span>`;
     }
     return `CỜ <span>CARO</span>`;
@@ -1709,6 +1780,7 @@ export function mountCaroApp(ctx) {
       return g?.title || "Sắp ra mắt";
     }
     if (view === "xiangqi-home") return "Cờ Tướng";
+    if (view === "xiangqi-friends") return "Chơi với bạn";
     if (view === "xiangqi-play") return "Đang chơi";
     if (view === "caro-home") return "Caro";
     if (view === "ai-setup") return "AI";
@@ -1739,6 +1811,7 @@ export function mountCaroApp(ctx) {
     else if (view === "rank") body = renderRank();
     else if (view === "replay") body = renderReplay();
     else if (view === "xiangqi-home") body = renderXiangqiHomeDash();
+    else if (view === "xiangqi-friends") body = renderXiangqiFriendsDash();
     else if (view === "xiangqi-play") {
       if (!xiangqi.getMatch()) {
         view = "xiangqi-home";
@@ -1746,16 +1819,22 @@ export function mountCaroApp(ctx) {
       } else body = renderXiangqiPlayDash();
     }
 
-    const inCaro = !["board-hub", "game-soon", "xiangqi-home", "xiangqi-play"].includes(view);
+    const inCaro = !["board-hub", "game-soon", "xiangqi-home", "xiangqi-friends", "xiangqi-play"].includes(view);
 
     const isDash =
-      view === "caro-home" || view === "board-hub" || view === "xiangqi-home" || view === "xiangqi-play";
+      view === "caro-home" ||
+      view === "board-hub" ||
+      view === "xiangqi-home" ||
+      view === "xiangqi-friends" ||
+      view === "xiangqi-play";
 
     if (isDash) {
       root.innerHTML = `<div class="caro-shell-dash">
         <div class="caro-dash-bg" aria-hidden="true"></div>
         ${body}${
-        quickWaiting ? '<div class="caro-dash-toast-bar">Đang ghép Quick Match…</div>' : ""
+        quickWaiting || xqQuickWaiting
+          ? '<div class="caro-dash-toast-bar">Đang ghép Quick Match…</div>'
+          : ""
       }</div>`;
       startTimerUi();
       saveUiSession();
@@ -1862,6 +1941,71 @@ export function mountCaroApp(ctx) {
     const act = t.dataset.act;
     if (act && act.startsWith("xq-")) {
       const next = xiangqi.handleAction(act, t);
+      if (next === "xiangqi-friends") {
+        view = "xiangqi-friends";
+        render();
+        return;
+      }
+      if (typeof next === "string" && next.startsWith("xq-cmd:")) {
+        const cmd = next.slice("xq-cmd:".length);
+        if (!(await requireLogin())) return;
+        if (cmd === "create") {
+          const res = await sockEmit("xq:create_room", { playerName: playerName() });
+          if (!res?.ok) return toast(res?.reason || "Không tạo được phòng");
+          xiangqi.applyOnlineRoom(res.room);
+          view = "xiangqi-play";
+          toast(`Phòng ${res.room.code} — gửi mã cho bạn`);
+          render();
+          return;
+        }
+        if (cmd === "join") {
+          const code = window.prompt("Nhập mã phòng Cờ Tướng:");
+          if (!code) return;
+          const res = await sockEmit("xq:join_room", { code, playerName: playerName() });
+          if (!res?.ok) return toast(res?.reason || "Không vào được phòng");
+          xiangqi.applyOnlineRoom(res.room);
+          view = "xiangqi-play";
+          toast(`Đã vào phòng ${res.room.code}`);
+          render();
+          return;
+        }
+        if (cmd === "quick") {
+          xqQuickWaiting = true;
+          render();
+          const res = await sockEmit("xq:quick_match", { playerName: playerName() });
+          if (!res?.ok) {
+            xqQuickWaiting = false;
+            render();
+            return toast(res?.reason || "Không ghép được");
+          }
+          if (res.room) {
+            xqQuickWaiting = false;
+            xiangqi.applyOnlineRoom(res.room);
+            view = "xiangqi-play";
+            toast("Đã ghép trận!");
+          } else toast("Đang chờ đối thủ…");
+          render();
+          return;
+        }
+        if (cmd === "ready") {
+          const res = await sockEmit("xq:ready", {});
+          if (!res?.ok) toast(res?.reason || "Lỗi sẵn sàng");
+          return;
+        }
+        if (cmd === "start") {
+          const res = await sockEmit("xq:start", {});
+          if (!res?.ok) toast(res?.reason || "Chưa bắt đầu được");
+          else if (res.room) xiangqi.applyOnlineRoom(res.room);
+          render();
+          return;
+        }
+        if (cmd === "resign") {
+          const res = await sockEmit("xq:resign", {});
+          if (!res?.ok) toast(res?.reason || "Lỗi");
+          return;
+        }
+        return;
+      }
       if (next) view = next;
       render();
       return;

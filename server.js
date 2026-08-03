@@ -9,6 +9,7 @@ import crypto from "crypto";
 import { validateDisplayName } from "./nameFilter.js";
 import { maybeUploadToObjectStorage } from "./storage.js";
 import { attachCaroServer } from "./caro-server.js";
+import { attachXiangqiServer } from "./xiangqi-server.js";
 import {
   initDb,
   isPersistent,
@@ -70,7 +71,7 @@ import {
   getUserPublicId,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "111");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "112");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1734,6 +1735,7 @@ const HOST = process.env.HOST || "0.0.0.0";
 await initDb();
 await hydrateReactionCache([]);
 attachCaroServer(io);
+attachXiangqiServer(io);
 
 httpServer.listen(PORT, HOST, () => {
   console.log(`Chat listening on ${HOST}:${PORT} (persistent=${isPersistent()})`);

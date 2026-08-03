@@ -67,9 +67,49 @@ export function createXiangqiModule(deps) {
     aiGen++;
     aiBusy = false;
     match = createMatchState({ mode: "local", meSide: SIDE_RED });
+    match.redName = playerName() || "Người chơi Đỏ";
+    match.blackName = "Người chơi Đen";
     selected = null;
     targets = [];
-    chatLog = [];
+    chatLog = ["Chế độ cùng máy — Đỏ đi trước, hai người luân phiên."];
+    replayIdx = -1;
+    toast?.("Chơi Local: 2 người / 1 máy · Đỏ đi trước");
+    return match;
+  }
+
+  /** Sync match from online room payload (xq:state). */
+  function applyOnlineRoom(room) {
+    if (!room) return null;
+    stopReplay();
+    aiBusy = false;
+    const me = playerName();
+    const mePlayer = (room.players || []).find((p) => p.name === me);
+    const redP = (room.players || []).find((p) => p.side === SIDE_RED);
+    const blackP = (room.players || []).find((p) => p.side === SIDE_BLACK);
+    match = {
+      board: room.board,
+      turn: room.turn,
+      moves: room.moves || [],
+      status: room.status === "lobby" ? "lobby" : room.status,
+      winner: room.winner,
+      mode: "online",
+      aiLevel: null,
+      meSide: mePlayer?.side || SIDE_RED,
+      turnMs: room.turnMs || 600000,
+      turnDeadline: room.turnDeadline,
+      redTimeMs: room.redTimeMs ?? 600000,
+      blackTimeMs: room.blackTimeMs ?? 600000,
+      checkSide: room.checkSide || null,
+      roomCode: room.code,
+      host: room.host,
+      redName: redP?.name || "Đỏ",
+      blackName: blackP?.name || "Đen",
+      players: room.players || [],
+      onlineRoom: room,
+    };
+    selected = null;
+    targets = [];
+    chatLog = (room.chat || []).map((c) => `${c.name}: ${c.text}`);
     replayIdx = -1;
     return match;
   }
@@ -211,6 +251,13 @@ export function createXiangqiModule(deps) {
     const legal = legalMovesFrom(match.board, fromR, fromC, match.turn);
     if (!legal.some(([tr, tc]) => tr === toR && tc === toC)) return false;
 
+    if (match.mode === "online") {
+      selected = null;
+      targets = [];
+      void deps.emitOnlineMove?.({ fromR, fromC, toR, toC });
+      return true;
+    }
+
     const cap = match.board[toR][toC];
     match.board = applyMove(match.board, fromR, fromC, toR, toC);
     match.moves.push({
@@ -236,6 +283,7 @@ export function createXiangqiModule(deps) {
   function onCellClick(r, c) {
     if (!match || match.status !== "playing" || aiBusy) return false;
     if (match.mode === "ai" && match.turn !== match.meSide) return false;
+    if (match.mode === "online" && match.turn !== match.meSide) return false;
 
     const board = match.board;
     const p = board[r][c];
@@ -490,11 +538,11 @@ export function createXiangqiModule(deps) {
               <button type="button" class="master" data-act="xq-ai" data-level="master">Master</button>
             </div>
           </article>
-          <button type="button" class="xq-mode-card m-friends" data-act="xq-local">
+          <button type="button" class="xq-mode-card m-friends" data-act="xq-friends-menu">
             <span class="ico">👥</span>
             <h3>Chơi với bạn</h3>
-            <p>Cùng máy · 2 người luân phiên</p>
-            <span class="cta">Chơi ngay</span>
+            <p>Cùng máy hoặc mời bạn bằng mã phòng</p>
+            <span class="cta">Chọn chế độ</span>
           </button>
           <button type="button" class="xq-mode-card m-online" data-act="xq-quick">
             <span class="ico">⚡</span>
@@ -502,10 +550,10 @@ export function createXiangqiModule(deps) {
             <p>Quick Match · ghép ngẫu nhiên</p>
             <span class="cta">Ghép trận</span>
           </button>
-          <button type="button" class="xq-mode-card m-create" data-act="xq-room-soon">
+          <button type="button" class="xq-mode-card m-create" data-act="xq-room-create">
             <span class="ico">＋</span>
             <h3>Tạo phòng</h3>
-            <p>Phòng riêng · mã mời · spectator</p>
+            <p>Phòng riêng · mã mời bạn bè</p>
             <span class="cta">Tạo phòng</span>
           </button>
         </div>
@@ -560,17 +608,48 @@ export function createXiangqiModule(deps) {
     const topCheck = match.checkSide === SIDE_BLACK && match.status === "playing";
     const botCheck = match.checkSide === SIDE_RED && match.status === "playing";
     const winRate = stats.played ? Math.round((stats.win / stats.played) * 100) : 0;
+    const redName = match.redName || (match.mode === "local" ? "Người chơi Đỏ" : playerName() || "Đỏ");
+    const blackName =
+      match.blackName ||
+      (match.mode === "ai"
+        ? `AI · ${String(match.aiLevel || "medium").toUpperCase()}`
+        : match.mode === "local"
+          ? "Người chơi Đen"
+          : "Đen");
     const oppLabel =
-      match.mode === "ai" ? `AI · ${String(match.aiLevel || "medium").toUpperCase()}` : "Đối thủ Local";
-    const oppElo = stats.elo + 34;
+      match.mode === "ai" ? `AI · ${String(match.aiLevel || "medium").toUpperCase()}` : blackName;
+    const topName =
+      match.mode === "ai"
+        ? oppLabel
+        : `${blackName}${match.mode === "online" && match.meSide === SIDE_BLACK ? " (bạn)" : ""}`;
+    const botName =
+      match.mode === "ai"
+        ? playerName()
+        : `${redName}${match.mode === "online" && match.meSide === SIDE_RED ? " (bạn)" : ""}`;
+    const oppElo = match.mode === "ai" ? stats.elo + 34 : "—";
+    const modeTitle =
+      match.mode === "ai" ? "Chơi với AI" : match.mode === "online" ? `Online · ${match.roomCode || ""}` : "Chơi với bạn (cùng máy)";
     const turnLabel =
-      match.status !== "playing"
-        ? match.status === "draw"
-          ? "Hòa"
-          : "Kết thúc"
-        : match.turn === SIDE_RED
-          ? "Lượt Đỏ"
-          : "Lượt Đen";
+      match.status === "lobby"
+        ? "Chờ bắt đầu…"
+        : match.status !== "playing"
+          ? match.status === "draw"
+            ? "Hòa"
+            : "Kết thúc"
+          : match.turn === SIDE_RED
+            ? "Lượt Đỏ"
+            : "Lượt Đen";
+
+    const winText = (() => {
+      if (match.status === "draw") return "Trận hòa — cả hai đều bản lĩnh.";
+      if (match.mode === "local") {
+        return match.winner === SIDE_RED ? "Đỏ thắng!" : "Đen thắng!";
+      }
+      if (match.mode === "online") {
+        return match.winner === match.meSide ? "Bạn chiến thắng!" : "Đối thủ thắng.";
+      }
+      return match.winner === match.meSide ? "Bạn chiến thắng!" : "Đối thủ thắng.";
+    })();
 
     const movePairs = [];
     for (let i = 0; i < match.moves.length; i += 2) {
@@ -588,13 +667,7 @@ export function createXiangqiModule(deps) {
             <div class="xq-checkmate-card">
               <div class="xq-win-trophy" aria-hidden="true">🏆</div>
               <h2>${match.status === "draw" ? "HÒA CỜ" : "CHECKMATE"}</h2>
-              <p>${
-                match.status === "draw"
-                  ? "Trận hòa — cả hai đều bản lĩnh."
-                  : match.winner === match.meSide || match.mode === "local"
-                    ? "Bạn chiến thắng!"
-                    : "Đối thủ thắng."
-              }</p>
+              <p>${winText}</p>
               <p class="xq-elo-delta">${match.mode === "ai" && match.winner === match.meSide ? "+15 ELO" : ""}</p>
               <button type="button" class="xq-btn-primary" data-act="xq-home">Về sảnh Cờ Tướng</button>
             </div>
@@ -602,6 +675,35 @@ export function createXiangqiModule(deps) {
         : "";
 
     const level = match.aiLevel || "medium";
+    const lobbyBanner =
+      match.status === "lobby" && match.mode === "online"
+        ? `<section class="xq-glass-card xq-lobby-banner">
+            <h3>Phòng ${escapeHtml(match.roomCode || "")}</h3>
+            <p class="xq-muted">Gửi mã phòng cho bạn · Chủ phòng bấm Bắt đầu khi đủ 2 người.</p>
+            <p><strong>Mã:</strong> <code class="xq-room-code">${escapeHtml(match.roomCode || "")}</code>
+              <button type="button" class="xq-btn-ghost" data-act="xq-copy-code">Sao chép</button></p>
+            <div class="xq-lobby-players">
+              ${(match.players || [])
+                .map(
+                  (p) =>
+                    `<span class="xq-lobby-pill">${escapeHtml(p.name)}${p.ready ? " · sẵn sàng" : ""}${
+                      p.name === match.host ? " · chủ" : ""
+                    }</span>`
+                )
+                .join("")}
+              ${(match.players || []).length < 2 ? `<span class="xq-lobby-pill wait">Chờ bạn…</span>` : ""}
+            </div>
+            <div class="xq-play-actions" style="margin-top:0.75rem">
+              <button type="button" class="xq-btn-ghost" data-act="xq-online-ready">Sẵn sàng</button>
+              ${
+                match.host === playerName()
+                  ? `<button type="button" class="xq-btn-primary" data-act="xq-online-start">Bắt đầu</button>`
+                  : ""
+              }
+              <button type="button" class="xq-btn-danger" data-act="xq-online-leave">Rời phòng</button>
+            </div>
+          </section>`
+        : "";
 
     return `
       <div class="xq-play-arena xq-shell">
@@ -612,7 +714,7 @@ export function createXiangqiModule(deps) {
           <div class="xq-play-crumb">
             <button type="button" class="xq-link" data-act="xq-home">Cờ Tướng</button>
             <span>/</span>
-            <span>${match.mode === "ai" ? "Chơi với AI" : "Chơi Local"}</span>
+            <span>${escapeHtml(modeTitle)}</span>
           </div>
           <div class="xq-play-timer-pill">
             <span class="xq-timer-ico" aria-hidden="true">⏱</span>
@@ -623,6 +725,8 @@ export function createXiangqiModule(deps) {
           </div>
           <button type="button" class="xq-icon-btn" data-act="xq-home" title="Sảnh" aria-label="Về sảnh">⌂</button>
         </header>
+
+        ${lobbyBanner}
 
         <div class="xq-play-grid">
           <aside class="xq-play-left">
@@ -649,7 +753,7 @@ export function createXiangqiModule(deps) {
               <div class="xq-chat-log">${
                 chatLog.length
                   ? chatLog.map((x) => `<div class="xq-chat-line">${escapeHtml(x)}</div>`).join("")
-                  : `<p class="xq-muted">👏 🔥 😂 — spectator sắp có</p>`
+                  : `<p class="xq-muted">👏 🔥 😂</p>`
               }</div>
               <div class="xq-chat-compose">
                 <input type="text" maxlength="120" placeholder="Nhập tin nhắn…" data-xq-chat-input />
@@ -663,11 +767,13 @@ export function createXiangqiModule(deps) {
           </aside>
 
           <section class="xq-play-center">
-            <div class="xq-player-card${topCheck ? " in-check" : ""}">
-              <span class="xq-avatar dark">AI</span>
+            <div class="xq-player-card${topCheck ? " in-check" : ""}${match.turn === SIDE_BLACK && match.status === "playing" ? " is-turn" : ""}">
+              <span class="xq-avatar dark">${escapeHtml((topName[0] || "Đ").toUpperCase())}</span>
               <div class="xq-player-meta">
-                <strong>${escapeHtml(oppLabel)}</strong>
-                <span>${oppElo} ELO ${topCheck ? "· 🔥 Chiếu" : ""}</span>
+                <strong>${escapeHtml(topName)}</strong>
+                <span>${match.mode === "ai" ? `${oppElo} ELO` : "Phe Đen"}${topCheck ? " · 🔥 Chiếu" : ""}${
+                  match.turn === SIDE_BLACK && match.status === "playing" ? " · đang đi" : ""
+                }</span>
               </div>
               <span class="xq-side-badge black">Đen</span>
               <span class="xq-mini-clock">${formatTime(match.blackTimeMs)}</span>
@@ -681,11 +787,13 @@ export function createXiangqiModule(deps) {
               <div class="xq-turn-chip" data-xq-turn-chip>${turnLabel}${aiBusy ? " · AI đang nghĩ…" : ""}</div>
             </div>
 
-            <div class="xq-player-card you${botCheck ? " in-check" : ""}">
-              <span class="xq-avatar red">${escapeHtml((playerName()[0] || "B").toUpperCase())}</span>
+            <div class="xq-player-card you${botCheck ? " in-check" : ""}${match.turn === SIDE_RED && match.status === "playing" ? " is-turn" : ""}">
+              <span class="xq-avatar red">${escapeHtml((botName[0] || "B").toUpperCase())}</span>
               <div class="xq-player-meta">
-                <strong>${escapeHtml(playerName())}</strong>
-                <span>${stats.elo} ELO ${botCheck ? "· 🔥 Chiếu" : ""}</span>
+                <strong>${escapeHtml(botName)}</strong>
+                <span>${match.mode === "ai" ? `${stats.elo} ELO` : "Phe Đỏ"}${botCheck ? " · 🔥 Chiếu" : ""}${
+                  match.turn === SIDE_RED && match.status === "playing" ? " · đang đi" : ""
+                }</span>
               </div>
               <span class="xq-side-badge red">Đỏ</span>
               <span class="xq-mini-clock">${formatTime(match.redTimeMs)}</span>
@@ -696,9 +804,9 @@ export function createXiangqiModule(deps) {
             <section class="xq-glass-card">
               <h3>Chế độ</h3>
               <div class="xq-mode-tabs">
-                <button type="button" class="xq-tab" data-act="xq-quick">Quick</button>
-                <button type="button" class="xq-tab is-active" data-act="xq-home">AI</button>
-                <button type="button" class="xq-tab" data-act="xq-local">Local</button>
+                <button type="button" class="xq-tab${match.mode === "ai" ? " is-active" : ""}" data-act="xq-ai" data-level="medium">AI</button>
+                <button type="button" class="xq-tab${match.mode === "local" ? " is-active" : ""}" data-act="xq-local">Local</button>
+                <button type="button" class="xq-tab${match.mode === "online" ? " is-active" : ""}" data-act="xq-room-create">Online</button>
               </div>
               ${
                 match.mode === "ai"
@@ -708,23 +816,25 @@ export function createXiangqiModule(deps) {
                       <button type="button" class="${level === "hard" ? "is-on" : ""}" data-act="xq-ai" data-level="hard">Hard</button>
                       <button type="button" class="master ${level === "master" ? "is-on" : ""}" data-act="xq-ai" data-level="master">Master</button>
                     </div>`
-                  : ""
+                  : match.mode === "local"
+                    ? `<p class="xq-muted">2 người cùng máy — luân phiên theo lượt Đỏ / Đen.</p>`
+                    : `<p class="xq-muted">Mã phòng: <strong>${escapeHtml(match.roomCode || "—")}</strong></p>`
               }
             </section>
 
             <section class="xq-vs-card">
               <div class="xq-vs-col">
-                <span class="xq-avatar red sm">${escapeHtml((playerName()[0] || "B").toUpperCase())}</span>
-                <strong>Bạn</strong>
-                <span>${stats.elo}</span>
+                <span class="xq-avatar red sm">${escapeHtml((botName[0] || "B").toUpperCase())}</span>
+                <strong>${escapeHtml(match.mode === "local" ? "Đỏ" : "Bạn")}</strong>
+                <span>${match.mode === "ai" ? stats.elo : "—"}</span>
                 <small>${stats.win}W ${stats.loss}L ${stats.draw}D</small>
               </div>
               <div class="xq-vs-mid">VS</div>
               <div class="xq-vs-col">
-                <span class="xq-avatar dark sm">AI</span>
+                <span class="xq-avatar dark sm">${escapeHtml((topName[0] || "Đ").toUpperCase())}</span>
                 <strong>Đối thủ</strong>
-                <span>${oppElo}</span>
-                <small>${match.mode === "ai" ? level : "local"}</small>
+                <span>${match.mode === "ai" ? oppElo : "—"}</span>
+                <small>${match.mode === "ai" ? level : match.mode === "online" ? "online" : "local"}</small>
               </div>
             </section>
 
@@ -763,27 +873,63 @@ export function createXiangqiModule(deps) {
 
   function handleAction(act, el) {
     if (act === "xq-ai") {
+      void deps.leaveOnline?.();
       startAi(el?.dataset?.level || "medium");
       return "xiangqi-play";
     }
     if (act === "xq-local") {
+      void deps.leaveOnline?.();
       startLocalPvp();
       return "xiangqi-play";
     }
     if (act === "xq-home") {
+      void deps.leaveOnline?.();
       clearMatch();
       return "xiangqi-home";
     }
-    if (act === "xq-quick" || act === "xq-room-soon" || act === "xq-rank-soon" || act === "xq-spectate-soon") {
-      toast("Chế độ online đang được xây — thử AI hoặc 2 người cùng máy trước nhé.");
+    if (act === "xq-friends-menu") {
+      return "xiangqi-friends";
+    }
+    if (act === "xq-room-create" || act === "xq-room-soon") {
+      return "xq-cmd:create";
+    }
+    if (act === "xq-room-join") {
+      return "xq-cmd:join";
+    }
+    if (act === "xq-quick") {
+      return "xq-cmd:quick";
+    }
+    if (act === "xq-rank-soon" || act === "xq-spectate-soon") {
+      toast("Tính năng này sắp có — thử Local hoặc tạo phòng mời bạn.");
       return null;
     }
+    if (act === "xq-copy-code" && match?.roomCode) {
+      try {
+        navigator.clipboard?.writeText?.(match.roomCode);
+        toast(`Đã chép mã ${match.roomCode}`);
+      } catch {
+        toast(`Mã phòng: ${match.roomCode}`);
+      }
+      return null;
+    }
+    if (act === "xq-online-ready") return "xq-cmd:ready";
+    if (act === "xq-online-start") return "xq-cmd:start";
+    if (act === "xq-online-leave") {
+      void deps.leaveOnline?.();
+      clearMatch();
+      return "xiangqi-home";
+    }
     if (act === "xq-resign" && match?.status === "playing") {
-      const loser = match.turn;
+      if (match.mode === "online") return "xq-cmd:resign";
+      const loser = match.mode === "local" ? match.turn : match.meSide;
       finishGame(loser === SIDE_RED ? SIDE_BLACK : SIDE_RED);
       return "xiangqi-play";
     }
     if (act === "xq-draw" && match?.status === "playing") {
+      if (match.mode === "online") {
+        toast("Xin hòa online sắp có — dùng đầu hàng nếu cần.");
+        return null;
+      }
       finishGame("draw");
       return "xiangqi-play";
     }
@@ -859,6 +1005,7 @@ export function createXiangqiModule(deps) {
     getMatch,
     loadStats,
     patchBoardIn,
+    applyOnlineRoom,
     isAiBusy: () => aiBusy,
   };
 }
