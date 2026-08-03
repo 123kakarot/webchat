@@ -5649,6 +5649,10 @@
         transition: opacity 0.55s ease, visibility 0.55s ease;
       }
 
+      .hub .hub-stage {
+        overflow: visible;
+      }
+
       .hub[hidden] {
         display: none !important;
       }
@@ -5750,6 +5754,14 @@
         perspective: 1400px;
         perspective-origin: 50% 45%;
         min-height: 280px;
+        cursor: grab;
+        touch-action: none;
+        overflow: visible;
+        transform-style: preserve-3d;
+      }
+
+      .hub-stage.is-dragging {
+        cursor: grabbing;
       }
 
       .hub-ring {
@@ -5758,7 +5770,12 @@
         height: min(52vw, 340px);
         max-height: 48vh;
         transform-style: preserve-3d;
-        transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+        transform: translateZ(0);
+        overflow: visible;
+      }
+
+      .hub-ring.is-dragging .hub-card {
+        transition: none !important;
       }
 
       .hub-card {
@@ -5780,21 +5797,23 @@
         align-items: center;
         justify-content: space-between;
         background:
-          linear-gradient(160deg, rgba(80, 190, 255, 0.18) 0%, rgba(10, 30, 55, 0.55) 42%, rgba(6, 16, 32, 0.72) 100%);
+          linear-gradient(165deg, rgba(45, 120, 180, 0.55) 0%, rgba(12, 32, 58, 0.92) 48%, rgba(6, 14, 28, 0.96) 100%);
         border: 1px solid rgba(120, 220, 255, 0.38);
         box-shadow:
           0 0 0 1px rgba(94, 231, 255, 0.08) inset,
           0 18px 50px rgba(0, 0, 0, 0.45),
           0 0 34px rgba(40, 160, 220, 0.12);
-        backdrop-filter: blur(16px) saturate(1.25);
-        -webkit-backdrop-filter: blur(16px) saturate(1.25);
         transform-style: preserve-3d;
-        transform-origin: center center;
+        backface-visibility: hidden;
+        transform-origin: 50% 50%;
+        will-change: transform, opacity;
+        opacity: 0.58;
         transition:
-          box-shadow 0.45s ease,
-          border-color 0.45s ease,
-          filter 0.45s ease,
-          opacity 0.45s ease;
+          transform 1.15s cubic-bezier(0.22, 1, 0.36, 1),
+          opacity 0.65s ease,
+          box-shadow 0.55s ease,
+          border-color 0.55s ease,
+          filter 0.55s ease;
         -webkit-tap-highlight-color: transparent;
       }
 
@@ -5808,6 +5827,7 @@
       }
 
       .hub-card.is-active {
+        opacity: 1;
         border-color: rgba(150, 240, 255, 0.75);
         box-shadow:
           0 0 0 1px rgba(94, 231, 255, 0.25) inset,
@@ -5817,8 +5837,7 @@
       }
 
       .hub-card:not(.is-active) {
-        opacity: 0.72;
-        filter: brightness(0.82) saturate(0.9);
+        filter: brightness(0.88) saturate(0.92);
       }
 
       .hub-card-ico {
@@ -5949,7 +5968,12 @@
         text-transform: uppercase;
         cursor: pointer;
         box-shadow: 0 0 30px rgba(60, 180, 255, 0.28);
-        transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease, opacity 0.35s ease;
+      }
+
+      .hub-enter.is-switching {
+        opacity: 0.72;
+        transform: scale(0.98);
       }
 
       .hub-enter:hover,
@@ -6103,7 +6127,7 @@
         <div class="hub-brand">WEB<span>CHAT</span></div>
         <p class="hub-tagline">Chọn cổng vào — chat, game, sách và hơn thế nữa.</p>
       </header>
-      <div class="hub-stage">
+      <div class="hub-stage" id="hub-stage">
         <div class="hub-ring" id="hub-ring" aria-live="polite"></div>
       </div>
       <div class="hub-footer">
@@ -6132,7 +6156,7 @@
 
     <section class="gate" id="gate" style="display:none">
       <div class="gate-card">
-        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v77</span></h1>
+        <h1>Webchat <span style="font-weight:400;color:var(--muted);font-size:0.75rem">v79</span></h1>
         <p>Nhập tên hiển thị để vào Webchat. Có thể trùng tên ở <strong>các nhóm khác</strong>, nhưng <strong>trong cùng một nhóm không được trùng</strong> (kể cả khác hoa thường).</p>
         <p style="font-size:0.72rem;color:var(--muted);margin-top:-0.35rem">Tin nhắn được lưu trên máy chủ (không mã hóa đầu cuối).</p>
         <form id="join-form" action="javascript:void(0)" method="post">
@@ -7032,7 +7056,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "77";
+      const CLIENT_BUILD = "79";
       const BASE_DOC_TITLE = "WebChat Hub";
 
       function applyUiTheme(mode) {
@@ -7106,10 +7130,26 @@
 
       let hubIndex = 0;
       let hubPreferStay = true;
+      let hubBuilt = false;
+      let hubDragPx = 0;
+      let hubDragActive = false;
+      let hubDragMoved = false;
+      let hubDragStartX = 0;
       const hubEl = document.getElementById("hub");
+      const hubStage = document.getElementById("hub-stage");
       const hubRing = document.getElementById("hub-ring");
       const hubDots = document.getElementById("hub-dots");
       const moduleStub = document.getElementById("module-stub");
+      const hubCardEls = [];
+      const hubDotEls = [];
+
+      function hubModuleCount() {
+        return HUB_MODULES.length;
+      }
+
+      function hubStepDeg() {
+        return 360 / hubModuleCount();
+      }
 
       function hubRadius() {
         const w = window.innerWidth;
@@ -7118,51 +7158,103 @@
         return 280;
       }
 
-      function renderHub() {
-        if (!hubRing || !hubDots) return;
-        const n = HUB_MODULES.length;
-        const step = 360 / n;
+      function updateHubEnterLabel() {
+        const enter = document.getElementById("hub-enter");
+        if (!enter) return;
+        enter.classList.add("is-switching");
+        enter.textContent = "Vào · " + HUB_MODULES[hubIndex].title;
+        window.setTimeout(() => enter.classList.remove("is-switching"), 380);
+      }
+
+      function hubCardOffset(i) {
+        const n = hubModuleCount();
+        let off = i - hubIndex;
+        if (off > n / 2) off -= n;
+        if (off < -n / 2) off += n;
+        return off;
+      }
+
+      function applyHubLayout({ dragging = false } = {}) {
+        if (!hubRing) return;
+        const step = hubStepDeg();
         const radius = hubRadius();
-        hubRing.innerHTML = "";
-        hubDots.innerHTML = "";
+        const dragDeg = dragging ? hubDragPx * 0.11 : 0;
+        hubRing.classList.toggle("is-dragging", dragging);
+        hubRing.style.transform = `translateZ(-${Math.round(radius * 0.08)}px)`;
+
+        hubCardEls.forEach((btn, i) => {
+          const off = hubCardOffset(i);
+          const angle = off * step + dragDeg;
+          const active = off === 0;
+          const abs = Math.abs(off);
+          btn.classList.toggle("is-active", active);
+          btn.style.zIndex = String(40 - abs);
+          btn.style.pointerEvents = abs > 2 ? "none" : "auto";
+          const scale = active ? 1.08 : Math.max(0.72, 0.94 - abs * 0.07);
+          btn.style.opacity = String(active ? 1 : Math.max(0.42, 0.78 - abs * 0.14));
+          btn.style.transform =
+            `translate(-50%, -50%) rotateY(${angle.toFixed(2)}deg) translateZ(${radius}px) scale(${scale.toFixed(3)})`;
+        });
+
+        hubDotEls.forEach((dot, i) => {
+          const active = i === hubIndex;
+          dot.classList.toggle("is-active", active);
+          dot.setAttribute("aria-selected", active ? "true" : "false");
+        });
+
+        if (!dragging) updateHubEnterLabel();
+      }
+
+      function buildHubOnce() {
+        if (hubBuilt || !hubRing || !hubDots) return;
+        hubBuilt = true;
+
         HUB_MODULES.forEach((mod, i) => {
           const btn = document.createElement("button");
           btn.type = "button";
-          btn.className = "hub-card" + (i === hubIndex ? " is-active" : "");
+          btn.className = "hub-card" + (i === 0 ? " is-active" : "");
           btn.dataset.index = String(i);
           btn.setAttribute("aria-label", mod.title);
           btn.innerHTML =
             `<span class="hub-card-ico" aria-hidden="true">${mod.ico}</span>` +
             `<span class="hub-card-title">${mod.title}</span>` +
             `<span class="hub-card-sub">${mod.sub}</span>`;
-          const angle = (i - hubIndex) * step;
-          btn.style.transform =
-            `translate(-50%, -50%) rotateY(${angle}deg) translateZ(${radius}px)` +
-            (i === hubIndex ? " scale(1.05)" : " scale(0.92)");
           btn.addEventListener("click", () => {
+            if (hubDragMoved) return;
             if (i === hubIndex) enterHubModule();
             else setHubIndex(i);
           });
           hubRing.appendChild(btn);
+          hubCardEls.push(btn);
+        });
 
+        HUB_MODULES.forEach((mod, i) => {
           const dot = document.createElement("button");
           dot.type = "button";
-          dot.className = "hub-dot" + (i === hubIndex ? " is-active" : "");
+          dot.className = "hub-dot" + (i === 0 ? " is-active" : "");
           dot.setAttribute("role", "tab");
           dot.setAttribute("aria-label", mod.title);
-          dot.setAttribute("aria-selected", i === hubIndex ? "true" : "false");
+          dot.setAttribute("aria-selected", i === 0 ? "true" : "false");
           dot.addEventListener("click", () => setHubIndex(i));
           hubDots.appendChild(dot);
+          hubDotEls.push(dot);
         });
-        hubRing.style.transform = `translateZ(-${radius * 0.15}px)`;
-        const enter = document.getElementById("hub-enter");
-        if (enter) enter.textContent = "Vào · " + HUB_MODULES[hubIndex].title;
+
+        applyHubLayout();
       }
 
       function setHubIndex(i) {
-        const n = HUB_MODULES.length;
-        hubIndex = ((i % n) + n) % n;
-        renderHub();
+        const n = hubModuleCount();
+        const target = ((i % n) + n) % n;
+        if (target === hubIndex && hubDragPx === 0) return;
+        hubIndex = target;
+        hubDragPx = 0;
+        applyHubLayout();
+      }
+
+      function renderHub() {
+        buildHubOnce();
+        applyHubLayout();
       }
 
       function showHub() {
@@ -7255,6 +7347,53 @@
       });
 
       let hubTouchX = null;
+      function hubOnDragStart(clientX) {
+        hubDragActive = true;
+        hubDragMoved = false;
+        hubDragStartX = clientX;
+        hubDragPx = 0;
+        hubStage?.classList.add("is-dragging");
+      }
+
+      function hubOnDragMove(clientX) {
+        if (!hubDragActive) return;
+        hubDragPx = clientX - hubDragStartX;
+        if (Math.abs(hubDragPx) > 8) hubDragMoved = true;
+        applyHubLayout({ dragging: true });
+      }
+
+      function hubOnDragEnd() {
+        if (!hubDragActive) return;
+        hubDragActive = false;
+        hubStage?.classList.remove("is-dragging");
+        const threshold = Math.min(72, window.innerWidth * 0.12);
+        if (Math.abs(hubDragPx) >= threshold) {
+          setHubIndex(hubIndex + (hubDragPx < 0 ? 1 : -1));
+        } else {
+          hubDragPx = 0;
+          applyHubLayout();
+        }
+        window.setTimeout(() => {
+          hubDragMoved = false;
+        }, 0);
+      }
+
+      hubStage?.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
+        hubOnDragStart(e.clientX);
+        hubStage.setPointerCapture?.(e.pointerId);
+      });
+      hubStage?.addEventListener("pointermove", (e) => {
+        if (!hubDragActive) return;
+        hubOnDragMove(e.clientX);
+      });
+      hubStage?.addEventListener("pointerup", (e) => {
+        if (!hubDragActive) return;
+        hubStage.releasePointerCapture?.(e.pointerId);
+        hubOnDragEnd();
+      });
+      hubStage?.addEventListener("pointercancel", () => hubOnDragEnd());
+
       hubEl?.addEventListener(
         "touchstart",
         (e) => {
@@ -7265,6 +7404,7 @@
       hubEl?.addEventListener(
         "touchend",
         (e) => {
+          if (hubDragMoved || hubDragActive) return;
           if (hubTouchX == null) return;
           const x = e.changedTouches[0]?.clientX ?? hubTouchX;
           const dx = x - hubTouchX;
@@ -7276,7 +7416,7 @@
       );
 
       window.addEventListener("resize", () => {
-        if (hubEl && !hubEl.hidden) renderHub();
+        if (hubEl && !hubEl.hidden) applyHubLayout();
       });
 
       renderHub();
