@@ -11,6 +11,9 @@ import {
   oppositeSide,
   pieceLabel,
   pieceSide,
+  positionKey,
+  repetitionAfterMove,
+  repetitionResult,
   SIDE_BLACK,
   SIDE_RED,
 } from "./xiangqi-engine.js";
@@ -101,6 +104,7 @@ export function createXiangqiModule(deps) {
       board: room.board,
       turn: room.turn,
       moves: room.moves || [],
+      posKeys: room.posKeys || [positionKey(room.board, room.turn || SIDE_RED)],
       status: room.status === "lobby" ? "lobby" : room.status,
       winner: room.winner,
       mode: "online",
@@ -331,7 +335,6 @@ export function createXiangqiModule(deps) {
     if (!match) return;
     const res = gameResult(match.board, match.turn);
     if (res) {
-      // Toast nước cuối trước khi hiện chiếu bí
       const lm = lastMove();
       if (lm) {
         const who =
@@ -349,7 +352,29 @@ export function createXiangqiModule(deps) {
       finishGame(res);
       return;
     }
+
     match.checkSide = isInCheck(match.board, match.turn) ? match.turn : null;
+
+    const rep = repetitionResult(match.posKeys || [], match.moves || []);
+    if (rep) {
+      if (rep === "draw") {
+        toast?.("⚖ Lặp thế 3 lần — hòa cờ (không kéo dài ván).");
+        finishGame("draw");
+        return;
+      }
+      const loser = oppositeSide(rep);
+      toast?.(
+        `⚖ Phạm chiếu mãi / chiếu liên tục — ${sideLabel(loser)} thua!`
+      );
+      finishGame(rep);
+      if (match) {
+        match.endReason = "perpetual-check";
+        match.revealMate = false;
+        match.showEndOverlay = true;
+      }
+      return;
+    }
+
     announceBoardAlerts();
     if (match.mode === "ai" && match.turn !== match.meSide && match.status === "playing") {
       void runAiTurn();
@@ -380,7 +405,24 @@ export function createXiangqiModule(deps) {
 
       let mv = null;
       try {
-        mv = pickAiMove(match.board, side, level, { ply: match.moves?.length || 0 });
+        const legal = allLegalMoves(match.board, side);
+        const safe = legal.filter((m) => {
+          const rep = repetitionAfterMove(
+            match.board,
+            side,
+            m.fromR,
+            m.fromC,
+            m.toR,
+            m.toC,
+            match.posKeys,
+            match.moves
+          );
+          return !(rep && rep !== "draw" && rep === oppositeSide(side));
+        });
+        mv = pickAiMove(match.board, side, level, {
+          ply: match.moves?.length || 0,
+          legalPool: safe.length ? safe : legal,
+        });
       } catch (err) {
         console.error("pickAiMove", err);
         mv = allLegalMoves(match.board, side)[0] || null;
@@ -421,7 +463,10 @@ export function createXiangqiModule(deps) {
 
     const cap = match.board[toR][toC];
     settleClock();
+    const mover = match.turn;
     match.board = applyMove(match.board, fromR, fromC, toR, toC);
+    match.turn = match.turn === SIDE_RED ? SIDE_BLACK : SIDE_RED;
+    const gaveCheck = isInCheck(match.board, match.turn);
     match.moves.push({
       fromR,
       fromC,
@@ -429,10 +474,12 @@ export function createXiangqiModule(deps) {
       toC,
       piece: moving,
       capture: cap,
-      side: match.turn,
+      side: mover,
+      gaveCheck,
       note: moveNotation({ fromR, fromC, toR, toC, piece: moving, capture: cap }, match.board),
     });
-    match.turn = match.turn === SIDE_RED ? SIDE_BLACK : SIDE_RED;
+    if (!match.posKeys) match.posKeys = [];
+    match.posKeys.push(positionKey(match.board, match.turn));
     match.clockAt = Date.now();
     match.turnDeadline =
       Date.now() + (match.turn === SIDE_RED ? match.redTimeMs : match.blackTimeMs);
@@ -844,6 +891,8 @@ export function createXiangqiModule(deps) {
               <li>Tướng không đối mặt</li>
               <li>Pháo nhảy 1 quân để ăn</li>
               <li>Tượng không qua sông · Mã bị chặn chân</li>
+              <li>Lặp thế 3 lần → hòa</li>
+              <li>Chiếu mãi / chiếu liên tục → bên chiếu thua</li>
             </ul>
           </div>
         </div>
@@ -925,6 +974,10 @@ export function createXiangqiModule(deps) {
         return match.winner === match.meSide
           ? "⏱ Đối thủ hết giờ — bạn thắng!"
           : "⏱ Hết giờ — bạn thua.";
+      }
+      if (match.endReason === "perpetual-check") {
+        const loser = oppositeSide(match.winner);
+        return `Phạm chiếu mãi — ${sideLabel(loser)} thua.`;
       }
       if (match.mode === "local") {
         return match.winner === SIDE_RED ? "Đỏ thắng!" : "Đen thắng!";

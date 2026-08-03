@@ -310,6 +310,61 @@ export function gameResult(board, sideToMove) {
   return "draw";
 }
 
+/** Khóa thế cờ + bên được đi (dùng cho luật lặp / TT). */
+export function positionKey(board, side) {
+  let s = side === SIDE_RED ? "R|" : "B|";
+  for (let r = 0; r < 10; r++) s += board[r].join("");
+  return s;
+}
+
+/**
+ * Luật lặp / chiếu mãi (đơn giản hóa Asian rules):
+ * - Cùng thế + cùng lượt xuất hiện ≥ 3 lần:
+ *   - Nếu bên vừa đi đã chiếu liên tiếp ≥ 3 nước của họ → phạm chiếu mãi → bên đó thua
+ *   - Ngược lại → hòa (lặp nước kéo dài ván)
+ *
+ * @param {string[]} posKeys lịch sử khóa sau mỗi nước (kể cả thế ban đầu)
+ * @param {Array<{ side: string, gaveCheck?: boolean }>} moves
+ * @returns {null | "draw" | "red" | "black"} null | hòa | bên thắng
+ */
+export function repetitionResult(posKeys, moves) {
+  if (!posKeys?.length || posKeys.length < 2) return null;
+  const cur = posKeys[posKeys.length - 1];
+  let count = 0;
+  for (const k of posKeys) if (k === cur) count++;
+  if (count < 3) return null;
+
+  const last = moves?.[moves.length - 1];
+  if (!last?.side) return "draw";
+
+  // Đếm số nước chiếu liên tiếp của đúng bên vừa đi (bỏ qua nước đối thủ)
+  let consecutiveChecks = 0;
+  for (let i = moves.length - 1; i >= 0; i--) {
+    if (moves[i].side !== last.side) continue;
+    if (moves[i].gaveCheck) consecutiveChecks++;
+    else break;
+  }
+
+  // Chiếu mãi / chiếu liên tục trong vòng lặp ≥ 3 lần → bên chiếu thua
+  if (consecutiveChecks >= 3) {
+    return oppositeSide(last.side);
+  }
+  return "draw";
+}
+
+/**
+ * Thử nước đi có dẫn tới kết quả lặp không (để AI tránh chiếu mãi).
+ * @returns {null | "draw" | "red" | "black"}
+ */
+export function repetitionAfterMove(board, side, fromR, fromC, toR, toC, posKeys, moves) {
+  const next = applyMove(board, fromR, fromC, toR, toC);
+  const nextSide = oppositeSide(side);
+  const gaveCheck = isInCheck(next, nextSide);
+  const keys = [...(posKeys || []), positionKey(next, nextSide)];
+  const mv = [...(moves || []), { side, gaveCheck }];
+  return repetitionResult(keys, mv);
+}
+
 export function pieceLabel(p) {
   const map = {
     K: "帥",
@@ -338,10 +393,12 @@ export function moveNotation(mv, board) {
 
 export function createMatchState(opts = {}) {
   const turnMs = opts.turnMs || 600000;
+  const board = createInitialBoard();
   return {
-    board: createInitialBoard(),
+    board,
     turn: SIDE_RED,
     moves: [],
+    posKeys: [positionKey(board, SIDE_RED)],
     status: "playing",
     winner: null,
     mode: opts.mode || "local",

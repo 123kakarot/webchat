@@ -18,6 +18,7 @@ export function searchBestMove(board, side, opts = {}) {
   const ply = opts.ply ?? 0;
   const maxMs = opts.maxMs ?? 2500;
   const tt = opts.tt || createTT();
+  const rootLegal = opts.rootMoves?.length ? opts.rootMoves : allLegalMoves(board, side);
   const killers = [[], []];
   const history = new Map();
   let nodes = 0;
@@ -138,7 +139,7 @@ export function searchBestMove(board, side, opts = {}) {
     if (timeUp()) break;
     let alpha = -Infinity;
     let beta = Infinity;
-    let moves = orderMoves(board, allLegalMoves(board, side), side, { history });
+    let moves = orderMoves(board, rootLegal, side, { history });
     if (bestMove) {
       const bi = moves.findIndex(
         (m) =>
@@ -175,7 +176,7 @@ export function searchBestMove(board, side, opts = {}) {
   }
 
   return {
-    move: bestMove || allLegalMoves(board, side)[0] || null,
+    move: bestMove || rootLegal[0] || null,
     score: bestScore,
     nodes,
     timedOut,

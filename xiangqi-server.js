@@ -8,8 +8,9 @@ import {
   gameResult,
   isInCheck,
   moveNotation,
-  pieceSide,
   oppositeSide,
+  positionKey,
+  repetitionResult,
 } from "./public/xiangqi/xiangqi-engine.js";
 
 /** @type {Map<string, object>} */
@@ -41,8 +42,9 @@ function fullState(room) {
     status: room.status,
     board: room.board,
     turn: room.turn,
-    moves: room.moves,
-    winner: room.winner,
+      moves: room.moves,
+      posKeys: room.posKeys || [],
+      winner: room.winner,
     checkSide: room.checkSide,
     turnMs: room.turnMs,
     turnDeadline: room.turnDeadline,
@@ -78,6 +80,7 @@ function startGame(room) {
   room.board = createInitialBoard();
   room.turn = SIDE_RED;
   room.moves = [];
+  room.posKeys = [positionKey(room.board, SIDE_RED)];
   room.status = "playing";
   room.winner = null;
   room.checkSide = null;
@@ -121,6 +124,7 @@ export function attachXiangqiServer(io) {
         board: createInitialBoard(),
         turn: SIDE_RED,
         moves: [],
+        posKeys: [positionKey(createInitialBoard(), SIDE_RED)],
         winner: null,
         checkSide: null,
         turnMs: 600_000,
@@ -215,7 +219,10 @@ export function attachXiangqiServer(io) {
       }
       const moving = room.board[fromR][fromC];
       const cap = room.board[toR][toC];
+      const mover = room.turn;
       room.board = applyMove(room.board, fromR, fromC, toR, toC);
+      room.turn = oppositeSide(room.turn);
+      const gaveCheck = isInCheck(room.board, room.turn);
       room.moves.push({
         fromR,
         fromC,
@@ -223,14 +230,20 @@ export function attachXiangqiServer(io) {
         toC,
         piece: moving,
         capture: cap,
-        side: room.turn,
+        side: mover,
+        gaveCheck,
         note: moveNotation({ fromR, fromC, toR, toC, piece: moving, capture: cap }, room.board),
       });
-      room.turn = oppositeSide(room.turn);
+      if (!room.posKeys) room.posKeys = [positionKey(createInitialBoard(), SIDE_RED)];
+      room.posKeys.push(positionKey(room.board, room.turn));
       room.turnDeadline = Date.now() + room.turnMs;
       room.checkSide = isInCheck(room.board, room.turn) ? room.turn : null;
       const res = gameResult(room.board, room.turn);
       if (res) finishGame(room, res);
+      else {
+        const rep = repetitionResult(room.posKeys, room.moves);
+        if (rep) finishGame(room, rep);
+      }
       emitRoom(io, room);
       if (typeof ack === "function") ack({ ok: true, room: fullState(room) });
     });
@@ -287,6 +300,7 @@ export function attachXiangqiServer(io) {
           board: createInitialBoard(),
           turn: SIDE_RED,
           moves: [],
+          posKeys: [positionKey(createInitialBoard(), SIDE_RED)],
           winner: null,
           checkSide: null,
           turnMs: 600_000,

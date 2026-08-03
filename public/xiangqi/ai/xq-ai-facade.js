@@ -25,10 +25,10 @@ function levelCfg(level) {
 export function pickAiMove(board, side, level = "medium", meta = {}) {
   const cfg = levelCfg(level);
   const ply = meta.ply || 0;
-  const legal = allLegalMoves(board, side);
+  const legal = meta.legalPool?.length ? meta.legalPool : allLegalMoves(board, side);
   if (!legal.length) return null;
 
-  if (cfg.useBook && ply < 8) {
+  if (cfg.useBook && ply < 8 && !meta.legalPool) {
     const book = probeBook(board, side);
     if (book && legal.some((m) => m.fromR === book.fromR && m.fromC === book.fromC && m.toR === book.toR && m.toC === book.toC)) {
       if (DEBUG_XQ_EVAL) console.info("[xq-book]", book);
@@ -44,6 +44,7 @@ export function pickAiMove(board, side, level = "medium", meta = {}) {
     depth: cfg.depth,
     ply,
     tt: sharedTT,
+    rootMoves: legal,
     maxMs: level === "master" ? 3200 : level === "hard" ? 2200 : 1500,
   });
 
