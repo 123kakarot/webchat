@@ -432,7 +432,7 @@ export function mountCaroApp(ctx) {
             </div>
           </header>
 
-          <div class="caro-dash-scroll">
+          <div class="caro-dash-scroll caro-scroll-thin">
             <section class="caro-dash-hero caro-hub-hero-lite caro-reveal" style="--i:0">
               <div class="caro-dash-hero-text">
                 <p class="caro-dash-kicker">Chọn game · Vào sảnh riêng · Rồi mới chơi</p>
@@ -490,7 +490,7 @@ export function mountCaroApp(ctx) {
           </div>
         </div>
 
-        <aside class="caro-dash-rail caro-reveal" style="--i:1">
+        <aside class="caro-dash-rail caro-scroll-thin caro-reveal" style="--i:1">
           <section class="caro-dash-card">
             <h2>Cộng đồng</h2>
             <p class="caro-muted" style="font-size:0.82rem;line-height:1.5">Xếp hạng &amp; phòng online cập nhật khi bạn vào sảnh từng game (ví dụ Cờ Caro).</p>
@@ -692,7 +692,7 @@ export function mountCaroApp(ctx) {
             </div>
           </header>
 
-          <div class="caro-dash-scroll">
+          <div class="caro-dash-scroll caro-scroll-thin">
             <section class="caro-dash-hero caro-reveal" style="--i:0">
               <div class="caro-dash-hero-text">
                 <p class="caro-dash-kicker">Trí tuệ · Chiến thuật · Thư giãn</p>
@@ -751,7 +751,7 @@ export function mountCaroApp(ctx) {
 
             <section class="caro-dash-card caro-reveal" style="--i:2">
               <div class="caro-dash-card-head"><h2>Game nổi bật</h2></div>
-              <div class="board-featured-scroll">
+              <div class="board-featured-scroll caro-scroll-thin">
                 <article class="board-feature-card is-live">
                   <span class="board-feature-hot">HOT</span>
                   <span class="board-game-icon">⊞</span>
@@ -890,7 +890,7 @@ export function mountCaroApp(ctx) {
           </div>
         </div>
 
-        <aside class="caro-dash-rail caro-reveal" style="--i:2">
+        <aside class="caro-dash-rail caro-scroll-thin caro-reveal" style="--i:2">
           <section class="caro-dash-card caro-card-vivid">
             <div class="caro-dash-card-head"><h2>Người chơi online</h2></div>
             <ul class="caro-online-list">${renderOnlinePlayersRail()}</ul>
@@ -1393,7 +1393,7 @@ export function mountCaroApp(ctx) {
           <button type="button" class="caro-btn ghost" data-act="back-hub">← Hub</button>
         </div>
       </div>
-      <div class="caro-body"><div class="caro-view">${body}</div></div>
+      <div class="caro-body caro-scroll-thin"><div class="caro-view">${body}</div></div>
     `;
     startTimerUi();
   }

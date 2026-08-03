@@ -7,6 +7,8 @@
   --caro-muted: rgba(170, 200, 220, 0.72);
   --caro-x: #5ee7ff;
   --caro-o: #ff7ab8;
+  --caro-scroll-thumb: rgba(0, 180, 220, 0.35);
+  --caro-scroll-thumb-hover: rgba(0, 229, 255, 0.55);
   position: fixed;
   inset: 0;
   z-index: 42;
@@ -16,6 +18,78 @@
   color: var(--caro-text);
   font-family: "Be Vietnam Pro", system-ui, sans-serif;
   overflow: hidden;
+}
+
+/* Thin scrollbars (also mirrored in index.html #board-shell for cache-safe load) */
+.caro-scroll-thin,
+.board-shell .caro-body,
+.board-shell .caro-dash-scroll,
+.board-shell .caro-dash-rail,
+.board-shell .caro-dash-nav,
+.board-shell .board-featured-scroll,
+.board-shell .caro-board-scroll,
+.board-shell .caro-history-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--caro-scroll-thumb) transparent;
+}
+
+.caro-scroll-thin:hover,
+.board-shell .caro-body:hover,
+.board-shell .caro-dash-scroll:hover,
+.board-shell .caro-dash-rail:hover,
+.board-shell .caro-dash-nav:hover,
+.board-shell .board-featured-scroll:hover,
+.board-shell .caro-board-scroll:hover,
+.board-shell .caro-history-scroll:hover {
+  scrollbar-color: var(--caro-scroll-thumb-hover) transparent;
+}
+
+.caro-scroll-thin::-webkit-scrollbar,
+.caro-scroll-thin::-webkit-scrollbar-corner,
+.board-shell .caro-body::-webkit-scrollbar,
+.board-shell .caro-dash-scroll::-webkit-scrollbar,
+.board-shell .caro-dash-rail::-webkit-scrollbar,
+.board-shell .caro-dash-nav::-webkit-scrollbar,
+.board-shell .board-featured-scroll::-webkit-scrollbar,
+.board-shell .caro-board-scroll::-webkit-scrollbar,
+.board-shell .caro-history-scroll::-webkit-scrollbar {
+  width: 3px !important;
+  height: 3px !important;
+}
+
+.caro-scroll-thin::-webkit-scrollbar-track,
+.board-shell .caro-body::-webkit-scrollbar-track,
+.board-shell .caro-dash-scroll::-webkit-scrollbar-track,
+.board-shell .caro-dash-rail::-webkit-scrollbar-track,
+.board-shell .caro-dash-nav::-webkit-scrollbar-track,
+.board-shell .board-featured-scroll::-webkit-scrollbar-track,
+.board-shell .caro-board-scroll::-webkit-scrollbar-track,
+.board-shell .caro-history-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.caro-scroll-thin::-webkit-scrollbar-thumb,
+.board-shell .caro-body::-webkit-scrollbar-thumb,
+.board-shell .caro-dash-scroll::-webkit-scrollbar-thumb,
+.board-shell .caro-dash-rail::-webkit-scrollbar-thumb,
+.board-shell .caro-dash-nav::-webkit-scrollbar-thumb,
+.board-shell .board-featured-scroll::-webkit-scrollbar-thumb,
+.board-shell .caro-board-scroll::-webkit-scrollbar-thumb,
+.board-shell .caro-history-scroll::-webkit-scrollbar-thumb {
+  background: var(--caro-scroll-thumb) !important;
+  border-radius: 999px;
+  border: none;
+}
+
+.caro-scroll-thin:hover::-webkit-scrollbar-thumb,
+.board-shell .caro-body:hover::-webkit-scrollbar-thumb,
+.board-shell .caro-dash-scroll:hover::-webkit-scrollbar-thumb,
+.board-shell .caro-dash-rail:hover::-webkit-scrollbar-thumb,
+.board-shell .caro-dash-nav:hover::-webkit-scrollbar-thumb,
+.board-shell .board-featured-scroll:hover::-webkit-scrollbar-thumb,
+.board-shell .caro-board-scroll:hover::-webkit-scrollbar-thumb,
+.board-shell .caro-history-scroll:hover::-webkit-scrollbar-thumb {
+  background: var(--caro-scroll-thumb-hover) !important;
 }
 
 .board-shell[hidden] {
@@ -1524,10 +1598,13 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
+  overflow-x: hidden;
   padding: 1rem 1.15rem 1.5rem;
+  padding-right: 0.85rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  scrollbar-gutter: stable;
 }
 
 .caro-dash-hero {
@@ -1968,7 +2045,9 @@
 .caro-dash-rail {
   min-height: 0;
   overflow: auto;
-  padding: 1rem 0.85rem 1.25rem;
+  overflow-x: hidden;
+  padding: 1rem 0.65rem 1.25rem 0.85rem;
+  scrollbar-gutter: stable;
   border-left: 1px solid rgba(0, 229, 255, 0.14);
   background:
     linear-gradient(180deg, rgba(8, 20, 45, 0.82), rgba(2, 8, 18, 0.88)),
