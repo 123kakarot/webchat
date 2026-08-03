@@ -12,6 +12,10 @@ Khi hoàn thành một **giai đoạn** (phase) roadmap hoặc user yêu cầu t
 3. **Push `origin main`** để Render auto-deploy repo `123kakarot/webchat` → https://webchat-56en.onrender.com/
 4. Báo user: chờ deploy Live trên Render Dashboard, sau đó **Ctrl+F5**; nhắc bump `CLIENT_BUILD` / `MIN_CLIENT_BUILD` nếu có đổi build.
 
-Push lên `main` = deploy production — chỉ làm khi giai đoạn đã xong hoặc user nói rõ “đưa lên Render” / “deploy”.
+Push lên `main` = deploy production.
+
+**Tự động (mặc định):** Sau khi **hoàn thành một lần update** có thay đổi code triển khai được (UI, client, server, Docker…) — **commit + push `origin main` ngay**, không cần user nhắn “đẩy lên”, trừ khi user nói rõ “đừng push” / “chưa deploy”.
+
+Chỉ **không** push khi: chưa có diff commit được, user yêu cầu giữ local, hoặc thay đổi chỉ thảo luận/review chưa implement.
 
 Không push nếu chưa có thay đổi commit được. Dùng author từ `git log -1` nếu commit fail vì thiếu identity (không sửa `git config` global).
