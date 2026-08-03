@@ -641,6 +641,170 @@
   margin-top: 0.25rem;
 }
 
+/* Board hub dashboard (WebChat layout) */
+.caro-dash-logo-sub {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--caro-muted);
+  line-height: 1.35;
+  margin-top: 0.15rem;
+}
+
+.caro-dash-online-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--caro-muted);
+  padding: 0.55rem 0.65rem;
+  margin-top: 0.35rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 229, 255, 0.15);
+  background: rgba(0, 30, 60, 0.35);
+}
+
+.caro-breadcrumb {
+  font-size: 0.82rem;
+  color: var(--caro-cyan);
+  letter-spacing: 0.03em;
+}
+
+.caro-breadcrumb span {
+  color: var(--caro-muted);
+}
+
+.caro-hub-title {
+  font-style: normal;
+}
+
+.caro-hub-title em {
+  font-style: normal;
+  background: linear-gradient(90deg, #00e5ff, #a78bfa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.caro-hub-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.caro-hub-stat {
+  padding: 0.75rem 0.85rem;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 229, 255, 0.16);
+  background: rgba(8, 20, 40, 0.65);
+  backdrop-filter: blur(8px);
+}
+
+.caro-hub-stat span {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--caro-muted);
+  margin-bottom: 0.25rem;
+}
+
+.caro-hub-stat strong {
+  font-size: 1rem;
+  color: #f0f9ff;
+}
+
+.board-featured-scroll {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
+  scroll-snap-type: x mandatory;
+}
+
+.board-feature-card {
+  position: relative;
+  flex: 0 0 min(160px, 42vw);
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.3rem;
+  padding: 1rem 0.75rem;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  background: linear-gradient(160deg, rgba(20, 40, 80, 0.55), rgba(6, 14, 28, 0.85));
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.board-feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 120, 200, 0.2);
+}
+
+.board-feature-card.is-live {
+  border-color: rgba(0, 240, 255, 0.45);
+}
+
+.board-feature-hot {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.12rem 0.4rem;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff;
+}
+
+.board-feature-meta {
+  font-size: 0.65rem;
+  color: var(--caro-muted);
+  margin-top: 0.25rem;
+}
+
+.caro-event-box {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  margin-top: 0.5rem;
+}
+
+.caro-event-ico {
+  font-size: 1.75rem;
+}
+
+.caro-online-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.caro-online-list li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.45rem 0;
+  font-size: 0.8rem;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.06);
+}
+
+.caro-dash-avatar.sm {
+  width: 1.65rem;
+  height: 1.65rem;
+  font-size: 0.72rem;
+}
+
+@media (max-width: 900px) {
+  .caro-hub-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 .board-soon-panel {
   text-align: center;
 }
