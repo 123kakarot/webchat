@@ -2,6 +2,7 @@ import {
   applyMove,
   allLegalMoves,
   createMatchState,
+  findKing,
   gameResult,
   isInCheck,
   legalMovesFrom,
@@ -80,6 +81,8 @@ export function createXiangqiModule(deps) {
   /** Sync match from online room payload (xq:state). */
   function applyOnlineRoom(room) {
     if (!room) return null;
+    const prevMoves = match?.mode === "online" ? match.moves?.length || 0 : 0;
+    const prevCheck = match?.mode === "online" ? match.checkSide : null;
     stopReplay();
     aiBusy = false;
     const me = playerName();
@@ -111,6 +114,12 @@ export function createXiangqiModule(deps) {
     targets = [];
     chatLog = (room.chat || []).map((c) => `${c.name}: ${c.text}`);
     replayIdx = -1;
+    const nextMoves = match.moves.length;
+    if (nextMoves > prevMoves && match.status === "playing") {
+      announceBoardAlerts({ skipMoveToast: false });
+    } else if (match.checkSide && match.checkSide !== prevCheck && match.status === "playing") {
+      announceBoardAlerts({ skipMoveToast: true });
+    }
     return match;
   }
 
@@ -155,6 +164,55 @@ export function createXiangqiModule(deps) {
     return b;
   }
 
+  function lastMove() {
+    if (!match?.moves?.length) return null;
+    if (replayIdx >= 0) return match.moves[Math.min(replayIdx, match.moves.length - 1)] || null;
+    return match.moves[match.moves.length - 1];
+  }
+
+  function sideLabel(side) {
+    return side === SIDE_RED ? "Đỏ" : "Đen";
+  }
+
+  /** Báo nước vừa đi + chiếu tướng. */
+  function announceBoardAlerts(opts = {}) {
+    if (!match || match.status === "lobby") return;
+    const lm = lastMove();
+    const movedByOpponent =
+      lm &&
+      (match.mode === "local"
+        ? true
+        : match.mode === "ai" || match.mode === "online"
+          ? lm.side !== match.meSide
+          : true);
+
+    if (lm && movedByOpponent && !opts.skipMoveToast) {
+      const who =
+        match.mode === "ai"
+          ? "AI"
+          : match.mode === "online"
+            ? "Đối thủ"
+            : sideLabel(lm.side);
+      const piece = pieceLabel(lm.piece);
+      const note = lm.note || piece;
+      toast?.(`${who} đi: ${note}${lm.capture && lm.capture !== "." ? ` (ăn ${pieceLabel(lm.capture)})` : ""}`);
+    }
+
+    if (match.checkSide && match.status === "playing") {
+      const youInCheck =
+        match.mode === "local" ||
+        match.checkSide === match.meSide ||
+        (match.mode === "ai" && match.checkSide === match.meSide);
+      const msg = youInCheck
+        ? match.mode === "local"
+          ? `⚠ CHIẾU TƯỚNG — ${sideLabel(match.checkSide)} đang bị chiếu!`
+          : "⚠ CHIẾU TƯỚNG — Tướng bạn đang bị chiếu!"
+        : `Chiếu! ${sideLabel(match.checkSide)} đang bị chiếu.`;
+      toast?.(msg);
+      beep?.(960, 160, "square", 0.07);
+    }
+  }
+
   function finishGame(winner) {
     if (!match || match.status !== "playing") return;
     match.status = winner === "draw" ? "draw" : "finished";
@@ -187,9 +245,11 @@ export function createXiangqiModule(deps) {
     const res = gameResult(match.board, match.turn);
     if (res) {
       finishGame(res);
+      announceBoardAlerts({ skipMoveToast: false });
       return;
     }
     match.checkSide = isInCheck(match.board, match.turn) ? match.turn : null;
+    announceBoardAlerts();
     if (match.mode === "ai" && match.turn !== match.meSide && match.status === "playing") {
       void runAiTurn();
     }
@@ -403,6 +463,9 @@ export function createXiangqiModule(deps) {
       <text x="600" y="458" text-anchor="middle" class="xq-river-txt">漢 界</text>`;
 
     let points = "";
+    const lm = lastMove();
+    const checkKing =
+      match?.checkSide && match.status === "playing" ? findKing(board, match.checkSide) : null;
     for (let r = 0; r < 10; r++) {
       for (let c = 0; c < 9; c++) {
         const p = board[r][c];
@@ -411,15 +474,25 @@ export function createXiangqiModule(deps) {
         const top = (y / VB_H) * 100;
         const isSel = selected && selected[0] === r && selected[1] === c;
         const isT = targets.some(([tr, tc]) => tr === r && tc === c);
+        const isLastFrom = lm && lm.fromR === r && lm.fromC === c;
+        const isLastTo = lm && lm.toR === r && lm.toC === c;
+        const isKingCheck = checkKing && checkKing[0] === r && checkKing[1] === c;
         points += `<button type="button" class="xq-point${isSel ? " is-selected" : ""}${isT ? " is-target" : ""}${
+          isLastFrom ? " is-last-from" : ""
+        }${isLastTo ? " is-last-to" : ""}${isKingCheck ? " is-king-check" : ""}${
           p !== "." ? " has-piece" : ""
         }" style="left:${left}%;top:${top}%" data-xq-r="${r}" data-xq-c="${c}" ${
           interactive ? "" : "tabindex=-1"
         } aria-label="${r},${c}">`;
         points += `<span class="xq-dot-hint" aria-hidden="true"></span>`;
+        if (isLastFrom || isLastTo) {
+          points += `<span class="xq-last-mark" aria-hidden="true"></span>`;
+        }
         if (p !== ".") {
           const side = pieceSide(p) === SIDE_RED ? "red" : "black";
-          points += `<span class="xq-piece ${side}">${pieceLabel(p)}</span>`;
+          points += `<span class="xq-piece ${side}${isLastTo ? " just-moved" : ""}${
+            isKingCheck ? " in-check" : ""
+          }">${pieceLabel(p)}</span>`;
         }
         points += `</button>`;
       }
@@ -784,7 +857,25 @@ export function createXiangqiModule(deps) {
               <div class="xq-board-wrap wood" data-xq-board-host>
                 ${renderBoardHtml(board, match.status === "playing" && replayIdx < 0)}
               </div>
-              <div class="xq-turn-chip" data-xq-turn-chip>${turnLabel}${aiBusy ? " · AI đang nghĩ…" : ""}</div>
+              ${
+                match.checkSide && match.status === "playing"
+                  ? `<div class="xq-check-banner" data-xq-check-banner role="alert">⚠ CHIẾU TƯỚNG — ${
+                      match.mode === "local"
+                        ? sideLabel(match.checkSide)
+                        : match.checkSide === match.meSide
+                          ? "Tướng bạn"
+                          : sideLabel(match.checkSide)
+                    } đang bị chiếu!</div>`
+                  : `<div class="xq-check-banner is-hidden" data-xq-check-banner hidden></div>`
+              }
+              <div class="xq-turn-chip" data-xq-turn-chip>${getTurnChipText()}</div>
+              ${
+                lastMove()
+                  ? `<p class="xq-last-move-caption" data-xq-last-caption>Nước vừa đi: <strong>${escapeHtml(
+                      lastMove().note || pieceLabel(lastMove().piece)
+                    )}</strong> · ô sáng là điểm đi / đến</p>`
+                  : `<p class="xq-last-move-caption is-empty" data-xq-last-caption></p>`
+              }
             </div>
 
             <div class="xq-player-card you${botCheck ? " in-check" : ""}${match.turn === SIDE_RED && match.status === "playing" ? " is-turn" : ""}">
@@ -975,15 +1066,14 @@ export function createXiangqiModule(deps) {
 
   function getTurnChipText() {
     if (!match) return "";
-    const turnLabel =
-      match.status !== "playing"
-        ? match.status === "draw"
-          ? "Hòa"
-          : "Kết thúc"
-        : match.turn === SIDE_RED
-          ? "Lượt Đỏ"
-          : "Lượt Đen";
-    return `${turnLabel}${aiBusy ? " · AI đang nghĩ…" : ""}`;
+    if (match.status === "lobby") return "Chờ bắt đầu…";
+    if (match.status !== "playing") {
+      return match.status === "draw" ? "Hòa" : "Kết thúc";
+    }
+    const turnLabel = match.turn === SIDE_RED ? "Lượt Đỏ" : "Lượt Đen";
+    const checkBit =
+      match.checkSide === match.turn ? " · ⚠ CHIẾU!" : "";
+    return `${turnLabel}${checkBit}${aiBusy ? " · AI đang nghĩ…" : ""}`;
   }
 
   function patchBoardIn(rootEl) {
@@ -993,6 +1083,35 @@ export function createXiangqiModule(deps) {
     host.innerHTML = renderBoardHtml(match.board, match.status === "playing" && replayIdx < 0);
     const chip = rootEl.querySelector("[data-xq-turn-chip]");
     if (chip) chip.textContent = getTurnChipText();
+    const banner = rootEl.querySelector("[data-xq-check-banner]");
+    if (banner) {
+      if (match.checkSide && match.status === "playing") {
+        const who =
+          match.mode === "local"
+            ? sideLabel(match.checkSide)
+            : match.checkSide === match.meSide
+              ? "Tướng bạn"
+              : sideLabel(match.checkSide);
+        banner.hidden = false;
+        banner.classList.remove("is-hidden");
+        banner.textContent = `⚠ CHIẾU TƯỚNG — ${who} đang bị chiếu!`;
+      } else {
+        banner.hidden = true;
+        banner.classList.add("is-hidden");
+        banner.textContent = "";
+      }
+    }
+    const cap = rootEl.querySelector("[data-xq-last-caption]");
+    if (cap) {
+      const lm = lastMove();
+      if (lm) {
+        cap.classList.remove("is-empty");
+        cap.innerHTML = `Nước vừa đi: <strong>${escapeHtml(lm.note || pieceLabel(lm.piece))}</strong> · ô sáng là điểm đi / đến`;
+      } else {
+        cap.classList.add("is-empty");
+        cap.textContent = "";
+      }
+    }
     return true;
   }
 

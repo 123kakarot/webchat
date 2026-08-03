@@ -976,6 +976,114 @@
   pointer-events: none;
 }
 
+.xq-last-mark {
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.xq-point.is-last-from .xq-last-mark {
+  background: rgba(250, 204, 21, 0.28);
+  box-shadow: inset 0 0 0 2px rgba(250, 204, 21, 0.75);
+}
+
+.xq-point.is-last-to .xq-last-mark {
+  background: rgba(34, 197, 94, 0.32);
+  box-shadow: inset 0 0 0 2.5px rgba(34, 197, 94, 0.9), 0 0 14px rgba(34, 197, 94, 0.45);
+  animation: xq-last-pulse 1.1s ease-in-out 2;
+}
+
+@keyframes xq-last-pulse {
+  50% {
+    transform: scale(1.12);
+    box-shadow: inset 0 0 0 2.5px rgba(34, 197, 94, 1), 0 0 22px rgba(34, 197, 94, 0.7);
+  }
+}
+
+.xq-point.is-king-check::after {
+  content: "";
+  position: absolute;
+  inset: 4%;
+  border-radius: 50%;
+  border: 2.5px solid #ef4444;
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.75);
+  animation: xq-check-pulse 0.85s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes xq-check-pulse {
+  50% {
+    box-shadow: 0 0 28px rgba(239, 68, 68, 0.95);
+    transform: scale(1.08);
+  }
+}
+
+.xq-piece.just-moved {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.7), 0 6px 14px rgba(0, 0, 0, 0.45) !important;
+}
+
+.xq-piece.in-check {
+  animation: xq-piece-check 0.9s ease-in-out infinite;
+}
+
+@keyframes xq-piece-check {
+  50% {
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.95));
+    transform: scale(1.1);
+  }
+}
+
+.xq-check-banner {
+  width: min(100%, 420px);
+  margin: 0.15rem auto 0;
+  padding: 0.45rem 0.85rem;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 0.88rem;
+  letter-spacing: 0.03em;
+  color: #fff;
+  background: linear-gradient(90deg, rgba(185, 28, 28, 0.92), rgba(220, 38, 38, 0.88));
+  border: 1px solid rgba(254, 202, 202, 0.45);
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.45);
+  animation: xq-banner-in 0.35s ease-out;
+}
+
+.xq-check-banner.is-hidden,
+.xq-check-banner[hidden] {
+  display: none;
+}
+
+@keyframes xq-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.xq-last-move-caption {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: rgba(190, 220, 255, 0.82);
+  text-align: center;
+}
+
+.xq-last-move-caption strong {
+  color: #86efac;
+}
+
+.xq-last-move-caption.is-empty {
+  display: none;
+}
+
 .xq-piece {
   position: absolute;
   inset: 6%;
