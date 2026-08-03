@@ -367,6 +367,10 @@ export function mountCaroApp(ctx) {
   function startTimerUi() {
     stopTimer();
     timerId = setInterval(() => {
+      if (view === "xiangqi-play" && xiangqi.getMatch()?.status === "playing") {
+        xiangqi.patchClocksIn(root);
+        return;
+      }
       const tEl = root.querySelector("[data-caro-timer]");
       if (!tEl) return;
       const deadline =

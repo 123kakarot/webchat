@@ -859,6 +859,31 @@
   font-size: 0.95rem;
 }
 
+.xq-mini-clock.is-active-clock {
+  color: #4ade80;
+  text-shadow: 0 0 12px rgba(74, 222, 128, 0.55);
+}
+
+.xq-mini-clock.is-low,
+.xq-play-timer-pill strong.is-low {
+  color: #fbbf24;
+}
+
+.xq-play-timer-pill strong.is-critical {
+  color: #f87171;
+  animation: xq-clock-blink 0.8s ease-in-out infinite;
+}
+
+@keyframes xq-clock-blink {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.xq-play-timer-pill strong {
+  font-variant-numeric: tabular-nums;
+}
+
 .xq-board-stage {
   position: relative;
   display: flex;

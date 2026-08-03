@@ -110,6 +110,7 @@ export function createXiangqiModule(deps) {
       turnDeadline: room.turnDeadline,
       redTimeMs: room.redTimeMs ?? 600000,
       blackTimeMs: room.blackTimeMs ?? 600000,
+      clockAt: Date.now(),
       checkSide: room.checkSide || null,
       roomCode: room.code,
       host: room.host,
@@ -419,6 +420,7 @@ export function createXiangqiModule(deps) {
     }
 
     const cap = match.board[toR][toC];
+    settleClock();
     match.board = applyMove(match.board, fromR, fromC, toR, toC);
     match.moves.push({
       fromR,
@@ -431,7 +433,9 @@ export function createXiangqiModule(deps) {
       note: moveNotation({ fromR, fromC, toR, toC, piece: moving, capture: cap }, match.board),
     });
     match.turn = match.turn === SIDE_RED ? SIDE_BLACK : SIDE_RED;
-    match.turnDeadline = Date.now() + match.turnMs;
+    match.clockAt = Date.now();
+    match.turnDeadline =
+      Date.now() + (match.turn === SIDE_RED ? match.redTimeMs : match.blackTimeMs);
     if (cap && cap !== ".") beep?.(880, 50, "square", 0.04);
     else beep?.(520, 40, "sine", 0.03);
     selected = null;
@@ -618,6 +622,89 @@ export function createXiangqiModule(deps) {
     const s = Math.max(0, Math.ceil(ms / 1000));
     const m = Math.floor(s / 60);
     return `${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  }
+
+  /** Chốt thời gian đã trôi của bên đang đi vào bank. */
+  function settleClock() {
+    if (!match || match.status !== "playing") return;
+    const now = Date.now();
+    const at = match.clockAt || now;
+    const elapsed = Math.max(0, now - at);
+    if (match.turn === SIDE_RED) {
+      match.redTimeMs = Math.max(0, (match.redTimeMs ?? 0) - elapsed);
+    } else {
+      match.blackTimeMs = Math.max(0, (match.blackTimeMs ?? 0) - elapsed);
+    }
+    match.clockAt = now;
+    match.turnDeadline = now + (match.turn === SIDE_RED ? match.redTimeMs : match.blackTimeMs);
+  }
+
+  function getDisplayTimes() {
+    if (!match) return { red: 0, black: 0, current: 0 };
+    let red = match.redTimeMs ?? 0;
+    let black = match.blackTimeMs ?? 0;
+    if (match.status === "playing" && match.clockAt) {
+      const elapsed = Math.max(0, Date.now() - match.clockAt);
+      if (match.turn === SIDE_RED) red = Math.max(0, red - elapsed);
+      else black = Math.max(0, black - elapsed);
+    }
+    return {
+      red,
+      black,
+      current: match.turn === SIDE_RED ? red : black,
+    };
+  }
+
+  /** Gọi mỗi ~250ms từ UI — cập nhật đồng hồ + hết giờ thì thua. */
+  function patchClocksIn(rootEl) {
+    if (!match || !rootEl) return false;
+    if (match.status !== "playing") {
+      const times = getDisplayTimes();
+      const main = rootEl.querySelector("[data-xq-clock]");
+      if (main) main.textContent = formatTime(times.current || times.red);
+      const redEl = rootEl.querySelector("[data-xq-clock-red]");
+      const blackEl = rootEl.querySelector("[data-xq-clock-black]");
+      if (redEl) redEl.textContent = formatTime(times.red);
+      if (blackEl) blackEl.textContent = formatTime(times.black);
+      return true;
+    }
+
+    const times = getDisplayTimes();
+    const main = rootEl.querySelector("[data-xq-clock]");
+    if (main) {
+      main.textContent = formatTime(times.current);
+      main.classList.toggle("is-low", times.current <= 30000);
+      main.classList.toggle("is-critical", times.current <= 10000);
+    }
+    const redEl = rootEl.querySelector("[data-xq-clock-red]");
+    const blackEl = rootEl.querySelector("[data-xq-clock-black]");
+    if (redEl) {
+      redEl.textContent = formatTime(times.red);
+      redEl.classList.toggle("is-active-clock", match.turn === SIDE_RED);
+      redEl.classList.toggle("is-low", match.turn === SIDE_RED && times.red <= 30000);
+    }
+    if (blackEl) {
+      blackEl.textContent = formatTime(times.black);
+      blackEl.classList.toggle("is-active-clock", match.turn === SIDE_BLACK);
+      blackEl.classList.toggle("is-low", match.turn === SIDE_BLACK && times.black <= 30000);
+    }
+
+    if (times.current <= 0) {
+      settleClock();
+      const loser = match.turn;
+      finishGame(loser === SIDE_RED ? SIDE_BLACK : SIDE_RED);
+      if (match) {
+        match.endReason = "timeout";
+        match.revealMate = false;
+        match.showEndOverlay = true;
+        toast?.(
+          `⏱ Hết giờ — ${sideLabel(loser)} thua!`
+        );
+      }
+      notifyUi();
+      return true;
+    }
+    return true;
   }
 
   function heroBoardArt() {
@@ -830,6 +917,15 @@ export function createXiangqiModule(deps) {
         if (match.winner === match.meSide) return `${mateLine} Bạn chiến thắng!`;
         return `${mateLine} Bạn thua.`;
       }
+      if (match.endReason === "timeout") {
+        const loser = match.winner === SIDE_RED ? SIDE_BLACK : SIDE_RED;
+        if (match.mode === "local") {
+          return `⏱ Hết giờ — ${sideLabel(loser)} thua. ${match.winner === SIDE_RED ? "Đỏ" : "Đen"} thắng!`;
+        }
+        return match.winner === match.meSide
+          ? "⏱ Đối thủ hết giờ — bạn thắng!"
+          : "⏱ Hết giờ — bạn thua.";
+      }
       if (match.mode === "local") {
         return match.winner === SIDE_RED ? "Đỏ thắng!" : "Đen thắng!";
       }
@@ -931,8 +1027,8 @@ export function createXiangqiModule(deps) {
           <div class="xq-play-timer-pill">
             <span class="xq-timer-ico" aria-hidden="true">⏱</span>
             <div>
-              <small>Thời gian còn lại</small>
-              <strong data-xq-clock>${formatTime(match.redTimeMs)}</strong>
+              <small>Đồng hồ ${match.turn === SIDE_RED ? "Đỏ" : "Đen"}</small>
+              <strong data-xq-clock>${formatTime(getDisplayTimes().current)}</strong>
             </div>
           </div>
           <button type="button" class="xq-icon-btn" data-act="xq-home" title="Sảnh" aria-label="Về sảnh">⌂</button>
@@ -988,7 +1084,7 @@ export function createXiangqiModule(deps) {
                 }</span>
               </div>
               <span class="xq-side-badge black">Đen</span>
-              <span class="xq-mini-clock">${formatTime(match.blackTimeMs)}</span>
+              <span class="xq-mini-clock${match.turn === SIDE_BLACK && match.status === "playing" ? " is-active-clock" : ""}" data-xq-clock-black>${formatTime(getDisplayTimes().black)}</span>
             </div>
 
             <div class="xq-board-stage">
@@ -1030,7 +1126,7 @@ export function createXiangqiModule(deps) {
                 }</span>
               </div>
               <span class="xq-side-badge red">Đỏ</span>
-              <span class="xq-mini-clock">${formatTime(match.redTimeMs)}</span>
+              <span class="xq-mini-clock${match.turn === SIDE_RED && match.status === "playing" ? " is-active-clock" : ""}" data-xq-clock-red>${formatTime(getDisplayTimes().red)}</span>
             </div>
           </section>
 
@@ -1282,6 +1378,7 @@ export function createXiangqiModule(deps) {
     getMatch,
     loadStats,
     patchBoardIn,
+    patchClocksIn,
     applyOnlineRoom,
     isAiBusy: () => aiBusy,
   };

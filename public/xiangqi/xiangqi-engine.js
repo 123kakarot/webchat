@@ -337,6 +337,7 @@ export function moveNotation(mv, board) {
 }
 
 export function createMatchState(opts = {}) {
+  const turnMs = opts.turnMs || 600000;
   return {
     board: createInitialBoard(),
     turn: SIDE_RED,
@@ -346,10 +347,11 @@ export function createMatchState(opts = {}) {
     mode: opts.mode || "local",
     aiLevel: opts.aiLevel || "medium",
     meSide: opts.meSide || SIDE_RED,
-    turnMs: opts.turnMs || 600000,
-    turnDeadline: Date.now() + (opts.turnMs || 600000),
-    redTimeMs: opts.redTimeMs ?? 600000,
-    blackTimeMs: opts.blackTimeMs ?? 600000,
+    turnMs,
+    turnDeadline: Date.now() + turnMs,
+    redTimeMs: opts.redTimeMs ?? turnMs,
+    blackTimeMs: opts.blackTimeMs ?? turnMs,
+    clockAt: Date.now(),
     checkSide: null,
   };
 }
