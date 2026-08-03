@@ -221,108 +221,162 @@ export function createXiangqiModule(deps) {
     return `${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
   }
 
-  function renderHome() {
-    const stats = loadStats();
-    return `
-      <div class="xq-shell xq-home-grid caro-reveal">
-        <div>
-          <section class="xq-hero">
-            <p class="xq-kicker">Trí tuệ · Chiến thuật · Bản lĩnh</p>
-            <h1 class="xq-title">CỜ TƯỚNG</h1>
-            <p class="xq-lead">Cờ Tướng là trò chơi chiến thuật dành cho hai người, nơi mỗi nước đi đều có thể thay đổi cục diện trận đấu. Hãy rèn luyện tư duy, tính toán nhiều bước và chinh phục đối thủ từ AI đến những kỳ thủ mạnh nhất trên hệ thống.</p>
-            <div class="xq-info-chips">
-              <span class="xq-chip">♟ 9×10</span>
-              <span class="xq-chip">👥 2 người chơi</span>
-              <span class="xq-chip">🤖 AI 4 cấp độ</span>
-              <span class="xq-chip">🌐 Online Realtime</span>
-              <span class="xq-chip">🏆 Xếp hạng ELO</span>
-              <span class="xq-chip">🎥 Replay</span>
-              <span class="xq-chip">⏱ Timer</span>
-              <span class="xq-chip">📈 Thống kê</span>
-            </div>
-          </section>
+  function heroBoardArt() {
+    return `<svg class="xq-hero-board-svg" viewBox="0 0 280 240" aria-hidden="true">
+      <defs>
+        <linearGradient id="xqBoardGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#1a2a4a"/>
+          <stop offset="100%" stop-color="#0a1428"/>
+        </linearGradient>
+        <filter id="xqGlow"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <radialGradient id="xqRed" cx="35%" cy="30%"><stop offset="0%" stop-color="#ffb347"/><stop offset="100%" stop-color="#e11"/></radialGradient>
+        <radialGradient id="xqBlk" cx="35%" cy="30%"><stop offset="0%" stop-color="#5a7a9a"/><stop offset="100%" stop-color="#1a2838"/></radialGradient>
+      </defs>
+      <rect x="28" y="18" width="224" height="204" rx="10" fill="url(#xqBoardGrad)" stroke="#29d9ff" stroke-width="2" filter="url(#xqGlow)"/>
+      ${[0,1,2,3,4,5,6,7,8].map((i)=>`<line x1="${40+i*24}" y1="30" x2="${40+i*24}" y2="210" stroke="#29d9ff" stroke-opacity="0.35" stroke-width="1"/>`).join("")}
+      ${[0,1,2,3,4,5,6,7,8,9].map((i)=>`<line x1="40" y1="${30+i*20}" x2="232" y2="${30+i*20}" stroke="#29d9ff" stroke-opacity="0.35" stroke-width="1"/>`).join("")}
+      <text x="140" y="128" text-anchor="middle" fill="#ffd166" fill-opacity="0.35" font-size="11" letter-spacing="4">楚河 · 漢界</text>
+      <circle cx="88" cy="50" r="13" fill="url(#xqBlk)" stroke="#00d2ff" stroke-width="1.5" filter="url(#xqGlow)"/><text x="88" y="54" text-anchor="middle" fill="#e8f4ff" font-size="11" font-weight="700">車</text>
+      <circle cx="140" cy="50" r="14" fill="url(#xqBlk)" stroke="#00d2ff" stroke-width="1.5" filter="url(#xqGlow)"/><text x="140" y="55" text-anchor="middle" fill="#e8f4ff" font-size="12" font-weight="800">將</text>
+      <circle cx="192" cy="50" r="13" fill="url(#xqBlk)" stroke="#00d2ff" stroke-width="1.5"/><text x="192" y="54" text-anchor="middle" fill="#e8f4ff" font-size="11" font-weight="700">馬</text>
+      <circle cx="112" cy="190" r="13" fill="url(#xqRed)" stroke="#ffd166" stroke-width="1.5" filter="url(#xqGlow)"/><text x="112" y="194" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">炮</text>
+      <circle cx="164" cy="190" r="14" fill="url(#xqRed)" stroke="#ffd166" stroke-width="1.5" filter="url(#xqGlow)"/><text x="164" y="195" text-anchor="middle" fill="#fff" font-size="12" font-weight="800">帅</text>
+      <circle cx="64" cy="170" r="11" fill="url(#xqRed)" stroke="#ffd166" stroke-width="1.2"/><text x="64" y="174" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">兵</text>
+    </svg>`;
+  }
 
-          <section class="xq-rules-grid" style="margin-top:1rem">
-            <div class="xq-panel">
-              <h3>Luật chơi</h3>
-              <p><strong>Mục tiêu:</strong> Chiếu bí Tướng đối phương.</p>
-              <p><strong>Bàn cờ:</strong> 9 cột · 10 hàng · Sông chia đôi · Cửu cung.</p>
-            </div>
-            <div class="xq-panel">
-              <h3>Quân cờ</h3>
-              <div class="xq-piece-list">
-                <span>Tướng 帅/将</span><span>Sĩ 仕/士</span>
-                <span>Tượng 相/象</span><span>Mã 马</span>
-                <span>Xe 车</span><span>Pháo 炮</span>
-                <span>Tốt 兵/卒</span>
+  function renderHome(extra = {}) {
+    const stats = loadStats();
+    const online = extra.online ?? 24;
+    const live = extra.live ?? 3;
+    const topName = extra.topName || "—";
+    const winRate = stats.played ? Math.round((stats.win / stats.played) * 100) : 0;
+
+    return `
+      <div class="xq-shell">
+        <section class="xq-hero-cinematic caro-reveal" style="--i:0">
+          <div>
+            <div class="xq-hero-brand">
+              <div class="xq-hero-piece-3d" aria-hidden="true">帥</div>
+              <div>
+                <p class="xq-kicker">Trí tuệ — Chiến thuật — Tư duy sâu</p>
+                <h1 class="xq-title-glow">CỜ TƯỚNG</h1>
               </div>
             </div>
-            <div class="xq-panel">
-              <h3>Luật đặc biệt</h3>
-              <ul style="margin:0;padding-left:1.1rem;font-size:0.82rem;line-height:1.55">
-                <li>Tướng không được đối mặt trực tiếp.</li>
-                <li>Pháo nhảy qua đúng một quân để ăn.</li>
-                <li>Tượng không qua sông · Sĩ trong cung.</li>
-                <li>Tốt qua sông đi ngang · Mã bị chặn chân.</li>
-              </ul>
+            <p class="xq-lead">Mỗi nước đi đổi cục diện. Rèn luyện tư duy, tính toán nhiều bước — từ AI đến kỳ thủ mạnh trên hệ thống.</p>
+            <div class="xq-hero-mini">
+              <div class="xq-mini-card">
+                <strong>Luật cơ bản</strong>
+                Bàn 9×10 · 16 quân mỗi bên<br/>Chiếu bí Tướng để thắng
+              </div>
+              <div class="xq-mini-card">
+                <strong>Chế độ</strong>
+                AI 4 cấp · Local 2 người<br/>Online · Spectator sắp mở
+              </div>
             </div>
-          </section>
+            <button type="button" class="xq-play-now" data-act="xq-ai" data-level="medium">
+              <span class="glow" aria-hidden="true"></span>
+              ▶ Chơi ngay
+            </button>
+          </div>
+          <div class="xq-hero-art">
+            <div class="xq-hero-orbit" aria-hidden="true"></div>
+            ${heroBoardArt()}
+          </div>
+        </section>
 
-          <section class="xq-panel" style="margin-top:1rem">
-            <h3>Thành tựu</h3>
-            <div class="xq-ach">
-              <span>🏆 Thắng 10 trận</span>
-              <span>🏆 Thắng AI Master</span>
-              <span>🏆 Không mất Xe</span>
-              <span>🏆 Chiếu bí trong 30 nước</span>
-              <span>🏆 100 trận Online</span>
-            </div>
-          </section>
+        <div class="caro-hub-stats caro-reveal" style="--i:1;margin-top:1rem">
+          <div class="caro-hub-stat tint-cyan">
+            <span class="stat-ico" aria-hidden="true">👥</span>
+            <div><span>Người online</span><strong>${online}</strong></div>
+          </div>
+          <div class="caro-hub-stat tint-blue">
+            <span class="stat-ico" aria-hidden="true">⚔</span>
+            <div><span>Trận đang diễn ra</span><strong>${live}</strong></div>
+          </div>
+          <div class="caro-hub-stat tint-gold">
+            <span class="stat-ico" aria-hidden="true">🏆</span>
+            <div><span>Top hôm nay</span><strong>${escapeHtml(topName)}</strong></div>
+          </div>
+          <div class="caro-hub-stat tint-purple">
+            <span class="stat-ico" aria-hidden="true">🔥</span>
+            <div><span>Chuỗi thắng</span><strong>${stats.streak}</strong></div>
+          </div>
         </div>
 
-        <aside class="xq-panel">
-          <h3>Chế độ chơi</h3>
-          <div class="xq-mode-list">
-            <button type="button" class="xq-mode-btn" data-act="xq-quick">
-              <span>⚡</span><span><strong>Quick Match</strong><span>Ghép đối thủ ngẫu nhiên — sắp ra mắt online.</span></span>
-            </button>
-            <div class="xq-mode-divider"></div>
-            <div class="xq-mode-btn" style="cursor:default">
-              <span>🤖</span>
-              <span><strong>Chơi với AI</strong>
-                <div class="xq-ai-levels">
-                  <button type="button" data-act="xq-ai" data-level="easy">Easy</button>
-                  <button type="button" data-act="xq-ai" data-level="medium">Medium</button>
-                  <button type="button" data-act="xq-ai" data-level="hard">Hard</button>
-                  <button type="button" data-act="xq-ai" data-level="master">Master</button>
-                </div>
-              </span>
+        <div class="xq-mode-grid caro-reveal" style="--i:1;margin-top:1rem">
+          <article class="xq-mode-card m-ai">
+            <span class="xq-hot-tag">HOT</span>
+            <span class="ico">🤖</span>
+            <h3>Chơi với AI</h3>
+            <p>Easy → Master · mở ván ngay</p>
+            <div class="xq-ai-row">
+              <button type="button" data-act="xq-ai" data-level="easy">Easy</button>
+              <button type="button" data-act="xq-ai" data-level="medium">Medium</button>
+              <button type="button" data-act="xq-ai" data-level="hard">Hard</button>
+              <button type="button" class="master" data-act="xq-ai" data-level="master">Master</button>
             </div>
-            <div class="xq-mode-divider"></div>
-            <button type="button" class="xq-mode-btn" data-act="xq-local">
-              <span>👥</span><span><strong>Chơi với bạn</strong><span>Cùng máy · 2 người luân phiên.</span></span>
-            </button>
-            <button type="button" class="xq-mode-btn" data-act="xq-room-soon">
-              <span>🔑</span><span><strong>Tạo / nhập phòng</strong><span>Online phòng riêng — đang xây.</span></span>
-            </button>
-            <div class="xq-mode-divider"></div>
-            <button type="button" class="xq-mode-btn" data-act="xq-rank-soon">
-              <span>🏆</span><span><strong>Xếp hạng</strong><span>Đấu xếp hạng ELO — sắp mở.</span></span>
-            </button>
-            <button type="button" class="xq-mode-btn" data-act="xq-spectate-soon">
-              <span>📺</span><span><strong>Xem trận đấu</strong><span>Spectator · chat · reaction 👏🔥.</span></span>
-            </button>
+          </article>
+          <button type="button" class="xq-mode-card m-friends" data-act="xq-local">
+            <span class="ico">👥</span>
+            <h3>Chơi với bạn</h3>
+            <p>Cùng máy · 2 người luân phiên</p>
+            <span class="cta">Chơi ngay</span>
+          </button>
+          <button type="button" class="xq-mode-card m-online" data-act="xq-quick">
+            <span class="ico">⚡</span>
+            <h3>Chơi online</h3>
+            <p>Quick Match · ghép ngẫu nhiên</p>
+            <span class="cta">Ghép trận</span>
+          </button>
+          <button type="button" class="xq-mode-card m-create" data-act="xq-room-soon">
+            <span class="ico">＋</span>
+            <h3>Tạo phòng</h3>
+            <p>Phòng riêng · mã mời · spectator</p>
+            <span class="cta">Tạo phòng</span>
+          </button>
+        </div>
+
+        <div class="xq-info-row caro-reveal" style="--i:2;margin-top:1rem">
+          <div class="xq-glass">
+            <h3>Luật chơi</h3>
+            <p><strong>Mục tiêu:</strong> Chiếu bí Tướng đối phương.</p>
+            <p>9 cột · 10 hàng · Sông · Cửu cung</p>
           </div>
-          <div class="xq-panel" style="margin-top:0.85rem;padding:0.75rem">
-            <h3>Thống kê</h3>
-            <div class="xq-stat-row">
-              <span>ELO <strong>${stats.elo}</strong></span>
-              <span>Thắng <strong>${stats.win}</strong></span>
-              <span>Thua <strong>${stats.loss}</strong></span>
-              <span>Hòa <strong>${stats.draw}</strong></span>
+          <div class="xq-glass">
+            <h3>Quân cờ</h3>
+            <div class="xq-piece-list">
+              <span>帅/将 Tướng</span><span>仕/士 Sĩ</span>
+              <span>相/象 Tượng</span><span>马 Mã</span>
+              <span>车 Xe</span><span>炮 Pháo</span>
+              <span>兵/卒 Tốt</span>
             </div>
           </div>
-        </aside>
+          <div class="xq-glass">
+            <h3>Luật đặc biệt</h3>
+            <ul style="margin:0;padding-left:1.05rem">
+              <li>Tướng không đối mặt</li>
+              <li>Pháo nhảy 1 quân để ăn</li>
+              <li>Tượng không qua sông · Mã bị chặn chân</li>
+            </ul>
+          </div>
+        </div>
+
+        <section class="xq-glass caro-reveal" style="--i:3;margin-top:1rem">
+          <h3>Thành tựu</h3>
+          <div class="xq-ach-row">
+            <span class="xq-ach-pill">🏆 Thắng 10 trận</span>
+            <span class="xq-ach-pill">👑 Thắng AI Master</span>
+            <span class="xq-ach-pill">🚗 Không mất Xe</span>
+            <span class="xq-ach-pill">⚡ Chiếu bí ≤30 nước</span>
+            <span class="xq-ach-pill">🌐 100 trận Online</span>
+          </div>
+        </section>
+
+        <section class="xq-glass caro-reveal" style="--i:3;margin-top:1rem;display:none" data-xq-stats-hidden>
+          <h3>Thống kê</h3>
+          <div class="xq-win-ring" style="--pct:${winRate}"><span>${winRate}%</span></div>
+        </section>
       </div>`;
   }
 

@@ -735,30 +735,115 @@ export function mountCaroApp(ctx) {
   }
 
   function renderXiangqiHomeDash() {
+    const xqStats = xiangqi.loadStats();
+    const online = dashOnlineCount();
+    const liveMatches = Math.max(1, Math.floor(online / 9));
+    const lbSlice = (leaderboard || []).slice(0, 5);
+    const level = Math.max(1, Math.min(99, Math.floor((xqStats.elo - 880) / 28)));
+    const winRate = xqStats.played ? Math.round((xqStats.win / xqStats.played) * 100) : 0;
+    const xpPct = Math.min(100, (xqStats.played * 17 + xqStats.win * 9) % 100);
+
     return `
-      <div class="caro-dash caro-dash-play">
+      <div class="caro-dash caro-dash-play xq-shell">
         <aside class="caro-dash-nav" aria-label="WebChat Hub">
           <div class="caro-dash-logo">
             <span class="caro-dash-logo-ico" aria-hidden="true">帥</span>
             <span>Cờ Tướng<br><small class="caro-dash-logo-sub">Sảnh chơi</small></span>
           </div>
           <nav class="caro-dash-menu">${renderWebchatHubNav("board")}</nav>
+          <div class="caro-nav-join-card">
+            <div class="caro-avatar-stack">${renderAvatarStack(3)}</div>
+            <p><strong>${online}</strong> đang online</p>
+            <button type="button" class="caro-nav-join-btn" data-act="xq-ai" data-level="medium">Chơi ngay</button>
+          </div>
           <div class="caro-dash-nav-foot">
             <button type="button" class="caro-dash-link" data-act="board-portal">← Sảnh Board Game</button>
             <button type="button" class="caro-dash-link" data-act="back-hub">← Hub chính</button>
           </div>
         </aside>
+
         <div class="caro-dash-main">
           <header class="caro-dash-header">
             <div class="caro-breadcrumb">
               <button type="button" class="caro-crumb-link" data-act="board-portal">Board Game</button>
               <span>/ Cờ Tướng</span>
             </div>
+            <div class="caro-dash-header-user">
+              <button type="button" class="caro-dash-bell" aria-label="Thông báo" data-act="xq-spectate-soon">
+                🔔<span class="caro-bell-badge">2</span>
+              </button>
+              <div class="caro-dash-user-chip">
+                <span class="caro-dash-avatar">${escapeHtml(playerInitial())}</span>
+                <span class="caro-dash-user-meta">
+                  <strong>${escapeHtml(playerName())}</strong>
+                  <span class="caro-status-online">● Online · LV ${level}</span>
+                </span>
+              </div>
+            </div>
           </header>
           <div class="caro-dash-scroll caro-scroll-thin">
-            ${xiangqi.renderHome()}
+            ${xiangqi.renderHome({
+              online,
+              live: liveMatches,
+              topName: lbSlice[0]?.name || playerName() || "—",
+            })}
           </div>
         </div>
+
+        <aside class="caro-dash-rail caro-scroll-thin caro-reveal" style="--i:2">
+          <section class="caro-dash-card caro-card-vivid">
+            <div class="caro-dash-card-head"><h2>Người chơi online</h2></div>
+            <ul class="caro-online-list">${renderOnlinePlayersRail()
+              .replace(/Đang chơi Cờ Caro/g, "Đang chơi Cờ Tướng")
+              .replace(/Chơi với AI/g, "Cờ Tướng · AI")}</ul>
+          </section>
+
+          <section class="caro-dash-card caro-card-vivid">
+            <div class="caro-dash-card-head"><h2>Bảng xếp hạng</h2></div>
+            <ol class="caro-lb-list">
+              ${
+                lbSlice.length
+                  ? lbSlice
+                      .map(
+                        (row, i) => `<li class="caro-lb-row rank-${i + 1}">
+                          <span class="caro-lb-rank">${i + 1}</span>
+                          <span class="caro-lb-name">${escapeHtml(row.name || "—")}</span>
+                          <span class="caro-lb-elo">${row.elo ?? "—"}</span>
+                        </li>`
+                      )
+                      .join("")
+                  : `<li class="caro-empty">Chưa có dữ liệu — chơi AI để ghi ELO local.</li>`
+              }
+            </ol>
+            <button type="button" class="caro-btn ghost sm" data-act="xq-rank-soon" style="width:100%;margin-top:0.5rem">Chi tiết</button>
+          </section>
+
+          <section class="caro-dash-card caro-event-card">
+            <div class="caro-event-box">
+              <span class="caro-event-ico">帥</span>
+              <div>
+                <h2 style="margin:0 0 0.25rem">Sự kiện</h2>
+                <strong>Xiangqi Neon Cup</strong>
+                <p class="caro-muted" style="font-size:0.78rem;margin:0.35rem 0 0.65rem">Giải tuần · spectator &amp; reaction</p>
+                <button type="button" class="caro-btn sm primary glow-cyan" data-act="xq-spectate-soon">Theo dõi</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="caro-dash-profile card-glow caro-profile-glow">
+            <div class="caro-dash-avatar lg">${escapeHtml(playerInitial())}</div>
+            <h3>${escapeHtml(playerName())}</h3>
+            <p class="caro-muted">Level ${level} · ELO ${xqStats.elo}</p>
+            <div class="xq-win-ring" style="--pct:${winRate}"><span>${winRate}%</span></div>
+            <div class="caro-xp"><span style="width:${xpPct}%"></span></div>
+            <div class="caro-stat-grid">
+              <div><span>Win rate</span><strong>${winRate}%</strong></div>
+              <div><span>Streak</span><strong>${xqStats.streak}</strong></div>
+              <div><span>Thắng</span><strong>${xqStats.win}</strong></div>
+              <div><span>Thua</span><strong>${xqStats.loss}</strong></div>
+            </div>
+          </section>
+        </aside>
       </div>`;
   }
 
