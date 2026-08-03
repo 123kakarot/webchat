@@ -64,8 +64,8 @@ export function pickAiMove(board, side, level = "medium") {
 }
 
 export function aiThinkDelay(level) {
-  if (level === "easy") return 280;
-  if (level === "medium") return 420;
-  if (level === "hard") return 650;
-  return 900;
+  if (level === "easy") return 160;
+  if (level === "medium") return 220;
+  if (level === "hard") return 320;
+  return 420;
 }

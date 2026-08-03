@@ -293,19 +293,19 @@ export function gameResult(board, sideToMove) {
 
 export function pieceLabel(p) {
   const map = {
-    K: "帅",
+    K: "帥",
     A: "仕",
     B: "相",
-    N: "马",
-    R: "车",
+    N: "傌",
+    R: "俥",
     C: "炮",
     P: "兵",
-    k: "将",
+    k: "將",
     a: "士",
     b: "象",
-    n: "马",
-    r: "车",
-    c: "炮",
+    n: "馬",
+    r: "車",
+    c: "砲",
     p: "卒",
   };
   return map[p] || p;

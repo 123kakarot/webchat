@@ -138,29 +138,41 @@ export function createXiangqiModule(deps) {
     }
     match.checkSide = isInCheck(match.board, match.turn) ? match.turn : null;
     if (match.mode === "ai" && match.turn !== match.meSide && match.status === "playing") {
+      aiBusy = true;
       void runAiTurn();
     }
   }
 
   async function runAiTurn() {
-    if (!match || aiBusy) return;
-    if (match.mode !== "ai" || match.status !== "playing") return;
-    if (match.turn === match.meSide) return;
+    if (!match) return;
+    if (match.mode !== "ai" || match.status !== "playing" || match.turn === match.meSide) {
+      aiBusy = false;
+      return;
+    }
 
     aiBusy = true;
-    notifyUi();
     const thinkingMatch = match;
-    const level = thinkingMatch.aiLevel;
+    const level = thinkingMatch.aiLevel || "medium";
+    const side = thinkingMatch.turn;
+
     try {
       await new Promise((r) => setTimeout(r, aiThinkDelay(level)));
-      if (match !== thinkingMatch || match.status !== "playing") return;
-      if (match.turn === match.meSide) return;
+      await new Promise((r) => requestAnimationFrame(() => r()));
 
-      const mv = pickAiMove(match.board, match.turn, level);
-      if (mv) {
-        commitMove(mv.fromR, mv.fromC, mv.toR, mv.toC);
-      } else {
-        const res = gameResult(match.board, match.turn);
+      if (match !== thinkingMatch || match.status !== "playing" || match.turn !== side) return;
+
+      let mv = null;
+      try {
+        mv = pickAiMove(match.board, side, level);
+      } catch (err) {
+        console.error("pickAiMove", err);
+        mv = allLegalMoves(match.board, side)[0] || null;
+      }
+
+      aiBusy = false;
+      if (mv) commitMove(mv.fromR, mv.fromC, mv.toR, mv.toC);
+      else {
+        const res = gameResult(match.board, side);
         if (res) finishGame(res);
       }
     } catch (err) {

@@ -742,6 +742,33 @@ export function mountCaroApp(ctx) {
       </div>`;
   }
 
+  function renderXiangqiPlayDash() {
+    if (!xiangqi.getMatch()) {
+      return renderXiangqiHomeDash();
+    }
+    return `
+      <div class="caro-dash caro-dash-play xq-shell xq-play-dash">
+        <aside class="caro-dash-nav" aria-label="WebChat Hub">
+          <div class="caro-dash-logo">
+            <span class="caro-dash-logo-ico" aria-hidden="true">帥</span>
+            <span>Cờ Tướng<br><small class="caro-dash-logo-sub">Đang chơi</small></span>
+          </div>
+          <nav class="caro-dash-menu">${renderWebchatHubNav("board")}</nav>
+          <div class="caro-nav-join-card xq-tourney-card">
+            <div class="xq-trophy" aria-hidden="true">🏆</div>
+            <p><strong>Giải Cờ Tướng 2026</strong></p>
+            <p class="caro-muted" style="font-size:0.75rem;margin:0.25rem 0 0.55rem">Mùa giải Neon · spectator &amp; ELO</p>
+            <button type="button" class="caro-nav-join-btn" data-act="xq-spectate-soon">Tham gia ngay</button>
+          </div>
+          <div class="caro-dash-nav-foot">
+            <button type="button" class="caro-dash-link" data-act="xq-home">← Sảnh Cờ Tướng</button>
+            <button type="button" class="caro-dash-link" data-act="board-portal">← Board Game</button>
+          </div>
+        </aside>
+        <div class="xq-play-dash-main">${xiangqi.renderPlay()}</div>
+      </div>`;
+  }
+
   function renderXiangqiHomeDash() {
     const xqStats = xiangqi.loadStats();
     const online = dashOnlineCount();
@@ -1704,7 +1731,7 @@ export function mountCaroApp(ctx) {
       if (!xiangqi.getMatch()) {
         view = "xiangqi-home";
         body = renderXiangqiHomeDash();
-      } else body = xiangqi.renderPlay();
+      } else body = renderXiangqiPlayDash();
     }
 
     const inCaro = !["board-hub", "game-soon", "xiangqi-home", "xiangqi-play"].includes(view);

@@ -479,11 +479,29 @@
 }
 
 /* —— Play arena (cinematic wood board) —— */
-.xq-play-arena {
-  position: relative;
-  min-height: 100%;
-  padding: 0.75rem 1rem 1.25rem;
-  color: #e8f4ff;
+.xq-play-dash {
+  --xq-play-nav: 200px;
+}
+
+.xq-play-dash-main {
+  min-width: 0;
+  grid-column: 2 / -1;
+  overflow: auto;
+}
+
+.xq-play-dash .xq-play-arena {
+  padding: 0.5rem 0.75rem 1rem;
+}
+
+.xq-tourney-card {
+  background: linear-gradient(145deg, rgba(124, 58, 237, 0.45), rgba(37, 99, 235, 0.35)) !important;
+  border-color: rgba(167, 139, 250, 0.45) !important;
+}
+
+.xq-trophy {
+  font-size: 1.6rem;
+  filter: drop-shadow(0 0 12px rgba(255, 209, 102, 0.5));
+  margin-bottom: 0.25rem;
 }
 
 .xq-play-ambient {
@@ -491,11 +509,21 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 15% 10%, rgba(59, 130, 246, 0.28), transparent 42%),
-    radial-gradient(ellipse at 85% 20%, rgba(168, 85, 247, 0.22), transparent 40%),
-    radial-gradient(ellipse at 50% 100%, rgba(255, 138, 0, 0.1), transparent 45%),
-    linear-gradient(180deg, #07111f 0%, #050a16 100%);
+    radial-gradient(ellipse at 12% 8%, rgba(59, 130, 246, 0.42), transparent 42%),
+    radial-gradient(ellipse at 88% 18%, rgba(168, 85, 247, 0.38), transparent 42%),
+    radial-gradient(ellipse at 50% 100%, rgba(255, 120, 40, 0.16), transparent 48%),
+    linear-gradient(180deg, #060d1c 0%, #040812 100%);
   z-index: 0;
+}
+
+.xq-glass-card {
+  border-radius: 16px;
+  border: 1px solid rgba(80, 150, 255, 0.4);
+  background: linear-gradient(160deg, rgba(18, 36, 72, 0.92), rgba(8, 16, 36, 0.95));
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.38), 0 0 24px rgba(37, 99, 235, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  padding: 0.85rem 0.95rem;
+  margin-bottom: 0.7rem;
+  backdrop-filter: blur(12px);
 }
 
 .xq-play-arena > *:not(.xq-play-ambient):not(.xq-checkmate-overlay) {
@@ -577,16 +605,6 @@
     grid-template-columns: 220px minmax(0, 1fr) 260px;
     align-items: start;
   }
-}
-
-.xq-glass-card {
-  border-radius: 16px;
-  border: 1px solid rgba(80, 140, 255, 0.28);
-  background: linear-gradient(160deg, rgba(16, 28, 55, 0.88), rgba(8, 14, 30, 0.92));
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  padding: 0.85rem 0.95rem;
-  margin-bottom: 0.7rem;
-  backdrop-filter: blur(10px);
 }
 
 .xq-glass-card h3 {
@@ -799,16 +817,16 @@
 
 .xq-board-wrap.wood {
   position: relative;
-  padding: 1.05rem 1.15rem;
-  border-radius: 20px;
+  padding: 1.15rem 1.25rem 1.2rem;
+  border-radius: 22px;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.12), transparent 40%),
-    linear-gradient(160deg, #3d2814 0%, #2a1a0c 100%);
-  border: 1px solid rgba(255, 200, 120, 0.25);
+    linear-gradient(145deg, rgba(255, 210, 140, 0.14), transparent 42%),
+    linear-gradient(165deg, #5a3a1c 0%, #3d2610 45%, #2a180a 100%);
+  border: 1px solid rgba(255, 180, 90, 0.35);
   box-shadow:
-    0 24px 50px rgba(0, 0, 0, 0.5),
-    0 0 40px rgba(59, 130, 246, 0.15),
-    inset 0 1px 0 rgba(255, 230, 180, 0.15);
+    0 28px 60px rgba(0, 0, 0, 0.55),
+    0 0 50px rgba(59, 130, 246, 0.22),
+    inset 0 1px 0 rgba(255, 220, 160, 0.2);
 }
 
 .xq-board {
@@ -819,57 +837,128 @@
   width: min(92vw, 460px);
   margin: 0 auto;
   position: relative;
-  border-radius: 10px;
-  border: 2px solid #6b4423;
-  background-color: #e8c48a;
+  border-radius: 12px;
+  border: 3px solid #6b3f18;
+  background-color: #c49a5c;
   background-image:
     repeating-linear-gradient(
-      92deg,
+      88deg,
       transparent,
-      transparent 3px,
-      rgba(120, 70, 30, 0.04) 3px,
-      rgba(120, 70, 30, 0.04) 4px
+      transparent 2px,
+      rgba(80, 40, 10, 0.07) 2px,
+      rgba(80, 40, 10, 0.07) 3px
     ),
     repeating-linear-gradient(
       0deg,
       transparent,
-      transparent 5px,
-      rgba(90, 50, 20, 0.03) 5px,
-      rgba(90, 50, 20, 0.03) 6px
+      transparent 4px,
+      rgba(60, 30, 8, 0.05) 4px,
+      rgba(60, 30, 8, 0.05) 5px
     ),
-    linear-gradient(#5c3a1e 1.5px, transparent 1.5px),
-    linear-gradient(90deg, #5c3a1e 1.5px, transparent 1.5px);
+    radial-gradient(ellipse at 50% 50%, rgba(255, 220, 150, 0.2), transparent 65%),
+    linear-gradient(#4a2e12 1.8px, transparent 1.8px),
+    linear-gradient(90deg, #4a2e12 1.8px, transparent 1.8px);
   background-size:
+    auto,
     auto,
     auto,
     100% calc(100% / 9),
     calc(100% / 8) 100%;
-  background-position: 0 0, 0 0, 0 0, 0 0;
-  box-shadow: inset 0 0 30px rgba(90, 50, 20, 0.25);
+  box-shadow:
+    inset 0 0 40px rgba(60, 30, 8, 0.35),
+    inset 0 0 0 1px rgba(255, 210, 140, 0.15);
+}
+
+.xq-board::before {
+  content: "";
+  position: absolute;
+  left: calc(100% / 8 * 3);
+  top: 0;
+  width: calc(100% / 8 * 2);
+  height: calc(100% / 9 * 2);
+  background:
+    linear-gradient(to bottom right, transparent calc(50% - 0.9px), #4a2e12 calc(50% - 0.9px), #4a2e12 calc(50% + 0.9px), transparent calc(50% + 0.9px)),
+    linear-gradient(to bottom left, transparent calc(50% - 0.9px), #4a2e12 calc(50% - 0.9px), #4a2e12 calc(50% + 0.9px), transparent calc(50% + 0.9px));
+  pointer-events: none;
+  opacity: 0.9;
 }
 
 .xq-board::after {
-  content: "楚 河 · 漢 界";
+  content: "楚 河　　漢 界";
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  font-size: clamp(0.72rem, 2.5vw, 0.95rem);
-  letter-spacing: 0.32em;
-  color: rgba(90, 45, 15, 0.38);
-  font-weight: 700;
+  font-family: "Ma Shan Zheng", "Noto Serif SC", serif;
+  font-size: clamp(0.95rem, 3vw, 1.25rem);
+  letter-spacing: 0.2em;
+  color: rgba(70, 35, 10, 0.45);
+  font-weight: 400;
   pointer-events: none;
+  text-shadow: 0 1px 0 rgba(255, 230, 180, 0.25);
+}
+
+.xq-piece {
+  position: absolute;
+  inset: 6%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 400;
+  font-size: clamp(0.95rem, 3.6vw, 1.35rem);
+  font-family: "Ma Shan Zheng", "Noto Serif SC", "KaiTi", serif;
+  line-height: 1;
+  transition: transform 0.12s, box-shadow 0.12s;
+  pointer-events: none;
+  user-select: none;
+  background:
+    radial-gradient(circle at 30% 26%, #fff8e8 0%, #f0d6a8 38%, #d4a86a 72%, #b07a3e 100%);
+  border: 2.5px solid #8b5a2b;
+  box-shadow:
+    0 2px 0 #6b4423,
+    0 5px 10px rgba(0, 0, 0, 0.4),
+    inset 0 2px 3px rgba(255, 255, 255, 0.55),
+    inset 0 -2px 4px rgba(90, 50, 20, 0.2);
+}
+
+.xq-cell:hover .xq-piece {
+  transform: scale(1.1) translateY(-2px);
+}
+
+.xq-piece.red {
+  color: #c01010;
+  border-color: #a01818;
+  text-shadow: 0 1px 0 rgba(255, 240, 200, 0.5);
+  box-shadow:
+    0 2px 0 #7a2010,
+    0 5px 12px rgba(160, 30, 20, 0.4),
+    0 0 12px rgba(255, 60, 30, 0.25),
+    inset 0 2px 3px rgba(255, 255, 255, 0.55),
+    inset 0 -2px 4px rgba(120, 30, 10, 0.15);
+}
+
+.xq-piece.black {
+  color: #141414;
+  border-color: #2a2a2a;
+  text-shadow: 0 1px 0 rgba(255, 240, 210, 0.35);
+  box-shadow:
+    0 2px 0 #3a3028,
+    0 5px 12px rgba(0, 0, 0, 0.45),
+    0 0 10px rgba(40, 100, 220, 0.18),
+    inset 0 2px 3px rgba(255, 255, 255, 0.5),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.12);
 }
 
 .xq-turn-chip {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  padding: 0.35rem 0.85rem;
+  padding: 0.4rem 1rem;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.35), rgba(168, 85, 247, 0.3));
-  border: 1px solid rgba(120, 180, 255, 0.4);
-  color: #e8f4ff;
-  box-shadow: 0 0 18px rgba(59, 130, 246, 0.25);
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.55), rgba(124, 58, 237, 0.45));
+  border: 1px solid rgba(120, 180, 255, 0.55);
+  color: #fff;
+  box-shadow: 0 0 22px rgba(59, 130, 246, 0.4);
 }
 
 .xq-cell {
@@ -885,16 +974,16 @@
   position: absolute;
   inset: 36%;
   border-radius: 50%;
-  background: #2563eb;
+  background: #3b82f6;
   opacity: 0;
   transform: scale(0.4);
   transition: opacity 0.12s, transform 0.12s;
   pointer-events: none;
-  box-shadow: 0 0 10px rgba(37, 99, 235, 0.7);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.85);
 }
 
 .xq-cell.is-target .xq-dot-hint {
-  opacity: 0.9;
+  opacity: 0.95;
   transform: scale(1);
 }
 
@@ -905,59 +994,11 @@
 .xq-cell.is-selected::before {
   content: "";
   position: absolute;
-  inset: 6%;
-  border: 2.5px solid #2563eb;
+  inset: 5%;
+  border: 2.5px solid #3b82f6;
   border-radius: 50%;
-  box-shadow: 0 0 14px rgba(37, 99, 235, 0.55);
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.65);
   pointer-events: none;
-}
-
-.xq-piece {
-  position: absolute;
-  inset: 8%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  font-weight: 800;
-  font-size: clamp(0.7rem, 3.1vw, 1.05rem);
-  font-family: "Noto Serif SC", "Songti SC", "SimSun", serif;
-  transition: transform 0.12s, box-shadow 0.12s;
-  pointer-events: none;
-  user-select: none;
-  background:
-    radial-gradient(circle at 32% 28%, #fff6e0 0%, #f0d5a0 42%, #d4a86a 78%, #b8894a 100%);
-  border: 2px solid rgba(90, 50, 20, 0.55);
-  box-shadow:
-    0 3px 0 #8b5a2b,
-    0 6px 12px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
-}
-
-.xq-cell:hover .xq-piece {
-  transform: scale(1.08) translateY(-1px);
-}
-
-.xq-piece.red {
-  color: #c41e1e;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
-  border-color: #a33;
-  box-shadow:
-    0 3px 0 #8b3a1a,
-    0 6px 14px rgba(180, 40, 20, 0.35),
-    0 0 10px rgba(255, 80, 40, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
-}
-
-.xq-piece.black {
-  color: #1a1a1a;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
-  border-color: #444;
-  box-shadow:
-    0 3px 0 #5a4a3a,
-    0 6px 14px rgba(0, 0, 0, 0.4),
-    0 0 10px rgba(40, 100, 200, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .xq-mode-tabs {

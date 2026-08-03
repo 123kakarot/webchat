@@ -70,7 +70,7 @@ import {
   getUserPublicId,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "106");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "107");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
