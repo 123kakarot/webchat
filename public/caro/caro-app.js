@@ -13,6 +13,8 @@ const STORAGE_STATS = "caro-local-stats";
 const STORAGE_SOUND = "caro-sound";
 const STORAGE_THEME = "caro-board-theme";
 
+const STORAGE_UI_SESSION = "caro-ui-session";
+
 /** @type {{ id: string, title: string, sub: string, status: "live"|"soon", icon: string, art: string }[]} */
 const BOARD_GAMES = [
   { id: "caro", title: "Cờ Caro", sub: "AI · 2 người · online realtime", status: "live", icon: "⊞", art: "/caro/games/caro.png" },
@@ -174,6 +176,108 @@ export function mountCaroApp(ctx) {
     return String(ctx.getPlayerName?.() || "").trim() || "Bạn";
   }
 
+  function loadUiSession() {
+    try {
+      return JSON.parse(sessionStorage.getItem(STORAGE_UI_SESSION) || "null");
+    } catch {
+      return null;
+    }
+  }
+
+  function saveUiSession() {
+    try {
+      sessionStorage.setItem(
+        STORAGE_UI_SESSION,
+        JSON.stringify({
+          view,
+          roomCode: onlineRoom?.code || null,
+          quickWaiting,
+          gameSoonId,
+          local:
+            localMatch && view === "local-game"
+              ? {
+                  board: localMatch.board,
+                  moves: localMatch.moves,
+                  turn: localMatch.turn,
+                  status: localMatch.status,
+                  size: localMatch.size,
+                  mode: localMatch.mode,
+                  turnMs: localMatch.turnMs,
+                  turnDeadline: localMatch.turnDeadline,
+                  modeKind: localMatch.modeKind,
+                  aiLevel: localMatch.aiLevel,
+                  meStone: localMatch.meStone,
+                  players: localMatch.players,
+                  winnerSide: localMatch.winnerSide,
+                  endReason: localMatch.endReason,
+                }
+              : null,
+          at: Date.now(),
+        })
+      );
+    } catch (_) {}
+  }
+
+  async function restoreSession() {
+    const s = loadUiSession();
+    if (!s) return false;
+
+    if (s.local?.board && s.view === "local-game") {
+      localMatch = { ...s.local };
+      if (localMatch.status === "playing") {
+        localMatch.turnDeadline = Date.now() + (localMatch.turnMs || 60000);
+      }
+      view = "local-game";
+      render();
+      return true;
+    }
+
+    if (!ctx.socket?.connected) return false;
+    if (!(await requireLogin())) return false;
+
+    if (s.roomCode) {
+      const res = await sockEmit("caro:join_room", {
+        code: s.roomCode,
+        playerName: playerName(),
+      });
+      if (res?.ok && res.room) {
+        onlineRoom = res.room;
+        quickWaiting = false;
+        view =
+          res.room.status === "playing" ||
+          res.room.status === "finished" ||
+          res.room.status === "draw"
+            ? "online-game"
+            : "lobby";
+        render();
+        return true;
+      }
+    }
+
+    if (["lobby", "online-game", "create", "join", "caro-home"].includes(s.view)) {
+      const res = await sockEmit("caro:resume", { playerName: playerName() });
+      if (res?.ok && res.room) {
+        onlineRoom = res.room;
+        quickWaiting = false;
+        view =
+          res.room.status === "playing" ||
+          res.room.status === "finished" ||
+          res.room.status === "draw"
+            ? "online-game"
+            : "lobby";
+        render();
+        return true;
+      }
+    }
+
+    if (s.view && !["board-hub", "game-soon"].includes(s.view)) {
+      view = s.view;
+      render();
+      return true;
+    }
+    return false;
+  }
+
   function stopTimer() {
     if (timerId) clearInterval(timerId);
     timerId = null;
@@ -240,6 +344,14 @@ export function mountCaroApp(ctx) {
       view = "online-game";
       toast("Đã ghép trận!");
       render();
+    });
+    s.on("connect", () => {
+      const sess = loadUiSession();
+      if (!sess?.roomCode && !["lobby", "online-game"].includes(view)) return;
+      if (onlineRoom?.code) return;
+      restoreSession().then((ok) => {
+        if (ok) toast("Đã vào lại phòng / trận.");
+      });
     });
   }
 
@@ -1414,6 +1526,7 @@ export function mountCaroApp(ctx) {
         quickWaiting ? '<div class="caro-dash-toast-bar">Đang ghép Quick Match…</div>' : ""
       }</div>`;
       startTimerUi();
+      saveUiSession();
       return;
     }
 
@@ -1435,6 +1548,7 @@ export function mountCaroApp(ctx) {
       <div class="caro-body caro-scroll-thin"><div class="caro-view">${body}</div></div>
     `;
     startTimerUi();
+    saveUiSession();
   }
 
   async function refreshMeta() {
@@ -1869,20 +1983,27 @@ export function mountCaroApp(ctx) {
   });
 
   bindSocket();
-  view = "board-hub";
-  render();
 
   return {
     open() {
       root.hidden = false;
       bindSocket();
-      view = "board-hub";
-      render();
-      refreshMeta().then(() => render());
+      restoreSession()
+        .catch(() => false)
+        .then((restored) => {
+          if (!restored) {
+            const s = loadUiSession();
+            if (s?.view && !["board-hub"].includes(s.view)) view = s.view;
+            else view = "board-hub";
+          }
+          return refreshMeta();
+        })
+        .then(() => render());
     },
     close() {
       stopTimer();
       stopReplayPlay();
+      saveUiSession();
       root.hidden = true;
     },
   };

@@ -7410,7 +7410,8 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "99";
+      const CLIENT_BUILD = "100";
+      const STORAGE_BOARD_OPEN = "webchat-board-open";
       const BASE_DOC_TITLE = "WebChat Hub";
 
       function applyUiTheme(mode) {
@@ -7716,6 +7717,9 @@
           },
           socket,
           onBackHub: () => {
+            try {
+              sessionStorage.removeItem(STORAGE_BOARD_OPEN);
+            } catch (_) {}
             caroApp?.close?.();
             if (boardShell) boardShell.hidden = true;
             showHub();
@@ -7729,7 +7733,24 @@
         return caroApp;
       }
 
+      function isBoardSessionOpen() {
+        try {
+          return sessionStorage.getItem(STORAGE_BOARD_OPEN) === "1";
+        } catch {
+          return false;
+        }
+      }
+
+      async function restoreBoardIfNeeded() {
+        if (!isBoardSessionOpen() || !myName) return;
+        if (boardShell && !boardShell.hidden) return;
+        await openBoardApp();
+      }
+
       async function openBoardApp() {
+        try {
+          sessionStorage.setItem(STORAGE_BOARD_OPEN, "1");
+        } catch (_) {}
         hubPreferStay = false;
         if (moduleStub) moduleStub.hidden = true;
         gate.style.display = "none";
@@ -10160,6 +10181,7 @@
       function onSessionRestored() {
         sessionReady = true;
         syncMyRooms();
+        restoreBoardIfNeeded().catch((err) => console.error("restoreBoardIfNeeded", err));
       }
 
       function rejoinActiveRoom() {
@@ -10189,6 +10211,13 @@
           syncFriends();
           syncNotifications();
           syncProfileAvatarToServer();
+          if (isBoardSessionOpen()) {
+            pendingOpenRecentRoom = false;
+            ensureRoomCodesSeed();
+            syncMyRooms();
+            openBoardApp().catch((err) => console.error("openBoardApp", err));
+            return;
+          }
           if (hubPreferStay && hubEl && !hubEl.hidden) {
             pendingOpenRecentRoom = false;
             ensureRoomCodesSeed();

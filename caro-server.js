@@ -281,7 +281,9 @@ export function attachCaroServer(io) {
 
       leaveSocket(io, socket);
 
-      const asSpectator = Boolean(raw?.spectate) || room.players.length >= 2;
+      const existing = room.players.find((p) => p.name === name);
+      const slotFull = room.players.filter((p) => p.socketId || p.name).length >= 2;
+      const asSpectator = Boolean(raw?.spectate) || (!existing && slotFull);
       if (asSpectator) {
         if (!room.allowSpectators) {
           return typeof ack === "function" && ack({ ok: false, reason: "Phòng không cho xem." });
@@ -289,15 +291,37 @@ export function attachCaroServer(io) {
         room.spectators = room.spectators.filter((s) => s.name !== name);
         room.spectators.push({ name, socketId: socket.id });
       } else {
-        const existing = room.players.find((p) => p.name === name);
-        if (existing) existing.socketId = socket.id;
-        else room.players.push({ name, stone: null, ready: false, socketId: socket.id });
+        if (existing) {
+          existing.socketId = socket.id;
+        } else room.players.push({ name, stone: null, ready: false, socketId: socket.id });
       }
       socketRoom.set(socket.id, room.id);
       socket.join(`caro:${room.id}`);
       ensureRating(name);
       if (typeof ack === "function") ack({ ok: true, room: fullState(room) });
       emitRoom(io, room);
+    });
+
+    socket.on("caro:resume", (raw, ack) => {
+      const name = String(socket.data?.name || raw?.playerName || "").trim().slice(0, 32);
+      if (!name) return typeof ack === "function" && ack({ ok: false, reason: "Cần đăng nhập." });
+      leaveSocket(io, socket);
+      const active = [...rooms.values()]
+        .filter((r) => r.status !== "finished" && r.status !== "draw")
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      for (const room of active) {
+        const p = room.players.find((x) => x.name === name);
+        if (!p) continue;
+        p.socketId = socket.id;
+        room.spectators = room.spectators.filter((s) => s.name !== name);
+        socketRoom.set(socket.id, room.id);
+        socket.join(`caro:${room.id}`);
+        ensureRating(name);
+        if (typeof ack === "function") ack({ ok: true, room: fullState(room) });
+        emitRoom(io, room);
+        return;
+      }
+      if (typeof ack === "function") ack({ ok: false, reason: "Không còn phòng đang mở." });
     });
 
     socket.on("caro:leave", () => leaveSocket(io, socket));

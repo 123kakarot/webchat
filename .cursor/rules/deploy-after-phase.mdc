@@ -1,21 +1,25 @@
 ---
-description: Sau mỗi giai đoạn roadmap — commit và push Render để user test
+description: Mỗi lần update code — bắt buộc commit + push Render (không chờ user nhắc)
 alwaysApply: true
 ---
 
-# Deploy sau mỗi giai đoạn
+# Mỗi update → Render (bắt buộc)
 
-Khi hoàn thành một **giai đoạn** (phase) roadmap hoặc user yêu cầu triển khai xong một mốc tính năng:
+**Nhớ:** User test trên https://webchat-56en.onrender.com/ — mọi sửa client/server chỉ có hiệu lực sau **push `origin main`** (repo `123kakarot/webchat`, Render auto-deploy).
 
-1. Chạy kiểm tra nhanh nếu có (`npm run test:flow` khi đụng server/socket).
-2. **Commit** thay đổi liên quan (không commit file secrets; không amend trừ khi user yêu cầu).
-3. **Push `origin main`** để Render auto-deploy repo `123kakarot/webchat` → https://webchat-56en.onrender.com/
-4. Báo user: chờ deploy Live trên Render Dashboard, sau đó **Ctrl+F5**; nhắc bump `CLIENT_BUILD` / `MIN_CLIENT_BUILD` nếu có đổi build.
+## Khi nào làm (cuối task, trước khi báo xong)
 
-Push lên `main` = deploy production.
+Sau **mỗi lần update** đã implement xong (bugfix, UI, Caro, socket, `server.js`, `index.html`, …):
 
-**Tự động (mặc định):** Sau khi **hoàn thành một lần update** có thay đổi code triển khai được (UI, client, server, Docker…) — **commit + push `origin main` ngay**, không cần user nhắn “đẩy lên”, trừ khi user nói rõ “đừng push” / “chưa deploy”.
+1. Chạy `npm run test:flow` nếu đụng server/socket (bỏ qua nếu server local không chạy).
+2. **Commit** thay đổi liên quan (không commit secrets; không amend trừ khi user yêu cầu).
+3. **Push `origin main` ngay** — **không hỏi** “bạn có muốn push không?” trừ khi user nói **“đừng push”** / **“chưa deploy”** / **“giữ local”**.
+4. Báo user: chờ Live trên Render Dashboard → **Ctrl+F5**; nếu đổi client thì đã bump **`CLIENT_BUILD`** + **`MIN_CLIENT_BUILD`** + **`flow-test.mjs`**.
 
-Chỉ **không** push khi: chưa có diff commit được, user yêu cầu giữ local, hoặc thay đổi chỉ thảo luận/review chưa implement.
+## Không push khi
 
-Không push nếu chưa có thay đổi commit được. Dùng author từ `git log -1` nếu commit fail vì thiếu identity (không sửa `git config` global).
+- Chưa có thay đổi commit được.
+- Chỉ trả lời câu hỏi / review, chưa sửa code deploy được.
+- User yêu cầu giữ local hoặc chưa deploy.
+
+Commit fail thiếu identity: dùng author từ `git log -1` (không sửa `git config` global).
