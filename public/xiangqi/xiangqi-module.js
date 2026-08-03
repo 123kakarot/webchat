@@ -51,26 +51,39 @@ export function createXiangqiModule(deps) {
   }
 
   function startAi(level) {
+    stopReplay();
+    aiBusy = false;
     match = createMatchState({ mode: "ai", aiLevel: level, meSide: SIDE_RED });
     selected = null;
     targets = [];
     chatLog = [];
+    replayIdx = -1;
     return match;
   }
 
   function startLocalPvp() {
+    stopReplay();
+    aiBusy = false;
     match = createMatchState({ mode: "local", meSide: SIDE_RED });
     selected = null;
     targets = [];
     chatLog = [];
+    replayIdx = -1;
     return match;
   }
 
   function clearMatch() {
+    stopReplay();
+    aiBusy = false;
     match = null;
     selected = null;
     targets = [];
-    stopReplay();
+  }
+
+  function notifyUi() {
+    try {
+      deps.onUpdate?.();
+    } catch (_) {}
   }
 
   function stopReplay() {
@@ -125,18 +138,37 @@ export function createXiangqiModule(deps) {
     }
     match.checkSide = isInCheck(match.board, match.turn) ? match.turn : null;
     if (match.mode === "ai" && match.turn !== match.meSide && match.status === "playing") {
-      runAiTurn();
+      void runAiTurn();
     }
   }
 
   async function runAiTurn() {
     if (!match || aiBusy) return;
+    if (match.mode !== "ai" || match.status !== "playing") return;
+    if (match.turn === match.meSide) return;
+
     aiBusy = true;
-    await new Promise((r) => setTimeout(r, aiThinkDelay(match.aiLevel)));
-    const mv = pickAiMove(match.board, match.turn, match.aiLevel);
-    aiBusy = false;
-    if (!mv || match.status !== "playing") return;
-    commitMove(mv.fromR, mv.fromC, mv.toR, mv.toC);
+    notifyUi();
+    const thinkingMatch = match;
+    const level = thinkingMatch.aiLevel;
+    try {
+      await new Promise((r) => setTimeout(r, aiThinkDelay(level)));
+      if (match !== thinkingMatch || match.status !== "playing") return;
+      if (match.turn === match.meSide) return;
+
+      const mv = pickAiMove(match.board, match.turn, level);
+      if (mv) {
+        commitMove(mv.fromR, mv.fromC, mv.toR, mv.toC);
+      } else {
+        const res = gameResult(match.board, match.turn);
+        if (res) finishGame(res);
+      }
+    } catch (err) {
+      console.error("xiangqi AI", err);
+    } finally {
+      aiBusy = false;
+      notifyUi();
+    }
   }
 
   function commitMove(fromR, fromC, toR, toC) {

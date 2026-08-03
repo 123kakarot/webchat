@@ -124,6 +124,7 @@ export function mountCaroApp(ctx) {
     toast,
     beep,
     onReplayTick: () => render(),
+    onUpdate: () => render(),
   });
 
   function loadLocalHistory() {
