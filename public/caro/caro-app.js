@@ -448,6 +448,10 @@ export function mountCaroApp(ctx) {
         view = "caro-home";
       } else if (s.view === "xiangqi-play" && !xiangqi.getMatch?.()) {
         view = "xiangqi-home";
+      } else if (s.view === "sokoban-play" && !sokoban.getMatch?.()) {
+        view = "sokoban-home";
+      } else if (s.view === "pool-play" && !pool.getMatch?.()) {
+        view = "pool-home";
       } else {
         view = s.view;
       }
@@ -470,6 +474,10 @@ export function mountCaroApp(ctx) {
     if (s?.view === "xiangqi-play") {
       // Ván cờ tướng chưa persist — không khôi phục màn chơi trống
       view = "xiangqi-home";
+      return;
+    }
+    if (s?.view === "sokoban-play") {
+      view = "sokoban-home";
       return;
     }
     if (s?.view === "xiangqi-home") {
@@ -940,7 +948,15 @@ export function mountCaroApp(ctx) {
   }
 
   function renderSokobanHomeDash() {
-    return `<div class="sokoban-fullbleed">${sokoban.renderHome()}</div>`;
+    try {
+      return `<div class="sokoban-fullbleed">${sokoban.renderHome()}</div>`;
+    } catch (err) {
+      console.error("sokoban renderHome", err);
+      return `<div class="sokoban-fullbleed caro-dash" style="padding:1.5rem">
+        <p>Không tải được Sokoban — thử <strong>Ctrl+F5</strong> để cập nhật bản mới.</p>
+        <button type="button" class="caro-btn primary" data-act="board-portal">← Sảnh game</button>
+      </div>`;
+    }
   }
 
   function renderSokobanPlayDash() {
@@ -2008,6 +2024,11 @@ export function mountCaroApp(ctx) {
         view = "sokoban-home";
         body = renderSokobanHomeDash();
       } else body = renderSokobanPlayDash();
+    }
+
+    if (!body && String(view || "").startsWith("sokoban")) {
+      view = "sokoban-home";
+      body = renderSokobanHomeDash();
     }
 
     const inCaro = ![
