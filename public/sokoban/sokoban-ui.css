@@ -14,26 +14,38 @@
 }
 
 .sokoban-shell {
-  --sk-bg: #0a1628;
-  --sk-panel: rgba(12, 28, 52, 0.92);
-  --sk-border: rgba(72, 140, 255, 0.35);
-  --sk-gold: #f5c542;
-  --sk-text: #e8f0ff;
-  --sk-muted: #8aa4c8;
-  min-height: min(100vh, 100dvh);
-  background: radial-gradient(ellipse 120% 80% at 50% -20%, #1a3a6e 0%, var(--sk-bg) 55%);
+  --sk-bg: #050b14;
+  --sk-panel: rgba(10, 22, 42, 0.78);
+  --sk-glass: rgba(14, 32, 58, 0.55);
+  --sk-border: rgba(88, 150, 255, 0.38);
+  --sk-gold: #ffc940;
+  --sk-gold-d: #e6a015;
+  --sk-text: #eef4ff;
+  --sk-muted: #8fa8cc;
+  min-height: min(100%, 100dvh);
+  background:
+    radial-gradient(ellipse 90% 55% at 15% -5%, rgba(56, 120, 255, 0.22), transparent 50%),
+    radial-gradient(ellipse 70% 45% at 95% 10%, rgba(120, 80, 255, 0.12), transparent 45%),
+    linear-gradient(165deg, #0a1424 0%, #050b14 55%, #030810 100%);
   color: var(--sk-text);
-  font-family: system-ui, "Segoe UI", sans-serif;
+  font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+}
+
+.sk-glass {
+  background: var(--sk-glass) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.35);
 }
 
 .sokoban-layout {
   display: grid;
-  grid-template-columns: 220px 1fr 280px;
+  grid-template-columns: 232px 1fr 288px;
   grid-template-rows: auto 1fr auto;
-  gap: 12px;
-  max-width: 1400px;
+  gap: 14px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 12px 14px 16px;
+  padding: 14px 16px 18px;
   min-height: min(100%, 100dvh);
   width: 100%;
   box-sizing: border-box;
@@ -44,20 +56,33 @@
   grid-column: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 4px;
-  font-weight: 700;
-  font-size: 0.95rem;
+  gap: 12px;
+  padding: 6px 4px;
+}
+
+.sokoban-brand strong {
+  display: block;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+}
+
+.sokoban-brand small {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--sk-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .sokoban-brand-ico {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(145deg, #3d6bb3, #1e3a66);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #4a8cff, #1e3a8a);
   display: grid;
   place-items: center;
-  font-size: 1.2rem;
+  font-size: 1.35rem;
+  box-shadow: 0 4px 16px rgba(40, 100, 255, 0.35);
 }
 
 .sokoban-topbar {
@@ -67,32 +92,58 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 6px 12px;
-  border-radius: 14px;
+  padding: 10px 16px;
+  border-radius: 16px;
   border: 1px solid var(--sk-border);
-  background: var(--sk-panel);
+}
+
+.sk-top-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sk-coin {
+  font-size: 0.82rem;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 201, 64, 0.35);
+  background: rgba(255, 201, 64, 0.08);
+  color: var(--sk-gold);
+}
+
+.sk-btn-ghost {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--sk-text);
+  border-radius: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.82rem;
 }
 
 .sokoban-mode-tabs {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .sokoban-mode-tabs button {
   border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--sk-muted);
   border-radius: 999px;
-  padding: 6px 14px;
+  padding: 8px 16px;
   font-size: 0.82rem;
   cursor: pointer;
+  transition: 0.15s ease;
 }
 
 .sokoban-mode-tabs button.is-on {
-  border-color: var(--sk-gold);
-  color: var(--sk-gold);
-  background: rgba(245, 197, 66, 0.12);
+  border-color: rgba(100, 160, 255, 0.65);
+  color: #fff;
+  background: linear-gradient(180deg, rgba(60, 120, 255, 0.35), rgba(30, 70, 180, 0.2));
+  box-shadow: 0 0 20px rgba(60, 120, 255, 0.25);
 }
 
 .sokoban-nav {
@@ -101,10 +152,9 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 8px;
-  border-radius: 16px;
+  padding: 10px;
+  border-radius: 18px;
   border: 1px solid var(--sk-border);
-  background: var(--sk-panel);
 }
 
 .sokoban-nav button {
@@ -112,16 +162,61 @@
   border: none;
   background: transparent;
   color: var(--sk-muted);
-  padding: 10px 12px;
-  border-radius: 10px;
+  padding: 11px 12px;
+  border-radius: 12px;
   cursor: pointer;
+  font-size: 0.86rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sk-nav-ico {
+  width: 1.4rem;
+  text-align: center;
+  opacity: 0.9;
+}
+
+.sokoban-nav button.is-on {
+  background: linear-gradient(90deg, rgba(80, 140, 255, 0.28), rgba(80, 140, 255, 0.06));
+  color: #fff;
+  border: 1px solid rgba(100, 160, 255, 0.35);
+}
+
+.sokoban-nav button:hover:not(.is-on) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--sk-text);
+}
+
+.sokoban-profile {
+  margin-top: auto;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.sokoban-profile-av {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #3d6bb3, #1a3055);
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+}
+
+.sokoban-profile strong {
+  display: block;
   font-size: 0.88rem;
 }
 
-.sokoban-nav button.is-on,
-.sokoban-nav button:hover {
-  background: rgba(72, 140, 255, 0.15);
-  color: var(--sk-text);
+.sk-muted-sm {
+  font-size: 0.72rem;
+  color: var(--sk-muted);
 }
 
 .sokoban-main {
@@ -135,68 +230,138 @@
   grid-row: 2;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 }
 
 .sokoban-card {
-  border-radius: 14px;
+  border-radius: 16px;
   border: 1px solid var(--sk-border);
   background: var(--sk-panel);
-  padding: 12px 14px;
+  padding: 14px 16px;
 }
 
 .sokoban-card h4 {
-  margin: 0 0 8px;
-  font-size: 0.85rem;
+  margin: 0 0 10px;
+  font-size: 0.88rem;
   color: var(--sk-gold);
+  font-weight: 700;
 }
 
-.sokoban-pack-grid {
+.sk-checklist {
+  margin: 0;
+  padding-left: 1.1em;
+  font-size: 0.8rem;
+  color: var(--sk-muted);
+  line-height: 1.55;
+}
+
+.sk-leader-mini {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.78rem;
+  color: var(--sk-muted);
+}
+
+.sk-leader-mini li {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sk-leader-mini span {
+  color: var(--sk-gold);
+  margin-right: 6px;
+}
+
+.sk-ach-row {
   display: grid;
-  gap: 10px;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  align-items: center;
+  font-size: 0.78rem;
+  margin-bottom: 8px;
+  color: var(--sk-muted);
+}
+
+.sk-ach-row i {
+  grid-column: 1 / 3;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  display: block;
+  overflow: hidden;
+  position: relative;
+}
+
+.sk-ach-row i::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--w, 0%);
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  border-radius: inherit;
+}
+
+.sk-ach-row em {
+  font-style: normal;
+  color: var(--sk-text);
 }
 
 .sokoban-pack {
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 10px;
-  background: rgba(0, 0, 0, 0.2);
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.22);
 }
 
 .sokoban-pack h5 {
-  margin: 0 0 8px;
-  font-size: 0.9rem;
+  margin: 0 0 10px;
+  font-size: 0.92rem;
 }
 
 .sokoban-level-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 .sokoban-level-btn {
-  min-width: 44px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
+  min-width: 52px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(100, 160, 255, 0.25);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--sk-text);
   font-size: 0.78rem;
   cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.sokoban-level-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(60, 120, 255, 0.2);
+  border-color: rgba(100, 160, 255, 0.45);
+}
+
+.sk-lv-num {
+  display: block;
+  font-weight: 700;
+  font-size: 0.95rem;
 }
 
 .sokoban-level-btn .sk-stars {
   display: block;
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   color: var(--sk-gold);
   letter-spacing: 1px;
+  margin-top: 2px;
 }
 
 .sokoban-play-wrap {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   height: 100%;
 }
 
@@ -204,19 +369,49 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--sk-border);
 }
 
-.sokoban-stat {
-  font-size: 0.82rem;
+.sk-stat-pill {
+  flex: 1;
+  min-width: 72px;
+  text-align: center;
+  padding: 6px 10px;
+}
+
+.sk-stat-pill span {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--sk-muted);
 }
 
-.sokoban-stat strong {
-  color: var(--sk-text);
-  font-size: 1rem;
-  margin-left: 4px;
+.sk-stat-pill strong {
+  display: block;
+  font-size: 1.15rem;
+  margin-top: 2px;
+  color: #fff;
+}
+
+.sk-stat-stars strong {
+  color: var(--sk-gold);
+  font-size: 0.95rem;
+}
+
+.sk-play-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.sk-play-title em {
+  font-style: normal;
+  color: var(--sk-muted);
+  font-weight: 400;
 }
 
 .sokoban-board-scroller {
@@ -225,71 +420,40 @@
   align-items: center;
   justify-content: center;
   overflow: auto;
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid var(--sk-border);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(30, 50, 80, 0.5), transparent),
+    #060a12;
+  touch-action: none;
+  min-height: 280px;
+}
+
+.sokoban-arena-frame {
   padding: 8px;
   border-radius: 16px;
-  border: 1px solid var(--sk-border);
-  background: #060d18;
-  touch-action: none;
+  background: linear-gradient(145deg, rgba(80, 100, 130, 0.35), rgba(20, 28, 40, 0.8));
+  box-shadow: inset 0 0 0 2px rgba(120, 160, 220, 0.2), 0 12px 40px rgba(0, 0, 0, 0.45);
 }
 
-.sokoban-grid {
-  display: grid;
-  gap: 0;
-  line-height: 0;
-  user-select: none;
+.sokoban-board-canvas {
+  display: block;
+  border-radius: 10px;
+  image-rendering: auto;
 }
 
-.sk-cell {
-  width: 40px;
-  height: 40px;
-  position: relative;
-  image-rendering: pixelated;
+.sk-best-line {
+  font-size: 0.75rem;
+  color: var(--sk-muted);
+  margin: 0;
+  text-align: center;
 }
 
-.sk-wall {
-  background: linear-gradient(145deg, #6b4423 0%, #3d2410 100%);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
-}
-
-.sk-floor {
-  background: #2a3544;
-}
-
-.sk-goal {
-  background: #2a3544;
-}
-
-.sk-goal::after {
-  content: "";
-  position: absolute;
-  inset: 22%;
-  border: 2px dashed rgba(245, 197, 66, 0.75);
-  border-radius: 4px;
-}
-
-.sk-player,
-.sk-box {
-  position: absolute;
-  inset: 8%;
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.sk-player {
-  background: radial-gradient(circle at 35% 30%, #6ecbff, #1a6bb5);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
-  z-index: 2;
-}
-
-.sk-box {
-  background: linear-gradient(145deg, #c68642, #7a4518);
-  border-radius: 6px;
-  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
-  z-index: 1;
-}
-
-.sk-box.on-goal {
-  outline: 2px solid var(--sk-gold);
+.sk-star-line {
+  font-size: 0.82rem;
+  color: var(--sk-muted);
+  margin: 4px 0;
 }
 
 .sokoban-controls {
@@ -297,30 +461,47 @@
   grid-row: 3;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 14px;
+  padding: 12px 16px;
+  border-radius: 16px;
   border: 1px solid var(--sk-border);
-  background: var(--sk-panel);
 }
 
-.sokoban-controls button {
-  border: 1px solid rgba(255, 255, 255, 0.15);
+.sk-ctrl-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sk-tool-btn {
+  border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.06);
   color: var(--sk-text);
-  border-radius: 10px;
-  padding: 8px 14px;
+  border-radius: 12px;
+  padding: 10px 14px;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
 }
 
-.sokoban-controls button.sk-primary {
-  background: linear-gradient(180deg, #ffd86b, #e6a820);
-  color: #1a1200;
-  border-color: #c99200;
-  font-weight: 700;
+.sk-tool-btn kbd {
+  font-size: 0.68rem;
+  opacity: 0.65;
+  margin-left: 4px;
+}
+
+.sk-primary,
+.sk-cta-next {
+  background: linear-gradient(180deg, #ffe082, #ffb020 45%, #e89000);
+  color: #1a1000;
+  border: 1px solid #c99200;
+  font-weight: 800;
+  border-radius: 14px;
+  padding: 12px 28px;
+  cursor: pointer;
+  font-size: 0.92rem;
+  box-shadow: 0 4px 24px rgba(255, 176, 32, 0.35);
 }
 
 .sokoban-win {
@@ -329,18 +510,20 @@
   z-index: 40;
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
   padding: 16px;
 }
 
 .sokoban-win-card {
-  max-width: 360px;
+  max-width: 380px;
   width: 100%;
-  border-radius: 18px;
+  border-radius: 20px;
   border: 1px solid var(--sk-gold);
   background: var(--sk-panel);
-  padding: 20px;
+  padding: 24px;
   text-align: center;
+  box-shadow: 0 0 60px rgba(255, 201, 64, 0.15);
 }
 
 .sokoban-win-card h3 {
@@ -356,27 +539,15 @@
   background: #060d18;
   color: var(--sk-text);
   border: 1px solid var(--sk-border);
-  border-radius: 8px;
-  padding: 8px;
+  border-radius: 10px;
+  padding: 10px;
   box-sizing: border-box;
-}
-
-.sokoban-hint-arrow {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: 1.4rem;
-  color: rgba(255, 255, 255, 0.85);
-  text-shadow: 0 0 8px #000;
-  pointer-events: none;
-  z-index: 3;
 }
 
 @media (max-width: 960px) {
   .sokoban-layout {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto 1fr auto auto;
+    grid-template-rows: auto auto auto 1fr auto auto;
   }
   .sokoban-nav {
     grid-column: 1;
@@ -384,16 +555,15 @@
     flex-direction: row;
     flex-wrap: wrap;
   }
+  .sokoban-profile {
+    display: none;
+  }
   .sokoban-main,
   .sokoban-aside {
     grid-column: 1;
   }
   .sokoban-controls {
     grid-column: 1;
-  }
-  .sk-cell {
-    width: 34px;
-    height: 34px;
   }
 }
 

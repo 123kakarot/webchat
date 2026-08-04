@@ -2081,6 +2081,11 @@ export function mountCaroApp(ctx) {
         } catch (err) {
           console.error("sokoban mountPlay", err);
         }
+        requestAnimationFrame(() => {
+          try {
+            sokoban.mountPlay(root);
+          } catch (_) {}
+        });
       }
       saveUiSession();
       syncPoolLandscapeMode();
