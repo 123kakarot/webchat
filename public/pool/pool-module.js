@@ -589,6 +589,13 @@ export function createPoolModule(deps = {}) {
 
     return `
     <div class="pool-arena">
+      <div class="pool-rotate-gate" aria-live="polite">
+        <div class="pool-rotate-card">
+          <span class="pool-rotate-ico" aria-hidden="true">📱</span>
+          <p>Xoay ngang điện thoại</p>
+          <small>Bida chơi tốt nhất ở chế độ ngang</small>
+        </div>
+      </div>
       <div class="pool-arena-bg" aria-hidden="true"></div>
 
       <header class="pool-arena-top">

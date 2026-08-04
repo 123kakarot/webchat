@@ -79,6 +79,47 @@ export function mountCaroApp(ctx) {
   let quickWaiting = false;
   let caroRoomTab = "all";
   let caroLbTab = "all";
+  let poolLandscapeActive = false;
+
+  function isPoolMobileUi() {
+    return window.matchMedia("(pointer: coarse)").matches;
+  }
+
+  async function enterPoolLandscapeMode() {
+    if (!isPoolMobileUi()) return;
+    if (!poolLandscapeActive) {
+      poolLandscapeActive = true;
+      document.documentElement.classList.add("pool-force-landscape");
+      ctx.root?.classList?.add("pool-landscape-shell");
+    }
+    try {
+      await screen.orientation?.lock?.("landscape");
+    } catch (_) {
+      try {
+        const leg = screen;
+        if (typeof leg.lockOrientation === "function") leg.lockOrientation("landscape");
+        else if (typeof leg.mozLockOrientation === "function") leg.mozLockOrientation("landscape");
+        else if (typeof leg.msLockOrientation === "function") leg.msLockOrientation("landscape");
+      } catch (_) {}
+    }
+  }
+
+  function exitPoolLandscapeMode() {
+    if (!poolLandscapeActive) return;
+    poolLandscapeActive = false;
+    document.documentElement.classList.remove("pool-force-landscape");
+    ctx.root?.classList?.remove("pool-landscape-shell");
+    try {
+      screen.orientation?.unlock?.();
+    } catch (_) {}
+  }
+
+  function syncPoolLandscapeMode() {
+    const inPoolPlay = view === "pool-play" && Boolean(pool.getMatch());
+    if (inPoolPlay) {
+      if (!poolLandscapeActive) void enterPoolLandscapeMode();
+    } else exitPoolLandscapeMode();
+  }
 
   const audio = {
     place: null,
@@ -1972,8 +2013,11 @@ export function mountCaroApp(ctx) {
         });
       }
       saveUiSession();
+      syncPoolLandscapeMode();
       return;
     }
+
+    syncPoolLandscapeMode();
 
     root.innerHTML = `
       <div class="caro-top">
@@ -2635,6 +2679,7 @@ export function mountCaroApp(ctx) {
     close() {
       stopTimer();
       stopReplayPlay();
+      exitPoolLandscapeMode();
       saveUiSession();
       root.hidden = true;
     },

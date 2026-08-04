@@ -27,6 +27,167 @@
   opacity: 0.35;
 }
 
+/* Mobile pool: fullscreen landscape shell */
+html.pool-force-landscape,
+html.pool-force-landscape body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.board-shell.pool-landscape-shell,
+#board-shell.pool-landscape-shell {
+  width: 100vw;
+  height: 100dvh;
+  height: 100svh;
+  max-height: 100dvh;
+}
+
+.board-shell.pool-landscape-shell .caro-shell-dash {
+  min-height: 0;
+  height: 100%;
+}
+
+.board-shell.pool-landscape-shell .pool-fullbleed.is-arena {
+  height: 100%;
+  min-height: 0;
+}
+
+/* Portrait on touch: block play until rotated */
+@media (orientation: portrait) and (pointer: coarse) {
+  .pool-rotate-gate {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(3, 8, 20, 0.94);
+    backdrop-filter: blur(8px);
+  }
+  html.pool-force-landscape .pool-arena .pool-arena-stage,
+  html.pool-force-landscape .pool-arena .pool-arena-hud,
+  html.pool-force-landscape .pool-arena .pool-arena-top,
+  html.pool-force-landscape .pool-arena .pool-arena-status {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+.pool-rotate-gate {
+  display: none;
+}
+
+.pool-rotate-card {
+  text-align: center;
+  padding: 28px 24px;
+  border-radius: 20px;
+  border: 1px solid rgba(77, 226, 255, 0.35);
+  background: linear-gradient(160deg, rgba(30, 40, 90, 0.95), rgba(8, 12, 32, 0.98));
+  box-shadow: 0 0 40px rgba(124, 58, 237, 0.35);
+  max-width: 320px;
+}
+.pool-rotate-ico {
+  display: block;
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  animation: pool-rotate-hint 2s ease-in-out infinite;
+}
+.pool-rotate-card p {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #eef3ff;
+}
+.pool-rotate-card small {
+  color: #93a4c7;
+  font-size: 0.82rem;
+}
+
+@keyframes pool-rotate-hint {
+  0%,
+  100% {
+    transform: rotate(-90deg);
+  }
+  50% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Touch landscape: tighter HUD, bigger table */
+@media (orientation: landscape) and (pointer: coarse) {
+  .pool-arena {
+    --arena-pad: 8px;
+    --arena-gap: 8px;
+  }
+  .pool-arena-top {
+    gap: 6px;
+  }
+  .pool-fighter {
+    padding: 6px 10px;
+  }
+  .pool-fighter-av {
+    width: 40px;
+    height: 40px;
+    font-size: 0.95rem;
+  }
+  .pool-fighter-meta b {
+    font-size: 0.82rem;
+  }
+  .pool-vs-block {
+    min-width: 72px;
+    padding: 6px 10px;
+  }
+  .pool-vs-clock {
+    font-size: 1rem;
+  }
+  .pool-arena-stage {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) 52px;
+    gap: 8px;
+  }
+  .pool-arena .pool-canvas {
+    max-height: min(58dvh, 100%);
+  }
+  .pool-arena-hud {
+    width: 100%;
+    grid-template-columns: 1.2fr 1fr auto;
+    gap: 8px;
+  }
+  .pool-hud-spin {
+    display: none;
+  }
+  .pool-hud-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .pool-pull-hint {
+    margin: 0;
+    flex: 1;
+    text-align: left;
+  }
+  .pool-btn-row {
+    flex-shrink: 0;
+  }
+}
+
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 420px) {
+  .pool-arena-status {
+    display: none;
+  }
+  .pool-group-legend {
+    display: none;
+  }
+  .pool-hud-card h4 {
+    margin-bottom: 4px;
+  }
+  .pool-arena .pool-canvas {
+    max-height: 52dvh;
+  }
+}
+
 .pool-app {
   --pool-bg0: #050814;
   --pool-bg1: #0a1230;
