@@ -9,6 +9,7 @@ import {
 import { pickAiMove, aiThinkDelay } from "./caro-ai.js";
 import { createXiangqiModule } from "../xiangqi/xiangqi-module.js";
 import { createPoolModule } from "../pool/pool-module.js";
+import { createSokobanModule } from "../sokoban/sokoban-module.js";
 
 const STORAGE_HISTORY = "caro-local-history";
 const STORAGE_STATS = "caro-local-stats";
@@ -22,6 +23,7 @@ const BOARD_GAMES = [
   { id: "caro", title: "Cờ Caro", sub: "AI · 2 người · online realtime", status: "live", icon: "⊞", art: "/caro/games/caro.png" },
   { id: "xiangqi", title: "Cờ tướng", sub: "Xiangqi · chiến thuật 9×10", status: "live", icon: "帥", art: "/caro/games/xiangqi.png" },
   { id: "pool", title: "Bida 8 Ball", sub: "AI · Local · căn góc & lực", status: "live", icon: "🎱", art: "/caro/games/pool.svg" },
+  { id: "sokoban", title: "Sokoban", sub: "Đẩy thùng · logic · tối ưu bước", status: "live", icon: "📦", art: "/caro/games/sokoban.svg" },
   { id: "chess", title: "Cờ vua", sub: "Chess · cờ quốc tế", status: "soon", icon: "♔", art: "/caro/games/chess.png" },
   { id: "go", title: "Cờ vây", sub: "Go · Baduk · Weiqi", status: "soon", icon: "⚫", art: "/caro/games/go.png" },
 ];
@@ -237,6 +239,18 @@ export function mountCaroApp(ctx) {
         return;
       }
       render();
+    },
+  });
+
+  const sokoban = createSokobanModule({
+    escapeHtml,
+    playerName,
+    toast,
+    beep,
+    onUpdate: () => {
+      if (view === "sokoban-play") {
+        if (!sokoban.patchBoardIn(root)) render();
+      } else render();
     },
   });
 
@@ -923,6 +937,15 @@ export function mountCaroApp(ctx) {
   function renderPoolPlayDash() {
     if (!pool.getMatch()) return renderPoolHomeDash();
     return `<div class="pool-fullbleed is-arena">${pool.renderPlay()}</div>`;
+  }
+
+  function renderSokobanHomeDash() {
+    return `<div class="sokoban-fullbleed">${sokoban.renderHome()}</div>`;
+  }
+
+  function renderSokobanPlayDash() {
+    if (!sokoban.getMatch()) return renderSokobanHomeDash();
+    return `<div class="sokoban-fullbleed">${sokoban.renderPlay()}</div>`;
   }
 
   function renderXiangqiPlayDash() {
@@ -1919,6 +1942,9 @@ export function mountCaroApp(ctx) {
     if (view === "pool-home" || view === "pool-play") {
       return `8 BALL <span>POOL</span>`;
     }
+    if (view === "sokoban-home" || view === "sokoban-play") {
+      return `SOKO<span>BAN</span>`;
+    }
     return `CỜ <span>CARO</span>`;
   }
 
@@ -1933,6 +1959,8 @@ export function mountCaroApp(ctx) {
     if (view === "xiangqi-play") return "Đang chơi";
     if (view === "pool-home") return "Bida 8 Ball";
     if (view === "pool-play") return "Đang chơi Bida";
+    if (view === "sokoban-home") return "Sokoban";
+    if (view === "sokoban-play") return "Đang chơi Sokoban";
     if (view === "caro-home") return "Caro";
     if (view === "ai-setup") return "AI";
     if (view === "create") return "Tạo phòng";
@@ -1974,6 +2002,12 @@ export function mountCaroApp(ctx) {
         view = "pool-home";
         body = renderPoolHomeDash();
       } else body = renderPoolPlayDash();
+    } else if (view === "sokoban-home") body = renderSokobanHomeDash();
+    else if (view === "sokoban-play") {
+      if (!sokoban.getMatch()) {
+        view = "sokoban-home";
+        body = renderSokobanHomeDash();
+      } else body = renderSokobanPlayDash();
     }
 
     const inCaro = ![
@@ -1984,6 +2018,8 @@ export function mountCaroApp(ctx) {
       "xiangqi-play",
       "pool-home",
       "pool-play",
+      "sokoban-home",
+      "sokoban-play",
     ].includes(view);
 
     const isDash =
@@ -1993,7 +2029,9 @@ export function mountCaroApp(ctx) {
       view === "xiangqi-friends" ||
       view === "xiangqi-play" ||
       view === "pool-home" ||
-      view === "pool-play";
+      view === "pool-play" ||
+      view === "sokoban-home" ||
+      view === "sokoban-play";
 
     if (isDash) {
       root.innerHTML = `<div class="caro-shell-dash">
@@ -2015,6 +2053,13 @@ export function mountCaroApp(ctx) {
             pool.mountPlay(root);
           } catch (_) {}
         });
+      }
+      if (view === "sokoban-play") {
+        try {
+          sokoban.mountPlay(root);
+        } catch (err) {
+          console.error("sokoban mountPlay", err);
+        }
       }
       saveUiSession();
       syncPoolLandscapeMode();
@@ -2121,6 +2166,23 @@ export function mountCaroApp(ctx) {
     }
 
     const act = t.dataset.act;
+    if (act && act.startsWith("sokoban-")) {
+      const next = sokoban.handleAction(act, t);
+      if (next === "sokoban-home") {
+        view = "sokoban-home";
+        render();
+        return;
+      }
+      if (next === "sokoban-play") {
+        view = "sokoban-play";
+        render();
+        return;
+      }
+      if (view === "sokoban-play") {
+        if (!sokoban.patchBoardIn(root)) render();
+      } else if (view === "sokoban-home") render();
+      return;
+    }
     if (act && act.startsWith("pool-")) {
       if (act === "pool-toggle-ai" || act === "pool-ai-menu") {
         const box = root.querySelector("#pool-ai-levels");
@@ -2288,6 +2350,11 @@ export function mountCaroApp(ctx) {
         render();
         return;
       }
+      if (g.id === "sokoban") {
+        view = "sokoban-home";
+        render();
+        return;
+      }
       if (g.status === "live") {
         view = "caro-home";
         refreshMeta().then(() => render());
@@ -2327,6 +2394,7 @@ export function mountCaroApp(ctx) {
       quickWaiting = false;
       xiangqi.clearMatch();
       pool.clearMatch();
+      sokoban.clearMatch();
       sockEmit("caro:leave", {});
       sockEmit("caro:cancel_quick", {});
       sockEmit("pool:leave", {});
