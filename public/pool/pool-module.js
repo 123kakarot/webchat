@@ -170,8 +170,8 @@ export function createPoolModule(deps = {}) {
     }
     const sctx = staticFrame.getContext("2d");
     drawTable(sctx, w, h);
-    drawBalls(sctx, w, h);
     paintRailFrameOverlay(sctx, w, h);
+    drawBalls(sctx, w, h);
     staticFrameKey = key;
     return staticFrame;
   }
@@ -405,8 +405,8 @@ export function createPoolModule(deps = {}) {
     if (match.moving) {
       invalidateStaticFrame();
       drawTable(ctx, w, h);
-      drawBalls(ctx, w, h);
       paintRailFrameOverlay(ctx, w, h);
+      drawBalls(ctx, w, h);
     } else {
       ctx.drawImage(ensureStaticFrame(w, h), 0, 0);
     }
