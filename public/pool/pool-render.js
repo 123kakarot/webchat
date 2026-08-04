@@ -95,8 +95,8 @@ function paintTableLayer(ctx, opt) {
   ctx.save();
   roundFelt();
   ctx.clip();
-  // Cloth noise
-  for (let i = 0; i < 120; i++) {
+  // Cloth noise (light — cached once per table bitmap)
+  for (let i = 0; i < 48; i++) {
     const px = fx + ((i * 89) % fw);
     const py = fy + ((i * 57) % fh);
     ctx.fillStyle = i % 3 === 0 ? "rgba(255,255,255,0.028)" : "rgba(0,0,0,0.035)";
@@ -160,9 +160,39 @@ function paintTableLayer(ctx, opt) {
  * @param {{ w:number,h:number,TABLE_W:number,TABLE_H:number,BALL_R:number,balls:any[],colors:Record<number,string> }} opt
  */
 export function paintBalls(ctx, opt) {
-  const { w, h, TABLE_W, TABLE_H, BALL_R, balls, colors } = opt;
+  const { w, h, TABLE_W, TABLE_H, BALL_R, balls, colors, fast } = opt;
   const sx = w / TABLE_W;
   const sy = h / TABLE_H;
+
+  if (fast) {
+    for (const b of balls) {
+      if (b.pocketed) continue;
+      const x = b.x * sx;
+      const y = b.y * sy;
+      const r = BALL_R * sx;
+      const base = colors[b.id] || "#ccc";
+      ctx.fillStyle = "rgba(0,0,0,0.32)";
+      ctx.beginPath();
+      ctx.ellipse(x + r * 0.08, y + r * 0.55, r * 0.95, r * 0.38, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.fillStyle = b.id === 0 ? "#f0f0f0" : b.id === 8 ? "#1a1a1a" : base;
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      if (b.id !== 0) {
+        ctx.fillStyle = b.id === 8 ? "#fff" : "#111";
+        ctx.font = `bold ${Math.max(10, r * 0.65)}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(b.id), x, y + 0.5);
+      }
+      ctx.fillStyle = "rgba(255,255,255,0.45)";
+      ctx.beginPath();
+      ctx.arc(x - r * 0.28, y - r * 0.32, r * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    return;
+  }
 
   // Shadows first
   for (const b of balls) {

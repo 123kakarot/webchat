@@ -87,13 +87,61 @@ export function createPoolModule(deps = {}) {
   let lastFrame = 0;
   let uiTab = "home";
   let showAiLevels = false;
+  let paintRaf = 0;
+  let tablePaintOpt = null;
 
   function notify(full = true) {
-    if (!full && canvasEl) {
-      paintCanvas(canvasEl);
+    if (!full) {
+      requestPaint();
       return;
     }
     onUpdate?.();
+  }
+
+  function getCanvasCtx(canvas) {
+    if (!canvas) return null;
+    if (canvas._poolCtx) return canvas._poolCtx;
+    canvas._poolCtx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+    return canvas._poolCtx;
+  }
+
+  function fitCanvasResolution(canvas) {
+    const frame = canvas.closest(".pool-hero-table");
+    if (!frame) return;
+    const cssW = frame.clientWidth - 8;
+    if (cssW < 80) return;
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 1.25 : 1.75);
+    const w = Math.round(Math.min(1100, cssW * dpr));
+    const h = Math.round(w / 2);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+      canvas._poolCtx = null;
+      tablePaintOpt = null;
+    }
+  }
+
+  function tablePaintOptions(w, h) {
+    const felt = tableTheme().felt;
+    if (tablePaintOpt && tablePaintOpt.w === w && tablePaintOpt.h === h && tablePaintOpt.felt === felt) {
+      return tablePaintOpt;
+    }
+    tablePaintOpt = { w, h, TABLE_W, TABLE_H, CUSHION, POCKET_R, felt, pockets };
+    return tablePaintOpt;
+  }
+
+  function requestPaint() {
+    if (paintRaf) return;
+    paintRaf = requestAnimationFrame(() => {
+      paintRaf = 0;
+      if (canvasEl && match) paintCanvas(canvasEl);
+    });
+  }
+
+  function cancelPaintRaf() {
+    if (paintRaf) cancelAnimationFrame(paintRaf);
+    paintRaf = 0;
   }
 
   function loadStats() {
@@ -218,6 +266,7 @@ export function createPoolModule(deps = {}) {
 
   function clearMatch() {
     stopAnim();
+    cancelPaintRaf();
     loopRunning = false;
     aiGen++;
     aiBusy = false;
@@ -235,20 +284,20 @@ export function createPoolModule(deps = {}) {
   }
 
   function drawTable(ctx, w, h) {
-    paintTable(ctx, {
+    paintTable(ctx, tablePaintOptions(w, h));
+  }
+  function drawBalls(ctx, w, h, fast = false) {
+    if (!match) return;
+    paintBalls(ctx, {
       w,
       h,
       TABLE_W,
       TABLE_H,
-      CUSHION,
-      POCKET_R,
-      felt: tableTheme().felt,
-      pockets,
+      BALL_R,
+      balls: match.balls,
+      colors: BALL_COLORS,
+      fast,
     });
-  }
-  function drawBalls(ctx, w, h) {
-    if (!match) return;
-    paintBalls(ctx, { w, h, TABLE_W, TABLE_H, BALL_R, balls: match.balls, colors: BALL_COLORS });
   }
   function drawAim(ctx, w, h) {
     if (!match || match.moving || match.status !== "playing") return;
@@ -314,45 +363,56 @@ export function createPoolModule(deps = {}) {
       ctx.stroke();
     }
   }
-  function paintCanvas(canvas) {
+  function paintCanvas(canvas, { fast = false } = {}) {
     if (!canvas || !match) return;
-    const ctx = canvas.getContext("2d");
-    drawTable(ctx, canvas.width, canvas.height);
-    drawBalls(ctx, canvas.width, canvas.height);
-    drawAim(ctx, canvas.width, canvas.height);
+    const ctx = getCanvasCtx(canvas);
+    if (!ctx) return;
+    const w = canvas.width;
+    const h = canvas.height;
+    drawTable(ctx, w, h);
+    drawBalls(ctx, w, h, fast || match.moving);
+    drawAim(ctx, w, h);
     canvas.classList.remove("is-loading");
     canvas.classList.add("is-ready");
   }
 
   function startRenderLoop() {
     if (loopRunning) return;
+    if (!match?.moving) return;
     loopRunning = true;
     lastFrame = performance.now();
     const frame = (now) => {
       if (!loopRunning || !match) {
         loopRunning = false;
+        animId = 0;
+        return;
+      }
+      if (!match.moving) {
+        loopRunning = false;
+        animId = 0;
+        requestPaint();
         return;
       }
       const dt = Math.min(0.05, (now - lastFrame) / 1000);
       lastFrame = now;
-      if (match.moving) {
-        physAcc += dt * PHYS_HZ;
-        let guard = 0;
-        while (physAcc >= 1 && guard++ < 8) {
-          const ev = stepPhysics(match.balls, 1);
-          accumulateShotEvent(match, ev);
-          if (ev.maxCollision > 2.2) beep?.(200 + Math.min(350, ev.maxCollision * 35), 22, "triangle", 0.018);
-          if (ev.pocketed?.length) beep?.(680, 40, "sine", 0.028);
-          physAcc -= 1;
-        }
-        if (physAcc > 2) physAcc = 0;
-        if (!anyMoving(match.balls)) {
-          finishShot(match);
-          physAcc = 0;
-          afterShotSettled();
-          notify(true);
-        } else if (canvasEl) paintCanvas(canvasEl);
-      } else if (canvasEl) paintCanvas(canvasEl);
+      physAcc += dt * PHYS_HZ;
+      let guard = 0;
+      while (physAcc >= 1 && guard++ < 6) {
+        const ev = stepPhysics(match.balls, 1);
+        accumulateShotEvent(match, ev);
+        if (ev.maxCollision > 2.8) beep?.(200 + Math.min(350, ev.maxCollision * 35), 18, "triangle", 0.012);
+        if (ev.pocketed?.length) beep?.(680, 35, "sine", 0.022);
+        physAcc -= 1;
+      }
+      if (physAcc > 2) physAcc = 0;
+      if (!anyMoving(match.balls)) {
+        finishShot(match);
+        physAcc = 0;
+        afterShotSettled();
+        notify(true);
+      } else if (canvasEl) {
+        paintCanvas(canvasEl, { fast: true });
+      }
       animId = requestAnimationFrame(frame);
     };
     animId = requestAnimationFrame(frame);
@@ -495,7 +555,7 @@ export function createPoolModule(deps = {}) {
       if (e.type === "pointermove" && !aimPrep && e.pointerType === "mouse") {
         aimAngle = Math.atan2(y - cue.y, x - cue.x);
         if (power < 0.32) power = 0.38;
-        paintCanvas(canvas);
+        requestPaint();
         return;
       }
 
@@ -535,7 +595,7 @@ export function createPoolModule(deps = {}) {
           const pullAlong = -((x - cue.x) * cos + (y - cue.y) * sin);
           power = Math.max(0.15, Math.min(1, pullAlong / 195));
         }
-        paintCanvas(canvas);
+        requestPaint();
         syncPowerHud(canvas.closest(".pool-arena") || canvas.parentElement);
         return;
       }
@@ -928,6 +988,7 @@ export function createPoolModule(deps = {}) {
     const scope = root.querySelector?.(".pool-arena") ? root : root;
     const canvas = scope.querySelector("[data-pool-canvas]");
     if (canvas) {
+      fitCanvasResolution(canvas);
       const needRebind = canvasEl !== canvas;
       canvasEl = canvas;
       if (needRebind || !canvas._poolBound) {
@@ -935,7 +996,7 @@ export function createPoolModule(deps = {}) {
         bindCanvas(canvas);
       }
       paintCanvas(canvas);
-      if (!loopRunning) startRenderLoop();
+      if (match?.moving) startRenderLoop();
     }
     const powerEl = scope.querySelector("[data-pool-power]");
     if (powerEl && !powerEl.dataset.poolBound) {
@@ -946,7 +1007,7 @@ export function createPoolModule(deps = {}) {
         if (heat) heat.style.setProperty("--p", `${Math.round(power * 100)}%`);
         const val = scope.querySelector(".pool-power-val");
         if (val) val.textContent = String(Math.round(power * 100));
-        if (canvasEl) paintCanvas(canvasEl);
+        if (canvasEl) requestPaint();
       });
     }
     const disc = scope.querySelector("[data-pool-spin-disc]");
@@ -959,18 +1020,27 @@ export function createPoolModule(deps = {}) {
         spinX = Math.max(-1, Math.min(1, nx));
         spinY = Math.max(-1, Math.min(1, ny));
         notify(false);
-        if (canvasEl) paintCanvas(canvasEl);
       });
+    }
+    const frame = canvas?.closest(".pool-hero-table");
+    if (frame && !frame._poolRo) {
+      frame._poolRo = true;
+      new ResizeObserver(() => {
+        if (!canvasEl) return;
+        fitCanvasResolution(canvasEl);
+        requestPaint();
+      }).observe(frame);
     }
   }
 
   function patchCanvas(root) {
     const canvas = root.querySelector("[data-pool-canvas]");
     if (!canvas) return false;
+    fitCanvasResolution(canvas);
     canvasEl = canvas;
     if (!canvas._poolBound) bindCanvas(canvas);
     paintCanvas(canvas);
-    startRenderLoop();
+    if (match?.moving) startRenderLoop();
     return true;
   }
 
