@@ -3,19 +3,21 @@
 const tableLayerCache = new Map();
 const TABLE_STYLE_VER = "v7-art";
 export const TABLE_BG_URL = "/pool/table-arena.png";
-export const TABLE_BG_VER = "2";
+export const TABLE_BG_VER = "3";
 /** Felt region on mockup (normalized 0–1). */
-export const TABLE_ART_INSET = { x: 0.065, y: 0.108, w: 0.87, h: 0.784 };
+export const TABLE_ART_INSET = { x: 0.082, y: 0.122, w: 0.836, h: 0.756 };
 
 let tableBgImg = null;
 let tableBgPromise = null;
 
-export function tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION = 30) {
+export function tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION = 30, BALL_R = 14) {
   const ins = TABLE_ART_INSET;
   const fw = ins.w * w;
   const fh = ins.h * h;
-  const playW = TABLE_W - 2 * CUSHION;
-  const playH = TABLE_H - 2 * CUSHION;
+  const innerMinX = CUSHION + BALL_R;
+  const innerMinY = CUSHION + BALL_R;
+  const playW = TABLE_W - 2 * CUSHION - 2 * BALL_R;
+  const playH = TABLE_H - 2 * CUSHION - 2 * BALL_R;
   return {
     ox: ins.x * w,
     oy: ins.y * h,
@@ -23,16 +25,17 @@ export function tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION = 30) {
     fh,
     sx: fw / playW,
     sy: fh / playH,
-    cushion: CUSHION,
+    innerMinX,
+    innerMinY,
   };
 }
 
 export function tableCoordToCanvas(x, y, t) {
-  return { x: t.ox + (x - t.cushion) * t.sx, y: t.oy + (y - t.cushion) * t.sy };
+  return { x: t.ox + (x - t.innerMinX) * t.sx, y: t.oy + (y - t.innerMinY) * t.sy };
 }
 
 export function canvasCoordToTable(px, py, t) {
-  return { x: t.cushion + (px - t.ox) / t.sx, y: t.cushion + (py - t.oy) / t.sy };
+  return { x: t.innerMinX + (px - t.ox) / t.sx, y: t.innerMinY + (py - t.oy) / t.sy };
 }
 
 function tableBgReady() {
@@ -392,7 +395,7 @@ export function paintCueAimOverlay(ctx, opt) {
     showGhost = true,
   } = opt;
   if (!guide || cueX == null) return;
-  const t = tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION ?? 30);
+  const t = tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION ?? 30, BALL_R);
   const rPx = BALL_R * ((t.sx + t.sy) / 2);
   const map = (x, y) => tableCoordToCanvas(x, y, t);
 
@@ -574,12 +577,12 @@ function drawOneBall(ctx, x, y, r, b, colors) {
  */
 export function paintBalls(ctx, opt) {
   const { w, h, TABLE_W, TABLE_H, CUSHION, BALL_R, balls, colors } = opt;
-  const t = tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION ?? 30);
+  const t = tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION ?? 30, BALL_R);
   const rPx = BALL_R * ((t.sx + t.sy) / 2);
 
   ctx.save();
   ctx.beginPath();
-  const clipPad = rPx * 0.35;
+  const clipPad = rPx * 0.92;
   ctx.rect(t.ox + clipPad, t.oy + clipPad, t.fw - clipPad * 2, t.fh - clipPad * 2);
   ctx.clip();
 

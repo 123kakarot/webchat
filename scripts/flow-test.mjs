@@ -6,7 +6,7 @@ import { io } from "socket.io-client";
 
 const base = process.argv[2] || "http://127.0.0.1:3000";
 const NAME = "FlowBot";
-const CLIENT_BUILD = "139";
+const CLIENT_BUILD = "140";
 const AUTH_POLICY = "36";
 
 function joinPayload(name, rejoin = false) {

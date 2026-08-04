@@ -87,6 +87,7 @@ export function mountCaroApp(ctx) {
 
   async function enterPoolLandscapeMode() {
     if (!isPoolMobileUi()) return;
+    if (view !== "pool-play" || !pool.getMatch()) return;
     if (!poolLandscapeActive) {
       poolLandscapeActive = true;
       document.documentElement.classList.add("pool-force-landscape");

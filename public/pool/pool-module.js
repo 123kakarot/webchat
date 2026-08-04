@@ -540,7 +540,7 @@ export function createPoolModule(deps = {}) {
     const rect = canvas.getBoundingClientRect();
     const px = ((clientX - rect.left) / rect.width) * canvas.width;
     const py = ((clientY - rect.top) / rect.height) * canvas.height;
-    const t = tableCanvasTransform(canvas.width, canvas.height, TABLE_W, TABLE_H, CUSHION);
+    const t = tableCanvasTransform(canvas.width, canvas.height, TABLE_W, TABLE_H, CUSHION, BALL_R);
     return canvasCoordToTable(px, py, t);
   }
 

@@ -27,29 +27,42 @@
   opacity: 0.35;
 }
 
-/* Mobile pool: fullscreen landscape shell */
-html.pool-force-landscape,
-html.pool-force-landscape body {
+/* Mobile pool: fullscreen landscape only while in active arena match */
+html.pool-force-landscape:has(.pool-fullbleed.is-arena),
+html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
   overflow: hidden;
   overscroll-behavior: none;
 }
 
-.board-shell.pool-landscape-shell,
-#board-shell.pool-landscape-shell {
-  width: 100vw;
-  height: 100dvh;
-  height: 100svh;
-  max-height: 100dvh;
+@media (orientation: landscape) and (pointer: coarse) {
+  html.pool-force-landscape .board-shell.pool-landscape-shell,
+  html.pool-force-landscape #board-shell.pool-landscape-shell {
+    width: 100vw;
+    height: 100dvh;
+    height: 100svh;
+    max-height: 100dvh;
+  }
+
+  html.pool-force-landscape .board-shell.pool-landscape-shell .caro-shell-dash,
+  html.pool-force-landscape #board-shell.pool-landscape-shell .caro-shell-dash {
+    min-height: 0;
+    height: 100%;
+  }
+
+  html.pool-force-landscape .board-shell.pool-landscape-shell .pool-fullbleed.is-arena,
+  html.pool-force-landscape #board-shell.pool-landscape-shell .pool-fullbleed.is-arena {
+    height: 100%;
+    min-height: 0;
+  }
 }
 
-.board-shell.pool-landscape-shell .caro-shell-dash {
-  min-height: 0;
-  height: 100%;
-}
-
-.board-shell.pool-landscape-shell .pool-fullbleed.is-arena {
-  height: 100%;
-  min-height: 0;
+@media (orientation: portrait) and (pointer: coarse) {
+  html.pool-force-landscape .board-shell.pool-landscape-shell,
+  html.pool-force-landscape #board-shell.pool-landscape-shell {
+    width: 100%;
+    height: auto;
+    max-height: none;
+  }
 }
 
 /* Portrait on touch: block play until rotated */
