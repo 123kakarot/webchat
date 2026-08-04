@@ -129,7 +129,25 @@ export function applyCueShot(balls, angle, power, spin = { x: 0, y: 0 }) {
 
 function pocketCheck(ball, pocks) {
   for (const p of pocks) {
-    if (dist(ball, p) < POCKET_R - BALL_R * 0.12) return true;
+    if (dist(ball, p) < POCKET_R - BALL_R * 0.05) return true;
+  }
+  return false;
+}
+
+/** Ball center in pocket funnel — skip rail bounce / corner push. */
+function inPocketApproach(ball, pocks) {
+  for (const p of pocks) {
+    if (dist(ball, p) < POCKET_R + BALL_R * 0.55) return true;
+  }
+  return false;
+}
+
+function applyPocket(ball, pocks) {
+  if (pocketCheck(ball, pocks)) {
+    ball.pocketed = true;
+    ball.vx = 0;
+    ball.vy = 0;
+    return true;
   }
   return false;
 }
@@ -203,6 +221,10 @@ function separateOverlaps(active) {
 }
 
 function enforcePlayBounds(ball, { bounce = false } = {}) {
+  if (ball.pocketed) return { hit: false, strength: 0 };
+  const pocks = pockets();
+  if (inPocketApproach(ball, pocks)) return { hit: false, strength: 0 };
+
   const { minX, maxX, minY, maxY } = playBounds();
   let hit = false;
   let strength = 0;
@@ -239,11 +261,12 @@ function enforcePlayBounds(ball, { bounce = false } = {}) {
   }
 
   const cornerKeepOut = POCKET_R + BALL_R * 0.35;
-  for (const p of pockets()) {
+  for (const p of pocks) {
     if (p.kind !== "corner") continue;
     let dx = ball.x - p.x;
     let dy = ball.y - p.y;
     const d = Math.hypot(dx, dy);
+    if (d < POCKET_R + BALL_R * 0.5) continue;
     if (d >= cornerKeepOut || d < 1e-6) continue;
     ball.x = p.x + (dx / d) * cornerKeepOut;
     ball.y = p.y + (dy / d) * cornerKeepOut;
@@ -274,8 +297,13 @@ export function stepPhysics(balls, dt = 1) {
 
   for (let sub = 0; sub < PHYS_SUBSTEPS; sub++) {
     for (const b of active) {
+      if (b.pocketed) continue;
       b.x += b.vx * subDt;
       b.y += b.vy * subDt;
+      if (applyPocket(b, pocks)) {
+        if (!pocketed.includes(b.id)) pocketed.push(b.id);
+        continue;
+      }
       enforcePlayBounds(b, { bounce: true });
     }
 
@@ -297,10 +325,18 @@ export function stepPhysics(balls, dt = 1) {
       }
     }
     separateOverlaps(active);
-    for (const b of active) enforcePlayBounds(b, { bounce: true });
+    for (const b of active) {
+      if (b.pocketed) continue;
+      if (applyPocket(b, pocks)) {
+        if (!pocketed.includes(b.id)) pocketed.push(b.id);
+        continue;
+      }
+      enforcePlayBounds(b, { bounce: true });
+    }
   }
 
   for (const b of active) {
+    if (b.pocketed) continue;
     const c = cushion(b);
     if (c.hit) {
       cushionHits++;
@@ -316,12 +352,7 @@ export function stepPhysics(balls, dt = 1) {
 
   for (const b of active) {
     if (b.pocketed) continue;
-    if (pocketCheck(b, pocks)) {
-      b.pocketed = true;
-      b.vx = 0;
-      b.vy = 0;
-      pocketed.push(b.id);
-    }
+    if (applyPocket(b, pocks) && !pocketed.includes(b.id)) pocketed.push(b.id);
   }
 
   clampAllBallsToTable(balls);
