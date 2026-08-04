@@ -570,6 +570,10 @@ export function createPoolModule(deps = {}) {
     if (val) val.textContent = String(pct);
   }
 
+  function touchAimAngle(cue, tx, ty) {
+    return Math.atan2(cue.y - ty, cue.x - tx);
+  }
+
   function bindCanvas(canvas) {
     if (!canvas || canvas._poolBound) return;
     canvas._poolBound = true;
@@ -611,7 +615,7 @@ export function createPoolModule(deps = {}) {
         prepDragX = x;
         prepDragY = y;
         if (prepIsTouch) {
-          aimAngle = Math.atan2(y - cue.y, x - cue.x);
+          aimAngle = touchAimAngle(cue, x, y);
           power = 0.12;
         } else {
           prepLockAim = aimAngle;
@@ -631,7 +635,7 @@ export function createPoolModule(deps = {}) {
       if (e.type === "pointermove" && aimPrep) {
         e.preventDefault();
         if (prepIsTouch) {
-          aimAngle = Math.atan2(y - cue.y, x - cue.x);
+          aimAngle = touchAimAngle(cue, x, y);
           const dist = Math.hypot(x - cue.x, y - cue.y);
           power = Math.max(0.12, Math.min(1, dist / 165));
         } else {
@@ -930,7 +934,7 @@ export function createPoolModule(deps = {}) {
             <h4>Điều khiển</h4>
             <p class="pool-pull-hint">
               <span class="pool-hint-desktop">Chuột: <strong>Rê</strong> ngắm · <strong>Giữ + kéo lùi</strong> lực · <strong>Thả</strong> bắn</span>
-              <span class="pool-hint-mobile">Mobile: <strong>Kéo cơ</strong> · <strong>Thả</strong> bắn</span>
+              <span class="pool-hint-mobile">Mobile: kéo <strong>phía sau bi</strong> (cơ ngược ngón tay) · thả bắn</span>
             </p>
             <div class="pool-btn-row">
               <button type="button" class="pool-btn-secondary" data-act="pool-resign">Đầu hàng</button>

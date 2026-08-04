@@ -3,7 +3,7 @@
 export const TABLE_W = 900;
 export const TABLE_H = 450;
 export const BALL_R = 14;
-export const POCKET_R = 21;
+export const POCKET_R = 17;
 export const CUSHION = 30;
 
 /** Inset from cushion — physics only; render scale uses full bed (see pool-render). */
@@ -130,7 +130,7 @@ export function applyCueShot(balls, angle, power, spin = { x: 0, y: 0 }) {
 
 function pocketCheck(ball, pocks) {
   for (const p of pocks) {
-    if (dist(ball, p) < POCKET_R + BALL_R * 0.35) return true;
+    if (dist(ball, p) < POCKET_R + BALL_R * 0.1) return true;
   }
   return false;
 }
@@ -145,7 +145,7 @@ function nearestPocketDist(ball, pocks) {
 
 /** Ball center in pocket funnel — skip rail bounce. */
 function inPocketApproach(ball, pocks) {
-  return nearestPocketDist(ball, pocks) < POCKET_R + BALL_R * 1.05;
+  return nearestPocketDist(ball, pocks) < POCKET_R + BALL_R * 0.72;
 }
 
 function applyPocket(ball, pocks) {
@@ -157,7 +157,7 @@ function applyPocket(ball, pocks) {
   }
   const { minX, maxX, minY, maxY } = playBounds();
   const oob = ball.x < minX || ball.x > maxX || ball.y < minY || ball.y > maxY;
-  if (oob && nearestPocketDist(ball, pocks) < POCKET_R + BALL_R * 1.1) {
+  if (oob && nearestPocketDist(ball, pocks) < POCKET_R + BALL_R * 0.78) {
     ball.pocketed = true;
     ball.vx = 0;
     ball.vy = 0;
