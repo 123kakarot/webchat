@@ -7,7 +7,7 @@ export const POCKET_R = 21;
 export const CUSHION = 30;
 
 /** Inset from cushion line — keeps ball centers off the visual rail (table units). */
-export const FELT_GUARD = 24;
+export const FELT_GUARD = 36;
 
 export function playBounds() {
   const minX = CUSHION + BALL_R + FELT_GUARD;
@@ -193,33 +193,60 @@ function separateOverlaps(active) {
   }
 }
 
-function cushion(ball) {
+function enforcePlayBounds(ball, { bounce = false } = {}) {
   const { minX, maxX, minY, maxY } = playBounds();
   let hit = false;
   let strength = 0;
+
   if (ball.x < minX) {
     ball.x = minX;
-    strength = Math.abs(ball.vx);
-    ball.vx = Math.abs(ball.vx) * CUSHION_REST;
-    hit = true;
+    if (bounce && ball.vx < 0) {
+      strength = Math.abs(ball.vx);
+      ball.vx = Math.abs(ball.vx) * CUSHION_REST;
+      hit = true;
+    }
   } else if (ball.x > maxX) {
     ball.x = maxX;
-    strength = Math.abs(ball.vx);
-    ball.vx = -Math.abs(ball.vx) * CUSHION_REST;
-    hit = true;
+    if (bounce && ball.vx > 0) {
+      strength = Math.abs(ball.vx);
+      ball.vx = -Math.abs(ball.vx) * CUSHION_REST;
+      hit = true;
+    }
   }
   if (ball.y < minY) {
     ball.y = minY;
-    strength = Math.max(strength, Math.abs(ball.vy));
-    ball.vy = Math.abs(ball.vy) * CUSHION_REST;
-    hit = true;
+    if (bounce && ball.vy < 0) {
+      strength = Math.max(strength, Math.abs(ball.vy));
+      ball.vy = Math.abs(ball.vy) * CUSHION_REST;
+      hit = true;
+    }
   } else if (ball.y > maxY) {
     ball.y = maxY;
-    strength = Math.max(strength, Math.abs(ball.vy));
-    ball.vy = -Math.abs(ball.vy) * CUSHION_REST;
-    hit = true;
+    if (bounce && ball.vy > 0) {
+      strength = Math.max(strength, Math.abs(ball.vy));
+      ball.vy = -Math.abs(ball.vy) * CUSHION_REST;
+      hit = true;
+    }
   }
+
+  const cornerKeepOut = POCKET_R + BALL_R * 0.62;
+  for (const p of pockets()) {
+    if (p.kind !== "corner") continue;
+    let dx = ball.x - p.x;
+    let dy = ball.y - p.y;
+    const d = Math.hypot(dx, dy);
+    if (d >= cornerKeepOut || d < 1e-6) continue;
+    ball.x = p.x + (dx / d) * cornerKeepOut;
+    ball.y = p.y + (dy / d) * cornerKeepOut;
+    ball.x = Math.max(minX, Math.min(maxX, ball.x));
+    ball.y = Math.max(minY, Math.min(maxY, ball.y));
+  }
+
   return { hit, strength };
+}
+
+function cushion(ball) {
+  return enforcePlayBounds(ball, { bounce: true });
 }
 
 /**
@@ -240,6 +267,7 @@ export function stepPhysics(balls, dt = 1) {
     for (const b of active) {
       b.x += b.vx * subDt;
       b.y += b.vy * subDt;
+      enforcePlayBounds(b);
     }
 
     for (let pass = 0; pass < COLLISION_PASSES; pass++) {
@@ -260,6 +288,7 @@ export function stepPhysics(balls, dt = 1) {
       }
     }
     separateOverlaps(active);
+    for (const b of active) enforcePlayBounds(b);
   }
 
   for (const b of active) {
