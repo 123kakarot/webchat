@@ -82,6 +82,8 @@ export function createPoolModule(deps = {}) {
   let prepPointerId = null;
   let prepIsTouch = false;
   let prepLockAim = 0;
+  let prepDragX = 0;
+  let prepDragY = 0;
   let loopRunning = false;
   let physAcc = 0;
   let lastFrame = 0;
@@ -89,6 +91,16 @@ export function createPoolModule(deps = {}) {
   let showAiLevels = false;
   let paintRaf = 0;
   let tablePaintOpt = null;
+  let staticFrame = null;
+  let staticFrameKey = "";
+
+  function invalidateStaticFrame() {
+    staticFrameKey = "";
+  }
+
+  function markStaticFrameDirty() {
+    invalidateStaticFrame();
+  }
 
   function notify(full = true) {
     if (!full) {
@@ -119,7 +131,31 @@ export function createPoolModule(deps = {}) {
       canvas.height = h;
       canvas._poolCtx = null;
       tablePaintOpt = null;
+      invalidateStaticFrame();
     }
+  }
+
+  function ballsFrameKey() {
+    if (!match?.balls) return "";
+    return match.balls
+      .filter((b) => !b.pocketed)
+      .map((b) => `${b.id}:${b.x.toFixed(1)},${b.y.toFixed(1)}`)
+      .join("|");
+  }
+
+  function ensureStaticFrame(w, h) {
+    const key = `${w}x${h}:${tableTheme().felt}:${ballsFrameKey()}`;
+    if (staticFrame && staticFrameKey === key) return staticFrame;
+    if (!staticFrame) staticFrame = document.createElement("canvas");
+    if (staticFrame.width !== w || staticFrame.height !== h) {
+      staticFrame.width = w;
+      staticFrame.height = h;
+    }
+    const sctx = staticFrame.getContext("2d");
+    drawTable(sctx, w, h);
+    drawBalls(sctx, w, h, true);
+    staticFrameKey = key;
+    return staticFrame;
   }
 
   function tablePaintOptions(w, h) {
@@ -273,6 +309,7 @@ export function createPoolModule(deps = {}) {
     aimPrep = false;
     prepPointerId = null;
     prepLockAim = 0;
+    invalidateStaticFrame();
     match = null;
     canvasEl = null;
     uiTab = "home";
@@ -313,7 +350,7 @@ export function createPoolModule(deps = {}) {
     ctx.moveTo(guide.x0 * sx, guide.y0 * sy);
     ctx.lineTo(guide.x1 * sx, guide.y1 * sy);
     ctx.stroke();
-    if (guide.ghost) {
+    if (guide.ghost && (aimPrep || power > 0.2)) {
       ctx.setLineDash([5, 6]);
       ctx.strokeStyle = "rgba(180,220,255,0.85)";
       ctx.beginPath();
@@ -321,57 +358,50 @@ export function createPoolModule(deps = {}) {
       ctx.lineTo(guide.ghost.tx * sx, guide.ghost.ty * sy);
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.strokeStyle = "rgba(255,255,255,0.7)";
-      ctx.lineWidth = 1.5;
-      ctx.arc(guide.ghost.x * sx, guide.ghost.y * sy, BALL_R * sx, 0, Math.PI * 2);
-      ctx.stroke();
     }
     const cue = match.balls.find((b) => b.id === 0 && !b.pocketed);
-    if (cue) {
-      const pull = 90 + power * 175;
-      const tipGap = BALL_R + 4;
-      const sx = w / TABLE_W;
-      const sy = h / TABLE_H;
-      const cos = Math.cos(aimAngle);
-      const sin = Math.sin(aimAngle);
-      const tipX = cue.x * sx - cos * tipGap * sx;
-      const tipY = cue.y * sy - sin * tipGap * sy;
-      const buttX = cue.x * sx - cos * pull * sx;
-      const buttY = cue.y * sy - sin * pull * sy;
-      const midX = cue.x * sx - cos * pull * 0.42 * sx;
-      const midY = cue.y * sy - sin * pull * 0.42 * sy;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.strokeStyle = "#1a1208";
-      ctx.lineWidth = Math.max(5, 7 * sx);
-      ctx.beginPath();
-      ctx.moveTo(tipX, tipY);
-      ctx.lineTo(midX, midY);
-      ctx.stroke();
-      ctx.strokeStyle = "#c9a066";
-      ctx.lineWidth = Math.max(6, 9 * sx);
-      ctx.beginPath();
-      ctx.moveTo(midX, midY);
-      ctx.lineTo(buttX, buttY);
-      ctx.stroke();
-      ctx.strokeStyle = "rgba(255,255,255,0.35)";
-      ctx.lineWidth = Math.max(2, 2.5 * sx);
-      ctx.beginPath();
-      ctx.moveTo(midX, midY);
-      ctx.lineTo(buttX, buttY);
-      ctx.stroke();
-    }
+    if (!cue) return;
+    const pull = 90 + power * 175;
+    const tipGap = BALL_R + 4;
+    const cos = Math.cos(aimAngle);
+    const sin = Math.sin(aimAngle);
+    const tipX = cue.x * sx - cos * tipGap * sx;
+    const tipY = cue.y * sy - sin * tipGap * sy;
+    const buttX = cue.x * sx - cos * pull * sx;
+    const buttY = cue.y * sy - sin * pull * sy;
+    const midX = cue.x * sx - cos * pull * 0.42 * sx;
+    const midY = cue.y * sy - sin * pull * 0.42 * sy;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#1a1208";
+    ctx.lineWidth = Math.max(5, 7 * sx);
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(midX, midY);
+    ctx.stroke();
+    ctx.strokeStyle = "#c9a066";
+    ctx.lineWidth = Math.max(6, 9 * sx);
+    ctx.beginPath();
+    ctx.moveTo(midX, midY);
+    ctx.lineTo(buttX, buttY);
+    ctx.stroke();
   }
-  function paintCanvas(canvas, { fast = false } = {}) {
+  function paintCanvas(canvas, { fast = false, aimOnly = false } = {}) {
     if (!canvas || !match) return;
     const ctx = getCanvasCtx(canvas);
     if (!ctx) return;
     const w = canvas.width;
     const h = canvas.height;
-    drawTable(ctx, w, h);
-    drawBalls(ctx, w, h, fast || match.moving);
-    drawAim(ctx, w, h);
+    const moving = match.moving;
+    if (moving) {
+      invalidateStaticFrame();
+      drawTable(ctx, w, h);
+      drawBalls(ctx, w, h, true);
+      drawAim(ctx, w, h);
+    } else {
+      ctx.drawImage(ensureStaticFrame(w, h), 0, 0);
+      drawAim(ctx, w, h);
+    }
     canvas.classList.remove("is-loading");
     canvas.classList.add("is-ready");
   }
@@ -408,6 +438,7 @@ export function createPoolModule(deps = {}) {
       if (!anyMoving(match.balls)) {
         finishShot(match);
         physAcc = 0;
+        invalidateStaticFrame();
         afterShotSettled();
         notify(true);
       } else if (canvasEl) {
@@ -436,6 +467,7 @@ export function createPoolModule(deps = {}) {
       toast?.(res.reason);
       return false;
     }
+    invalidateStaticFrame();
     beep?.(430, 32, "sine", 0.03);
     if (!fromOnline && match.mode === "online" && emitOnlineShot) {
       void emitOnlineShot({
@@ -525,7 +557,7 @@ export function createPoolModule(deps = {}) {
     const val = root.querySelector(".pool-power-val");
     const pct = Math.round(power * 100);
     if (heat) heat.style.setProperty("--p", `${pct}%`);
-    if (pwr) pwr.value = String(pct);
+    if (pwr && pwr.value !== String(pct)) pwr.value = String(pct);
     if (val) val.textContent = String(pct);
   }
 
@@ -533,25 +565,25 @@ export function createPoolModule(deps = {}) {
     if (!canvas || canvas._poolBound) return;
     canvas._poolBound = true;
     canvasEl = canvas;
+    const hudRoot = canvas.closest(".pool-arena") || canvas.parentElement;
+    canvas._poolHudRoot = hudRoot;
     const onPointer = (e) => {
-      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (e.pointerType === "mouse" && e.type === "pointerdown" && e.button !== 0) return;
       if (!canControl()) return;
       const { x, y } = canvasToTable(canvas, e.clientX, e.clientY);
-      const placing =
-        match.ballInHand || (match.phase === "break" && match.kitchenOnly && !match.shotHistory.length);
-      if (placing) {
+      if (match.ballInHand) {
         tryPlaceCue(match, x, y);
-        if (e.type === "pointerup") {
-          if (match.ballInHand) match.ballInHand = false;
+        if (e.type === "pointerup" || e.type === "pointercancel") {
+          match.ballInHand = false;
+          invalidateStaticFrame();
           toast?.("Đã đặt bi cái.");
         }
-        paintCanvas(canvas);
+        requestPaint();
         return;
       }
       const cue = match.balls.find((b) => b.id === 0 && !b.pocketed);
       if (!cue) return;
 
-      // Desktop: rê chuột → cơ xoay theo (chưa giữ chuột)
       if (e.type === "pointermove" && !aimPrep && e.pointerType === "mouse") {
         aimAngle = Math.atan2(y - cue.y, x - cue.x);
         if (power < 0.32) power = 0.38;
@@ -564,19 +596,21 @@ export function createPoolModule(deps = {}) {
         aimPrep = true;
         prepPointerId = e.pointerId;
         prepIsTouch = e.pointerType === "touch";
+        prepDragX = x;
+        prepDragY = y;
         if (prepIsTouch) {
           aimAngle = Math.atan2(y - cue.y, x - cue.x);
-          power = 0.1;
+          power = 0.12;
         } else {
           prepLockAim = aimAngle;
-          power = 0.16;
+          power = 0.2;
         }
         canvas.classList.add("is-preparing");
         try {
           canvas.setPointerCapture(e.pointerId);
         } catch (_) {}
-        paintCanvas(canvas);
-        syncPowerHud(canvas.closest(".pool-arena") || canvas.parentElement);
+        requestPaint();
+        syncPowerHud(canvas._poolHudRoot);
         return;
       }
 
@@ -587,16 +621,16 @@ export function createPoolModule(deps = {}) {
         if (prepIsTouch) {
           aimAngle = Math.atan2(y - cue.y, x - cue.x);
           const dist = Math.hypot(x - cue.x, y - cue.y);
-          power = Math.max(0.1, Math.min(1, dist / 165));
+          power = Math.max(0.12, Math.min(1, dist / 165));
         } else {
           aimAngle = prepLockAim;
-          const cos = Math.cos(prepLockAim);
-          const sin = Math.sin(prepLockAim);
-          const pullAlong = -((x - cue.x) * cos + (y - cue.y) * sin);
-          power = Math.max(0.15, Math.min(1, pullAlong / 195));
+          const bx = -Math.cos(prepLockAim);
+          const by = -Math.sin(prepLockAim);
+          const pull = (x - prepDragX) * bx + (y - prepDragY) * by;
+          power = Math.max(0.15, Math.min(1, 0.2 + pull / 145));
         }
         requestPaint();
-        syncPowerHud(canvas.closest(".pool-arena") || canvas.parentElement);
+        syncPowerHud(canvas._poolHudRoot);
         return;
       }
 
