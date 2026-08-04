@@ -364,7 +364,5 @@ export function attachXiangqiServer(io) {
       const q = quickQueue.indexOf(socket.id);
       if (q >= 0) quickQueue.splice(q, 1);
     });
-
-    void pieceSide;
   });
 }

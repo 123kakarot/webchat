@@ -13,7 +13,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/caro/caro-ui.css?v=117" />
-    <link rel="stylesheet" href="/xiangqi/xiangqi-ui.css?v=119" />
+    <link rel="stylesheet" href="/xiangqi/xiangqi-ui.css?v=120" />
     <style>
       :root {
         --bg: #080b14;
@@ -6407,6 +6407,13 @@
         margin-bottom: 1.4rem;
       }
 
+      .module-stub-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        justify-content: center;
+      }
+
       .module-stub-back {
         padding: 0.7rem 1.4rem;
         border-radius: 999px;
@@ -6419,6 +6426,11 @@
 
       .module-stub-back:hover {
         background: rgba(60, 160, 220, 0.35);
+      }
+
+      #module-stub-retry {
+        border-color: rgba(110, 231, 160, 0.55);
+        background: rgba(30, 100, 60, 0.35);
       }
 
       .gate-back-hub {
@@ -6503,7 +6515,10 @@
         <div class="module-stub-ico" id="module-stub-ico" aria-hidden="true">🚀</div>
         <h2 id="module-stub-title">Đang mở</h2>
         <p id="module-stub-desc">Tính năng đang được xây dựng.</p>
-        <button type="button" class="module-stub-back" id="module-stub-back">← Về menu chính</button>
+        <div class="module-stub-actions">
+          <button type="button" class="module-stub-back" id="module-stub-retry" hidden>Thử lại</button>
+          <button type="button" class="module-stub-back" id="module-stub-back">← Về menu chính</button>
+        </div>
       </div>
     </section>
 
@@ -7411,7 +7426,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "119";
+      const CLIENT_BUILD = "120";
       const STORAGE_BOARD_OPEN = "webchat-board-open";
       const BASE_DOC_TITLE = "WebChat Hub";
 
@@ -7695,43 +7710,107 @@
         document.getElementById("module-stub-ico").innerHTML = hubModuleIconSvg(mod.id);
         document.getElementById("module-stub-title").textContent = mod.stubTitle || mod.title;
         document.getElementById("module-stub-desc").textContent = mod.stubDesc || "";
+        const retryBtn = document.getElementById("module-stub-retry");
+        if (retryBtn) retryBtn.hidden = !mod.showRetry;
         moduleStub.hidden = false;
         if (hubEl) hubEl.hidden = true;
         gate.style.display = "none";
       }
 
+      function retryOpenBoardFromStub() {
+        const mod = HUB_MODULES.find((m) => m.id === "board") || { id: "board", title: "Board game" };
+        const setStub = (desc, showRetry = false) =>
+          showModuleStub({
+            ...mod,
+            stubTitle: "Board game",
+            stubDesc: desc,
+            showRetry,
+          });
+        setStub("Đang kết nối lại server…", false);
+        openBoardApp(setStub)
+          .then(() => {
+            if (moduleStub) moduleStub.hidden = true;
+          })
+          .catch((err) => {
+            console.error(err);
+            setStub(
+              "Vẫn chưa kết nối được. Đợi Render Live rồi bấm Thử lại (free tier hay ngủ sau vài phút không dùng).",
+              true
+            );
+          });
+      }
+
+      function sleepMs(ms) {
+        return new Promise((r) => setTimeout(r, ms));
+      }
+
+      /** Free Render cold-start: ping /health rồi mới import module (retry). */
+      async function wakeServerForBoard(onStatus) {
+        const maxAttempts = 8;
+        let lastErr = null;
+        for (let i = 1; i <= maxAttempts; i++) {
+          onStatus?.(
+            i === 1
+              ? "Đang kết nối server…"
+              : `Server đang thức dậy (${i}/${maxAttempts}) — free tier có thể mất ~1 phút…`
+          );
+          try {
+            const res = await fetch(`/health?_=${Date.now()}`, {
+              cache: "no-store",
+              credentials: "same-origin",
+            });
+            if (res.ok) return true;
+            lastErr = new Error(`health ${res.status}`);
+          } catch (err) {
+            lastErr = err;
+          }
+          await sleepMs(Math.min(12000, 1500 * i));
+        }
+        throw lastErr || new Error("Server unavailable");
+      }
+
       async function ensureCaroApp() {
         if (caroApp) return caroApp;
-        const { mountCaroApp } = await import(`/caro/caro-app.js?v=${CLIENT_BUILD}`);
-        caroApp = mountCaroApp({
-          root: boardShell,
-          getPlayerName: () => myName || "",
-          ensureLogin: async () => {
-            if (myName) return true;
-            hubPreferStay = false;
-            if (boardShell) boardShell.hidden = true;
-            gate.style.display = "";
-            nameInput?.focus();
-            joinError.textContent = "Nhập tên để chơi Caro online / lưu hồ sơ.";
-            joinError.hidden = false;
-            return false;
-          },
-          socket,
-          onBackHub: () => {
-            try {
-              sessionStorage.removeItem(STORAGE_BOARD_OPEN);
-            } catch (_) {}
-            caroApp?.close?.();
-            if (boardShell) boardShell.hidden = true;
-            showHub();
-          },
-          onShareToChat: (text) => {
-            try {
-              sessionStorage.setItem("webchat-share-draft", String(text || ""));
-            } catch (_) {}
-          },
-        });
-        return caroApp;
+        let lastErr = null;
+        for (let i = 1; i <= 4; i++) {
+          try {
+            const { mountCaroApp } = await import(`/caro/caro-app.js?v=${CLIENT_BUILD}`);
+            caroApp = mountCaroApp({
+              root: boardShell,
+              getPlayerName: () => myName || "",
+              ensureLogin: async () => {
+                if (myName) return true;
+                hubPreferStay = false;
+                if (boardShell) boardShell.hidden = true;
+                gate.style.display = "";
+                nameInput?.focus();
+                joinError.textContent = "Nhập tên để chơi Caro online / lưu hồ sơ.";
+                joinError.hidden = false;
+                return false;
+              },
+              socket,
+              onBackHub: () => {
+                try {
+                  sessionStorage.removeItem(STORAGE_BOARD_OPEN);
+                } catch (_) {}
+                caroApp?.close?.();
+                if (boardShell) boardShell.hidden = true;
+                showHub();
+              },
+              onShareToChat: (text) => {
+                try {
+                  sessionStorage.setItem("webchat-share-draft", String(text || ""));
+                } catch (_) {}
+              },
+            });
+            return caroApp;
+          } catch (err) {
+            lastErr = err;
+            console.warn("[board] import retry", i, err);
+            await sleepMs(1200 * i);
+          }
+        }
+        throw lastErr || new Error("Không tải được caro-app");
       }
 
       function isBoardSessionOpen() {
@@ -7748,17 +7827,19 @@
         await openBoardApp();
       }
 
-      async function openBoardApp() {
+      async function openBoardApp(onStatus) {
         try {
           sessionStorage.setItem(STORAGE_BOARD_OPEN, "1");
         } catch (_) {}
         hubPreferStay = false;
-        if (moduleStub) moduleStub.hidden = true;
         gate.style.display = "none";
         hideRoomGate();
         appShell.classList.remove("active", "show-chat", "contacts-mode", "notifications-mode");
         if (hubEl) hubEl.hidden = true;
+        await wakeServerForBoard(onStatus);
+        onStatus?.("Đang tải sảnh Board Game…");
         const app = await ensureCaroApp();
+        if (moduleStub) moduleStub.hidden = true;
         if (boardShell) boardShell.hidden = false;
         app.open();
         document.title = "Board Game · Sảnh";
@@ -7785,12 +7866,13 @@
         }
         if (mod.id === "board") {
           hideHub(() => {
-            // Hiện stub tạm trong lúc tải module; lỗi thì đổi mô tả rõ ràng
-            showModuleStub({
-              ...mod,
-              stubDesc: "Đang tải sảnh Board Game…",
-            });
-            openBoardApp()
+            const setStub = (desc) =>
+              showModuleStub({
+                ...mod,
+                stubDesc: desc,
+              });
+            setStub("Đang kết nối server…");
+            openBoardApp(setStub)
               .then(() => {
                 if (moduleStub) moduleStub.hidden = true;
               })
@@ -7799,7 +7881,8 @@
                 showModuleStub({
                   ...mod,
                   stubDesc:
-                    "Không mở được sảnh Board Game (server đang restart hoặc mất kết nối). Thử F5 sau vài giây, hoặc ← Về menu chính.",
+                    "Không mở được sảnh — server free trên Render đang ngủ/restart. Đợi ~30–60 giây rồi bấm Thử lại.",
+                  showRetry: true,
                 });
               });
           });
@@ -7822,6 +7905,7 @@
       document.getElementById("hub-next")?.addEventListener("click", () => setHubIndex(hubIndex + 1));
       document.getElementById("hub-enter")?.addEventListener("click", () => enterHubModule());
       document.getElementById("module-stub-back")?.addEventListener("click", () => showHub());
+      document.getElementById("module-stub-retry")?.addEventListener("click", () => retryOpenBoardFromStub());
       document.getElementById("gate-back-hub")?.addEventListener("click", () => showHub());
 
       window.addEventListener("keydown", (e) => {
