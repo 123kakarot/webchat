@@ -852,36 +852,12 @@ export function mountCaroApp(ctx) {
   }
 
   function renderPoolHomeDash() {
-    return `
-      <div class="caro-dash">
-        <aside class="caro-dash-nav" aria-label="WebChat Hub">
-          <div class="caro-dash-logo">
-            <span class="caro-dash-logo-ico" aria-hidden="true">🎱</span>
-            <span>8 Ball<br><small class="caro-dash-logo-sub">Pool</small></span>
-          </div>
-          <nav class="caro-dash-menu">${renderWebchatHubNav("board")}</nav>
-          <div class="caro-nav-join-card">
-            <p class="caro-nav-join-title">Board Game</p>
-            <button type="button" class="caro-nav-join-btn" data-act="board-portal">← Sảnh game</button>
-          </div>
-        </aside>
-        <div class="caro-dash-main">${pool.renderHome()}</div>
-      </div>`;
+    return `<div class="pool-fullbleed">${pool.renderHome()}</div>`;
   }
 
   function renderPoolPlayDash() {
     if (!pool.getMatch()) return renderPoolHomeDash();
-    return `
-      <div class="caro-dash caro-dash-play">
-        <aside class="caro-dash-nav" aria-label="WebChat Hub">
-          <div class="caro-dash-logo">
-            <span class="caro-dash-logo-ico" aria-hidden="true">🎱</span>
-            <span>8 Ball<br><small class="caro-dash-logo-sub">Đang chơi</small></span>
-          </div>
-          <nav class="caro-dash-menu">${renderWebchatHubNav("board")}</nav>
-        </aside>
-        <div class="caro-dash-main" data-pool-root>${pool.renderPlay()}</div>
-      </div>`;
+    return `<div class="pool-fullbleed is-arena">${pool.renderPlay()}</div>`;
   }
 
   function renderXiangqiPlayDash() {

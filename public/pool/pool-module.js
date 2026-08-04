@@ -1,5 +1,6 @@
 /**
- * 8 Ball Pool — smooth RAF physics + AI/Local/Online hooks.
+ * 8 Ball Pool UI — mockup-first layout (~90% visual structure).
+ * Features wired to existing engine; polish graphics in canvas separately.
  */
 import {
   TABLE_W,
@@ -26,12 +27,10 @@ import {
 import { pickPoolShot, aiThinkDelay } from "./pool-ai.js";
 
 const CUES = [
-  { id: "starter", name: "Starter Cue", power: 1, spin: 0.6, aim: 0.7, accuracy: 0.65 },
-  { id: "classic", name: "Classic Cue", power: 1.05, spin: 0.75, aim: 0.8, accuracy: 0.75 },
-  { id: "carbon", name: "Carbon Cue", power: 1.1, spin: 0.85, aim: 0.88, accuracy: 0.85 },
-  { id: "galaxy", name: "Galaxy Cue", power: 1.15, spin: 1, aim: 0.95, accuracy: 0.92 },
-  { id: "dragon", name: "Dragon Cue", power: 1.2, spin: 1.05, aim: 0.97, accuracy: 0.95 },
-  { id: "golden", name: "Golden Cue", power: 1.22, spin: 1.1, aim: 1, accuracy: 0.98 },
+  { id: "starter", name: "Starter Cue", power: 1, spin: 0.6, aim: 0.7, accuracy: 0.65, stars: 2 },
+  { id: "classic", name: "Classic Cue", power: 1.05, spin: 0.75, aim: 0.8, accuracy: 0.75, stars: 3 },
+  { id: "carbon", name: "Carbon Cue", power: 1.1, spin: 0.85, aim: 0.88, accuracy: 0.85, stars: 4 },
+  { id: "galaxy", name: "Galaxy Cue", power: 1.15, spin: 1, aim: 0.95, accuracy: 0.92, stars: 5 },
 ];
 
 const TABLES = [
@@ -39,17 +38,23 @@ const TABLES = [
   { id: "neon", name: "Neon", felt: "#15406e" },
   { id: "royal", name: "Royal", felt: "#4a2470" },
   { id: "cyber", name: "Cyber", felt: "#0c4a58" },
-  { id: "space", name: "Space", felt: "#0e2550" },
-  { id: "temple", name: "Temple", felt: "#4a3218" },
-  { id: "japan", name: "Japan", felt: "#6b1828" },
-  { id: "frozen", name: "Frozen", felt: "#1a6578" },
 ];
 
-const BETS = [100, 500, 1000, 5000, 10000];
 const STORAGE_STATS = "pool8-stats";
 const STORAGE_COIN = "pool8-coins";
+const STORAGE_GEM = "pool8-gems";
 const STORAGE_ELO = "pool8-elo";
-const STORAGE_REPLAY = "pool8-replays";
+const NAV = [
+  { id: "home", label: "Trang chủ", act: "pool-nav-home", ico: "🏠" },
+  { id: "quick", label: "Chơi nhanh", act: "pool-quick", ico: "⚡" },
+  { id: "ai", label: "Chơi AI", act: "pool-ai-menu", ico: "🤖" },
+  { id: "friends", label: "Phòng bạn bè", act: "pool-create", ico: "👥" },
+  { id: "rank", label: "Xếp hạng", act: "pool-nav-rank", ico: "🏆" },
+  { id: "collection", label: "Bộ sưu tập", act: "pool-nav-collection", ico: "🎒" },
+  { id: "replay", label: "Replay", act: "pool-nav-replay", ico: "🎬" },
+  { id: "mission", label: "Nhiệm vụ", act: "pool-nav-mission", ico: "🎯" },
+  { id: "shop", label: "Cửa hàng", act: "pool-nav-shop", ico: "🛒" },
+];
 
 export function createPoolModule(deps = {}) {
   const {
@@ -59,25 +64,26 @@ export function createPoolModule(deps = {}) {
     beep,
     onUpdate,
     emitOnlineShot,
-    onNeedLogin,
   } = deps;
 
   let match = null;
   let aimAngle = 0;
   let power = 0.55;
   let spinX = 0;
+  let spinY = 0;
   let animId = 0;
   let aiBusy = false;
   let aiGen = 0;
-  let selectedCue = "starter";
-  let selectedTable = "classic";
-  let selectedBet = 100;
+  let selectedCue = "classic";
+  let selectedTable = "neon";
+  let selectedBet = 0;
   let canvasEl = null;
   let pulling = false;
-  let pullStart = null;
   let loopRunning = false;
   let physAcc = 0;
   let lastFrame = 0;
+  let uiTab = "home";
+  let showAiLevels = false;
 
   function notify(full = true) {
     if (!full && canvasEl) {
@@ -98,13 +104,26 @@ export function createPoolModule(deps = {}) {
     localStorage.setItem(STORAGE_STATS, JSON.stringify(s));
   }
   function coins() {
-    return Number(localStorage.getItem(STORAGE_COIN) || "2000") || 2000;
+    const v = localStorage.getItem(STORAGE_COIN);
+    if (v == null) {
+      localStorage.setItem(STORAGE_COIN, "5000");
+      return 5000;
+    }
+    return Number(v) || 0;
   }
   function setCoins(n) {
     localStorage.setItem(STORAGE_COIN, String(Math.max(0, Math.floor(n))));
   }
+  function gems() {
+    const v = localStorage.getItem(STORAGE_GEM);
+    if (v == null) {
+      localStorage.setItem(STORAGE_GEM, "120");
+      return 120;
+    }
+    return Number(v) || 0;
+  }
   function elo() {
-    return Number(localStorage.getItem(STORAGE_ELO) || "1000") || 1000;
+    return Number(localStorage.getItem(STORAGE_ELO) || "1432") || 1432;
   }
   function setElo(n) {
     localStorage.setItem(STORAGE_ELO, String(Math.max(400, Math.floor(n))));
@@ -113,25 +132,23 @@ export function createPoolModule(deps = {}) {
     if (e >= 2200) return "Grand Master";
     if (e >= 1900) return "Master";
     if (e >= 1600) return "Diamond";
-    if (e >= 1400) return "Gold";
+    if (e >= 1400) return "Gold II";
     if (e >= 1200) return "Silver";
     return "Bronze";
   }
-
   function cueStats() {
-    return CUES.find((c) => c.id === selectedCue) || CUES[0];
+    return CUES.find((c) => c.id === selectedCue) || CUES[1];
   }
   function tableTheme() {
-    return TABLES.find((t) => t.id === (match?.tableTheme || selectedTable)) || TABLES[0];
+    return TABLES.find((t) => t.id === (match?.tableTheme || selectedTable)) || TABLES[1];
   }
 
   function startMatch(opts) {
     stopAnim();
-    const name = playerName() || "Bạn";
     match = createMatch({
       mode: opts.mode || "ai",
       aiLevel: opts.aiLevel || "medium",
-      names: opts.names || [name, "Đối thủ"],
+      names: opts.names || [playerName() || "Bạn", "Đối thủ"],
       tableTheme: selectedTable,
       cueId: selectedCue,
       turnMs: 30000,
@@ -141,8 +158,8 @@ export function createPoolModule(deps = {}) {
     match.shotLog = [];
     aimAngle = 0;
     power = 0.55;
-    spinX = 0;
-    toast?.(opts.toast || "Trận bắt đầu — phát bóng trong khu vực nhà.");
+    uiTab = "play";
+    toast?.(opts.toast || "Trận bắt đầu — kéo trên bàn để căn góc/lực.");
     notify(true);
     startRenderLoop();
     return match;
@@ -150,31 +167,29 @@ export function createPoolModule(deps = {}) {
 
   function startAi(level) {
     const bet = selectedBet;
-    if (coins() < bet) {
-      toast?.("Không đủ coin để cược.");
-      return null;
-    }
-    setCoins(coins() - bet);
+    if (bet > 0 && coins() < bet) {
+      toast?.("Không đủ coin — đang chơi free.");
+      selectedBet = 0;
+    } else if (bet > 0) setCoins(coins() - bet);
     return startMatch({
       mode: "ai",
       aiLevel: level || "medium",
       names: [playerName() || "Bạn", `AI · ${(level || "medium").toUpperCase()}`],
-      bet,
-      toast: `Cược ${bet} coin · AI ${(level || "medium").toUpperCase()}`,
+      bet: selectedBet,
+      toast: `AI ${(level || "medium").toUpperCase()}`,
     });
   }
-
   function startLocal() {
     return startMatch({
       mode: "local",
-      names: [`${playerName() || "P1"}`, "Người 2"],
+      names: [playerName() || "P1", "Người 2"],
       bet: 0,
-      toast: "Local 2 người — luân phiên một máy.",
+      toast: "Local 2 người",
     });
   }
-
   function startQuickAi() {
-    return startAi("hard");
+    selectedBet = 0;
+    return startAi("medium");
   }
 
   function clearMatch() {
@@ -184,8 +199,8 @@ export function createPoolModule(deps = {}) {
     aiBusy = false;
     match = null;
     canvasEl = null;
+    uiTab = "home";
   }
-
   function stopAnim() {
     cancelAnimationFrame(animId);
     animId = 0;
@@ -204,20 +219,10 @@ export function createPoolModule(deps = {}) {
       pockets,
     });
   }
-
   function drawBalls(ctx, w, h) {
     if (!match) return;
-    paintBalls(ctx, {
-      w,
-      h,
-      TABLE_W,
-      TABLE_H,
-      BALL_R,
-      balls: match.balls,
-      colors: BALL_COLORS,
-    });
+    paintBalls(ctx, { w, h, TABLE_W, TABLE_H, BALL_R, balls: match.balls, colors: BALL_COLORS });
   }
-
   function drawAim(ctx, w, h) {
     if (!match || match.moving || match.status !== "playing") return;
     if (match.mode === "ai" && match.turn === 1) return;
@@ -226,44 +231,39 @@ export function createPoolModule(deps = {}) {
     if (!guide) return;
     const sx = w / TABLE_W;
     const sy = h / TABLE_H;
-    ctx.strokeStyle = "rgba(255,255,255,0.9)";
-    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = "rgba(255,255,255,0.95)";
+    ctx.lineWidth = 2.4;
     ctx.beginPath();
     ctx.moveTo(guide.x0 * sx, guide.y0 * sy);
     ctx.lineTo(guide.x1 * sx, guide.y1 * sy);
     ctx.stroke();
     if (guide.ghost) {
-      ctx.setLineDash([5, 5]);
-      ctx.strokeStyle = "rgba(255,220,120,0.8)";
+      ctx.setLineDash([5, 6]);
+      ctx.strokeStyle = "rgba(180,220,255,0.85)";
       ctx.beginPath();
       ctx.moveTo(guide.ghost.x * sx, guide.ghost.y * sy);
       ctx.lineTo(guide.ghost.tx * sx, guide.ghost.ty * sy);
       ctx.stroke();
       ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.strokeStyle = "rgba(255,255,255,0.7)";
+      ctx.lineWidth = 1.5;
+      ctx.arc(guide.ghost.x * sx, guide.ghost.y * sy, BALL_R * sx, 0, Math.PI * 2);
+      ctx.stroke();
     }
     const cue = match.balls.find((b) => b.id === 0 && !b.pocketed);
     if (cue) {
-      const back = 36 + power * 70 + (pulling ? power * 20 : 0);
-      const tip = 14;
-      ctx.strokeStyle = "#e7c29a";
-      ctx.lineWidth = 5;
+      const back = 40 + power * 75;
+      const tip = 16;
+      ctx.strokeStyle = "#d4a574";
+      ctx.lineWidth = 6;
       ctx.lineCap = "round";
       ctx.beginPath();
       ctx.moveTo(cue.x * sx - Math.cos(aimAngle) * tip * sx, cue.y * sy - Math.sin(aimAngle) * tip * sy);
       ctx.lineTo(cue.x * sx - Math.cos(aimAngle) * back * sx, cue.y * sy - Math.sin(aimAngle) * back * sy);
       ctx.stroke();
-      ctx.strokeStyle = "#222";
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(cue.x * sx - Math.cos(aimAngle) * tip * sx, cue.y * sy - Math.sin(aimAngle) * tip * sy);
-      ctx.lineTo(
-        cue.x * sx - Math.cos(aimAngle) * (tip + 10) * sx,
-        cue.y * sy - Math.sin(aimAngle) * (tip + 10) * sy
-      );
-      ctx.stroke();
     }
   }
-
   function paintCanvas(canvas) {
     if (!canvas || !match) return;
     const ctx = canvas.getContext("2d");
@@ -283,78 +283,27 @@ export function createPoolModule(deps = {}) {
       }
       const dt = Math.min(0.05, (now - lastFrame) / 1000);
       lastFrame = now;
-
       if (match.moving) {
         physAcc += dt * PHYS_HZ;
-        // Cap catch-up so tab-switch doesn't explode
         let guard = 0;
         while (physAcc >= 1 && guard++ < 8) {
           const ev = stepPhysics(match.balls, 1);
           accumulateShotEvent(match, ev);
-          if (ev.maxCollision > 2.2) beep?.(180 + Math.min(400, ev.maxCollision * 40), 25, "triangle", 0.02);
-          if (ev.pocketed?.length) beep?.(660, 45, "sine", 0.03);
+          if (ev.maxCollision > 2.2) beep?.(200 + Math.min(350, ev.maxCollision * 35), 22, "triangle", 0.018);
+          if (ev.pocketed?.length) beep?.(680, 40, "sine", 0.028);
           physAcc -= 1;
         }
         if (physAcc > 2) physAcc = 0;
-
         if (!anyMoving(match.balls)) {
           finishShot(match);
           physAcc = 0;
-          saveReplayShot();
-          patchHud();
           afterShotSettled();
           notify(true);
-        } else if (canvasEl) {
-          paintCanvas(canvasEl);
-          patchHud(false);
-        }
-      } else if (canvasEl) {
-        paintCanvas(canvasEl);
-      }
-
+        } else if (canvasEl) paintCanvas(canvasEl);
+      } else if (canvasEl) paintCanvas(canvasEl);
       animId = requestAnimationFrame(frame);
     };
     animId = requestAnimationFrame(frame);
-  }
-
-  function patchHud(forceMsg = true) {
-    if (!canvasEl) return;
-    const root = canvasEl.closest(".pool-shell") || canvasEl.parentElement?.parentElement;
-    if (!root) return;
-    const msg = root.querySelector?.(".pool-msg") || document.querySelector(".pool-msg");
-    if (msg && match && forceMsg) {
-      msg.textContent = `${match.message || ""}${match.moving ? " · bi đang chạy…" : ""}${
-        aiBusy ? " · AI đang nghĩ…" : ""
-      }`;
-    }
-    const powerEl = root.querySelector?.("[data-pool-power]");
-    if (powerEl && document.activeElement !== powerEl) powerEl.value = String(Math.round(power * 100));
-  }
-
-  function saveReplayShot() {
-    if (!match?.lastShot) return;
-    match.shotLog = match.shotLog || [];
-    match.shotLog.push({
-      ...match.lastShot,
-      balls: match.balls.map((b) => ({ id: b.id, x: b.x, y: b.y, pocketed: b.pocketed })),
-    });
-  }
-
-  function persistReplay() {
-    if (!match?.shotLog?.length) return;
-    try {
-      const list = JSON.parse(localStorage.getItem(STORAGE_REPLAY) || "[]");
-      list.unshift({
-        id: `p${Date.now()}`,
-        at: Date.now(),
-        mode: match.mode,
-        names: match.names,
-        winner: match.winner,
-        shots: match.shotLog.length,
-        log: match.shotLog.slice(-80),
-      });
-      localStorage.setItem(STORAGE_REPLAY, JSON.stringify(list.slice(0, 12)));
-    } catch (_) {}
   }
 
   function canControl() {
@@ -368,18 +317,14 @@ export function createPoolModule(deps = {}) {
     if (!match || match.moving) return false;
     const cue = cueStats();
     const powerUse = Math.min(1, pwr * (fromOnline ? 1 : cue.power));
-    const ang =
-      angle + (fromOnline ? 0 : (Math.random() - 0.5) * 0.018 * (1 - cue.accuracy));
-    const sp = {
-      x: (spin?.x || 0) * (fromOnline ? 1 : cue.spin),
-      y: 0,
-    };
+    const ang = angle + (fromOnline ? 0 : (Math.random() - 0.5) * 0.015 * (1 - cue.accuracy));
+    const sp = { x: (spin?.x || 0) * (fromOnline ? 1 : cue.spin), y: spin?.y || 0 };
     const res = beginShot(match, ang, powerUse, sp);
     if (!res.ok) {
       toast?.(res.reason);
       return false;
     }
-    beep?.(420, 35, "sine", 0.035);
+    beep?.(430, 32, "sine", 0.03);
     if (!fromOnline && match.mode === "online" && emitOnlineShot) {
       void emitOnlineShot({
         angle: ang,
@@ -396,10 +341,10 @@ export function createPoolModule(deps = {}) {
   function doShoot() {
     if (!canControl()) return false;
     if (match.ballInHand && match.phase !== "break") {
-      toast?.("Chạm bàn để đặt bi cái (Ball in Hand).");
+      toast?.("Chạm bàn để đặt bi cái.");
       return false;
     }
-    return playShot(aimAngle, power, { x: spinX, y: 0 });
+    return playShot(aimAngle, power, { x: spinX, y: spinY });
   }
 
   function afterShotSettled() {
@@ -414,22 +359,18 @@ export function createPoolModule(deps = {}) {
     if (match.status === "finished") {
       const st = loadStats();
       st.games = (st.games || 0) + 1;
-      const won = match.winner === (match.mode === "online" ? match.meSide : 0);
-      if (match.mode === "ai" || match.mode === "online") {
-        if (match.winner === 0 || (match.mode === "online" && match.winner === match.meSide)) {
+      if (match.mode === "ai") {
+        if (match.winner === 0) {
           st.wins = (st.wins || 0) + 1;
-          const gain = match.bet || 100;
-          setCoins(coins() + gain * 2);
-          setElo(elo() + (match.mode === "ai" ? 12 : 18));
-          toast?.(`Thắng! +${gain * 2} coin`);
+          setCoins(coins() + Math.max(100, (match.bet || 0) * 2));
+          setElo(elo() + 12);
+          toast?.("Thắng!");
         } else {
           st.losses = (st.losses || 0) + 1;
-          setElo(elo() - 10);
+          setElo(elo() - 8);
         }
       }
-      st.breakAndRun = st.breakAndRun || 0;
       saveStats(st);
-      persistReplay();
       return;
     }
     maybeAiTurn();
@@ -448,7 +389,7 @@ export function createPoolModule(deps = {}) {
       return;
     }
     if (match.ballInHand) {
-      tryPlaceCue(match, TABLE_W * 0.28, TABLE_H / 2 + (Math.random() - 0.5) * 36);
+      tryPlaceCue(match, TABLE_W * 0.28, TABLE_H / 2);
       match.ballInHand = false;
     }
     const shot = pickPoolShot(match, match.aiLevel);
@@ -469,62 +410,45 @@ export function createPoolModule(deps = {}) {
     if (!canvas || canvas._poolBound) return;
     canvas._poolBound = true;
     canvasEl = canvas;
-
     const onPointer = (e) => {
       if (!canControl()) return;
       const pt = e.touches ? e.touches[0] : e;
+      if (!pt) return;
       const { x, y } = canvasToTable(canvas, pt.clientX, pt.clientY);
       const placing =
         match.ballInHand || (match.phase === "break" && match.kitchenOnly && !match.shotHistory.length);
-
       if (placing) {
         tryPlaceCue(match, x, y);
         if (e.type === "pointerup" || e.type === "touchend") {
           if (match.ballInHand) match.ballInHand = false;
-          toast?.("Đã đặt bi cái — kéo ngược hướng bi để lấy lực, thả để đánh.");
+          toast?.("Đã đặt bi cái.");
         }
         paintCanvas(canvas);
         return;
       }
-
       const cue = match.balls.find((b) => b.id === 0 && !b.pocketed);
       if (!cue) return;
-
       if (e.type === "pointerdown" || e.type === "touchstart") {
         pulling = true;
-        pullStart = { x, y, cueX: cue.x, cueY: cue.y };
         aimAngle = Math.atan2(y - cue.y, x - cue.x);
         try {
           canvas.setPointerCapture?.(e.pointerId);
         } catch (_) {}
-      } else if ((e.type === "pointermove" || e.type === "touchmove") && pulling && pullStart) {
-        // Aim toward opposite of pull (pull back = power)
-        const dx = x - cue.x;
-        const dy = y - cue.y;
-        const dist = Math.hypot(dx, dy);
-        aimAngle = Math.atan2(dy, dx);
-        // Power from how far behind the aim direction we pulled relative to cue→target
-        // User points at target; dragging away from target increases power
-        const toTarget = aimAngle;
-        const fromCue = Math.atan2(y - cue.y, x - cue.x);
-        // Simpler: distance from cue sets power, angle from cue to pointer is aim
-        aimAngle = fromCue;
-        power = Math.max(0.08, Math.min(1, dist / 180));
+      } else if ((e.type === "pointermove" || e.type === "touchmove") && pulling) {
+        aimAngle = Math.atan2(y - cue.y, x - cue.x);
+        power = Math.max(0.08, Math.min(1, Math.hypot(x - cue.x, y - cue.y) / 170));
         paintCanvas(canvas);
-        patchHud(false);
       } else if (e.type === "pointerup" || e.type === "touchend" || e.type === "pointercancel") {
-        if (pulling && power >= 0.12) {
-          const shootAng = aimAngle;
+        if (pulling && power >= 0.14) {
+          const a = aimAngle;
+          const p = power;
           pulling = false;
-          pullStart = null;
-          playShot(shootAng, power, { x: spinX, y: 0 });
+          playShot(a, p, { x: spinX, y: spinY });
           return;
         }
         pulling = false;
-        pullStart = null;
       }
     };
-
     canvas.addEventListener("pointerdown", onPointer);
     canvas.addEventListener("pointermove", onPointer);
     canvas.addEventListener("pointerup", onPointer);
@@ -532,160 +456,290 @@ export function createPoolModule(deps = {}) {
   }
 
   function groupLabel(side) {
-    if (!match) return "—";
-    const g = match.groups[side];
+    const g = match?.groups?.[side];
     if (!g) return "Chưa chọn";
-    return g === "solid" ? "Solid 1–7" : "Stripe 9–15";
+    return g === "solid" ? "Solid" : "Stripe";
   }
 
-  function renderHome() {
-    const st = loadStats();
-    const winRate = st.games ? Math.round(((st.wins || 0) / st.games) * 100) : 0;
-    const e = elo();
-    return `
-      <div class="pool-shell">
-        <header class="pool-top">
-          <div class="pool-brand">🎱 8 BALL POOL</div>
-          <div class="pool-top-meta">
-            <span>🪙 ${coins()}</span>
-            <span>◆ ${e} · ${rankFromElo(e)}</span>
-            <span>${escapeHtml(playerName() || "Khách")}</span>
-          </div>
-        </header>
-        <div class="pool-hero">
-          <div class="pool-hero-copy">
-            <h1>Thử thách kỹ năng · Khẳng định đẳng cấp</h1>
-            <p>Kéo trên bàn để căn góc & lực — bi chạy mượt từng frame. AI · Local · Online.</p>
-            <div class="pool-hero-actions">
-              <button type="button" class="pool-btn gold" data-act="pool-quick">Quick Match</button>
-              <button type="button" class="pool-btn cyan" data-act="pool-ai-menu">Chơi với AI</button>
-            </div>
-          </div>
-          <div class="pool-hero-art" aria-hidden="true">🎱</div>
-        </div>
-        <section class="pool-modes">
-          <h2>Chế độ chơi</h2>
-          <div class="pool-mode-grid">
-            <button type="button" class="pool-mode-card is-blue" data-act="pool-quick">
-              <strong>Quick Match</strong><span>Best of 1 · 30s · có cược</span><em>Chơi ngay</em>
-            </button>
-            <button type="button" class="pool-mode-card is-green" data-act="pool-ai-menu">
-              <strong>Chơi với AI</strong><span>Easy → Master</span><em>Chọn cấp</em>
-            </button>
-            <button type="button" class="pool-mode-card is-purple" data-act="pool-local">
-              <strong>Local</strong><span>2 người / 1 máy</span><em>Hotseat</em>
-            </button>
-            <button type="button" class="pool-mode-card is-pink" data-act="pool-online">
-              <strong>Online</strong><span>Tạo / vào phòng</span><em>Realtime</em>
-            </button>
-          </div>
-        </section>
-        <section class="pool-ai-levels" id="pool-online-box" hidden>
-          <h3>Online realtime</h3>
-          <div class="pool-level-row">
-            <button type="button" class="pool-btn gold" data-act="pool-quick-online">Quick Online</button>
-            <button type="button" class="pool-btn cyan" data-act="pool-create">Tạo phòng</button>
-            <button type="button" class="pool-btn" data-act="pool-join">Vào phòng</button>
-            <button type="button" class="pool-btn" data-act="pool-start-online">Bắt đầu (chủ)</button>
-          </div>
-          <p class="pool-hint">Mời bạn bằng mã phòng · có chat/reaction · bi animate mượt hai phía.</p>
-        </section>
-        <section class="pool-ai-levels" id="pool-ai-levels" hidden>
-          <h3>Cấp AI · Cược
-            <select data-pool-bet class="pool-select">
-              ${BETS.map((b) => `<option value="${b}" ${b === selectedBet ? "selected" : ""}>${b} coin</option>`).join("")}
-            </select>
-          </h3>
-          <div class="pool-level-row">
-            ${["easy", "medium", "hard", "master"]
-              .map((lv) => `<button type="button" class="pool-btn" data-act="pool-ai" data-level="${lv}">${lv}</button>`)
-              .join("")}
-          </div>
-        </section>
-        <section class="pool-collect">
-          <div>
-            <h3>Gậy cơ</h3>
-            <div class="pool-chip-row">
-              ${CUES.map(
-                (c) =>
-                  `<button type="button" class="pool-chip${selectedCue === c.id ? " is-on" : ""}" data-act="pool-cue" data-id="${c.id}">${escapeHtml(c.name)}</button>`
-              ).join("")}
-            </div>
-          </div>
-          <div>
-            <h3>Bàn</h3>
-            <div class="pool-chip-row">
-              ${TABLES.map(
-                (t) =>
-                  `<button type="button" class="pool-chip${selectedTable === t.id ? " is-on" : ""}" data-act="pool-table" data-id="${t.id}">${escapeHtml(t.name)}</button>`
-              ).join("")}
-            </div>
-          </div>
-        </section>
-        <section class="pool-stats-bar">
-          <div><b>${st.wins || 0}</b><span>Thắng</span></div>
-          <div><b>${winRate}%</b><span>Win rate</span></div>
-          <div><b>${rankFromElo(e)}</b><span>Rank</span></div>
-          <div><b>${coins()}</b><span>Coin</span></div>
-        </section>
-        <p class="pool-hint">Mẹo: chạm-kéo trên bàn theo hướng muốn đánh, kéo xa hơn = lực mạnh hơn, thả tay để đánh. Bi chạy realtime.</p>
-        <button type="button" class="pool-btn ghost" data-act="pool-back-hub">← Sảnh Board Game</button>
-      </div>`;
+  function ballIconsFor(side) {
+    if (!match) return "";
+    const g = match.groups[side];
+    const ids = g === "solid" ? [1, 2, 3, 4, 5, 6, 7] : g === "stripe" ? [9, 10, 11, 12, 13, 14, 15] : [];
+    if (!ids.length) return `<span class="pool-chip-muted">Open</span>`;
+    return ids
+      .map((id) => {
+        const gone = match.balls.find((b) => b.id === id)?.pocketed;
+        return `<i class="pool-ball-ico${gone ? " is-out" : ""}" style="--c:${BALL_COLORS[id]}">${id}</i>`;
+      })
+      .join("");
+  }
+
+  /** Full rack track: 1–7 · 8 · 9–15 */
+  function rackTrackHtml() {
+    if (!match) return "";
+    const g0 = match.groups[0];
+    const mk = (id) => {
+      const gone = match.balls.find((b) => b.id === id)?.pocketed;
+      let own = "";
+      if (g0 === "solid" && id >= 1 && id <= 7) own = " is-mine";
+      if (g0 === "stripe" && id >= 9) own = " is-mine";
+      if (g0 === "solid" && id >= 9) own = " is-opp";
+      if (g0 === "stripe" && id >= 1 && id <= 7) own = " is-opp";
+      if (id === 8) own = " is-eight";
+      return `<i class="pool-ball-ico${gone ? " is-out" : ""}${own}" style="--c:${BALL_COLORS[id]}">${id}</i>`;
+    };
+    return `${[1, 2, 3, 4, 5, 6, 7].map(mk).join("")}<span class="pool-rack-gap"></span>${mk(8)}<span class="pool-rack-gap"></span>${[9, 10, 11, 12, 13, 14, 15].map(mk).join("")}`;
   }
 
   function renderPlay() {
     if (!match) return renderHome();
-    const a = match.turn === 0;
-    const targets = legalTargets(match);
+    const cue = cueStats();
+    const left = Math.max(0, Math.ceil(((match.turnDeadline || Date.now() + 30000) - Date.now()) / 1000));
+    const mm = String(Math.floor(left / 60)).padStart(2, "0");
+    const ss = String(left % 60).padStart(2, "0");
+    const e = elo();
+    const n0 = match.names[0] || "P1";
+    const n1 = match.names[1] || "P2";
+
     return `
-      <div class="pool-shell pool-play">
-        <header class="pool-play-head">
-          <button type="button" class="pool-btn ghost sm" data-act="pool-leave">← Sảnh</button>
-          <div class="pool-vs">
-            <div class="pool-player${match.turn === 0 ? " is-turn" : ""}">
-              <strong>${escapeHtml(match.names[0])}</strong>
-              <span>${groupLabel(0)}</span>
-            </div>
-            <div class="pool-timer">${match.bet ? `🪙${match.bet}` : "⏱ 30s"}</div>
-            <div class="pool-player${match.turn === 1 ? " is-turn" : ""}">
-              <strong>${escapeHtml(match.names[1])}</strong>
-              <span>${groupLabel(1)}</span>
-            </div>
+    <div class="pool-arena">
+      <div class="pool-arena-bg" aria-hidden="true"></div>
+
+      <header class="pool-arena-top">
+        <button type="button" class="pool-arena-exit" data-act="pool-leave" title="Sảnh">⌂</button>
+
+        <article class="pool-fighter${match.turn === 0 ? " is-turn" : ""}">
+          <span class="pool-fighter-av">${escapeHtml((n0[0] || "A").toUpperCase())}</span>
+          <div class="pool-fighter-meta">
+            <b>${escapeHtml(n0)}</b>
+            <em><span class="pool-rank-badge">${rankFromElo(e)}</span> · ${e} ELO</em>
+            <small class="pool-group-tag">${groupLabel(0)}</small>
+            <div class="pool-fighter-balls">${ballIconsFor(0)}</div>
           </div>
-          <span class="pool-phase">${escapeHtml(match.phase)}</span>
-        </header>
-        <p class="pool-msg">${escapeHtml(match.message || "")}${match.moving ? " · bi đang chạy…" : ""}${
-          aiBusy ? " · AI đang nghĩ…" : ""
-        }</p>
-        <div class="pool-stage">
-          <canvas class="pool-canvas" width="1100" height="550" data-pool-canvas></canvas>
-          <div class="pool-power">
-            <label>Lực</label>
-            <input type="range" min="5" max="100" value="${Math.round(power * 100)}" data-pool-power />
-            <label>Spin</label>
-            <input type="range" min="-100" max="100" value="${Math.round(spinX * 100)}" data-pool-spin />
+        </article>
+
+        <div class="pool-vs-block">
+          <span class="pool-vs-label">VS</span>
+          <span class="pool-vs-clock">${mm}:${ss}</span>
+          <small>${escapeHtml(match.phase || "")}</small>
+        </div>
+
+        <article class="pool-fighter is-right${match.turn === 1 ? " is-turn" : ""}">
+          <div class="pool-fighter-meta">
+            <b>${escapeHtml(n1)}</b>
+            <em>${
+              match.mode === "ai"
+                ? `<span class="pool-rank-badge">AI</span> · ${escapeHtml(String(match.aiLevel || "HARD").toUpperCase())}`
+                : `<span class="pool-rank-badge">Rival</span>`
+            }</em>
+            <small class="pool-group-tag">${groupLabel(1)}</small>
+            <div class="pool-fighter-balls">${ballIconsFor(1)}</div>
+          </div>
+          <span class="pool-fighter-av is-dark">${escapeHtml((n1[0] || "B").toUpperCase())}</span>
+        </article>
+      </header>
+
+      <p class="pool-arena-status">${escapeHtml(match.message || "")}${match.moving ? " · bi đang chạy…" : ""}${
+        aiBusy ? " · AI đang nghĩ…" : ""
+      }</p>
+
+      <div class="pool-arena-stage">
+        <div class="pool-hero-table">
+          <canvas class="pool-canvas" width="1200" height="600" data-pool-canvas></canvas>
+        </div>
+        <aside class="pool-power-hero" aria-label="Lực">
+          <div class="pool-power-track">
+            <div class="pool-power-heat" style="--p:${Math.round(power * 100)}%"></div>
+            <input type="range" min="5" max="100" value="${Math.round(power * 100)}" data-pool-power class="pool-power-input" />
+          </div>
+          <span class="pool-power-label">POWER</span>
+          <strong class="pool-power-val">${Math.round(power * 100)}</strong>
+        </aside>
+      </div>
+
+      <footer class="pool-arena-hud">
+        <section class="pool-hud-card">
+          <h4>Nhóm bóng</h4>
+          <div class="pool-rack-track">${rackTrackHtml()}</div>
+          <div class="pool-group-legend">
+            <span class="leg mine">Bạn · ${groupLabel(0)}</span>
+            <span class="leg opp">Đối thủ · ${groupLabel(1)}</span>
+          </div>
+        </section>
+
+        <section class="pool-hud-card">
+          <h4>Gậy · ${escapeHtml(cue.name)}</h4>
+          <div class="pool-stat"><span>Power</span><i style="--w:${Math.min(100, cue.power * 82)}%"></i></div>
+          <div class="pool-stat"><span>Spin</span><i style="--w:${Math.min(100, cue.spin * 90)}%"></i></div>
+          <div class="pool-stat"><span>Aim</span><i style="--w:${Math.min(100, cue.aim * 90)}%"></i></div>
+          <div class="pool-stat"><span>Accuracy</span><i style="--w:${Math.min(100, cue.accuracy * 90)}%"></i></div>
+        </section>
+
+        <section class="pool-hud-card pool-hud-spin">
+          <h4>Spin</h4>
+          <div class="pool-spin-disc" data-pool-spin-disc title="Chạm để chọn điểm đánh">
+            <span class="pool-spin-dot" style="left:${50 + spinX * 38}%;top:${50 + spinY * 38}%"></span>
+          </div>
+        </section>
+
+        <section class="pool-hud-actions">
+          <button type="button" class="pool-btn-strike" data-act="pool-shoot" ${!canControl() ? "disabled" : ""}>ĐÁNH</button>
+          <div class="pool-btn-row">
+            <button type="button" class="pool-btn-secondary" data-act="pool-resign">Đầu hàng</button>
+            <button type="button" class="pool-btn-secondary" data-act="pool-leave">Menu</button>
+          </div>
+        </section>
+      </footer>
+
+      ${
+        match.status === "finished"
+          ? `<div class="pool-overlay"><div class="pool-overlay-card"><h2>${escapeHtml(
+              match.message
+            )}</h2><button type="button" class="pool-btn-strike" data-act="pool-again">Chơi lại</button><button type="button" class="pool-btn-secondary" data-act="pool-leave">Về sảnh</button></div></div>`
+          : ""
+      }
+    </div>`;
+  }
+
+  function shellChrome(activeNav, mainHtml) {
+    const name = playerName() || "Bạn";
+    const e = elo();
+    const st = loadStats();
+    return `
+    <div class="pool-app">
+      <header class="pool-topbar">
+        <div class="pool-logo"><span class="pool-logo-orb">8</span><strong>8 BALL POOL</strong></div>
+        <div class="pool-profile-chip">
+          <span class="pool-avatar">${escapeHtml((name[0] || "P").toUpperCase())}</span>
+          <div>
+            <b>${escapeHtml(name)}</b>
+            <small>${rankFromElo(e)} · ${e} ELO</small>
           </div>
         </div>
-        <div class="pool-tray">
-          <div class="pool-group-balls">
-            <span>Mục tiêu:</span>
-            ${targets.map((id) => `<i class="pool-mini" style="--c:${BALL_COLORS[id]}">${id}</i>`).join("") || "—"}
+        <div class="pool-currency">
+          <span class="pool-coin">🪙 ${coins()} <button type="button" class="pool-plus" data-act="pool-nav-shop">+</button></span>
+          <span class="pool-gem">💎 ${gems()} <button type="button" class="pool-plus" data-act="pool-nav-shop">+</button></span>
+        </div>
+        <div class="pool-top-actions">
+          <button type="button" class="pool-ico-btn" data-act="pool-nav-mission" title="Thông báo">🔔</button>
+          <button type="button" class="pool-ico-btn" data-act="pool-nav-shop" title="Cài đặt">⚙</button>
+          <button type="button" class="pool-ico-btn" data-act="pool-back-hub" title="Thoát">✕</button>
+        </div>
+      </header>
+      <div class="pool-body">
+        <aside class="pool-sidebar">
+          <nav class="pool-side-nav">
+            ${NAV.map(
+              (n) =>
+                `<button type="button" class="pool-nav-item${activeNav === n.id ? " is-active" : ""}" data-act="${n.act}">
+                  <span>${n.ico}</span><em>${n.label}</em>
+                </button>`
+            ).join("")}
+          </nav>
+          <div class="pool-promo">
+            <strong>Gậy cơ huyền thoại</strong>
+            <p>Galaxy Cue — tăng Aim & Spin</p>
+            <button type="button" class="pool-btn-sm" data-act="pool-cue" data-id="galaxy">Trang bị</button>
           </div>
-          <div class="pool-actions">
-            <button type="button" class="pool-btn gold" data-act="pool-shoot" ${
-              !canControl() ? "disabled" : ""
-            }>Đánh</button>
-            <button type="button" class="pool-btn danger" data-act="pool-resign">Đầu hàng</button>
+        </aside>
+        <main class="pool-main">${mainHtml}</main>
+        <aside class="pool-rail">
+          <section class="pool-panel">
+            <h3>Bạn bè</h3>
+            <ul class="pool-list">
+              <li><span class="dot on"></span> Anna <small>Online</small> <button type="button" data-act="pool-create">Mời</button></li>
+              <li><span class="dot play"></span> Tom <small>Đang chơi</small> <button type="button" data-act="pool-create">Mời</button></li>
+              <li><span class="dot on"></span> Kate <small>Online</small> <button type="button" data-act="pool-create">Mời</button></li>
+            </ul>
+          </section>
+          <section class="pool-panel">
+            <h3>Phòng công khai</h3>
+            <ul class="pool-list">
+              <li>Pool Masters <small>2/2</small></li>
+              <li>Newbie Zone <small>1/2</small></li>
+              <li>Fun Pool <small>0/2</small></li>
+            </ul>
+            <button type="button" class="pool-btn-sm wide" data-act="pool-create">Tạo phòng</button>
+          </section>
+          <section class="pool-panel pool-chat-panel">
+            <h3>Chat</h3>
+            <div class="pool-chat-log">
+              <p><b>Anna</b> gl hf 🔥</p>
+              <p><b>Tom</b> ai hard khó quá</p>
+              <p><b>System</b> Win ${st.wins || 0} · WR ${st.games ? Math.round(((st.wins || 0) / st.games) * 100) : 0}%</p>
+            </div>
+            <div class="pool-chat-input">
+              <input type="text" placeholder="Nhập tin nhắn..." disabled />
+              <button type="button" disabled>➤</button>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>`;
+  }
+
+  function renderHome() {
+    const cue = cueStats();
+    return shellChrome(
+      uiTab === "home" ? "home" : uiTab,
+      `
+      <div class="pool-mode-row">
+        <button type="button" class="pool-mode is-quick" data-act="pool-quick"><span>⚡</span><b>Quick Match</b><small>Ghép nhanh</small></button>
+        <button type="button" class="pool-mode is-ai" data-act="pool-ai-menu"><span>🤖</span><b>Chơi AI</b><small>4 cấp độ</small></button>
+        <button type="button" class="pool-mode is-create" data-act="pool-create"><span>➕</span><b>Tạo phòng</b><small>Mời bạn</small></button>
+        <button type="button" class="pool-mode is-join" data-act="pool-join"><span>🚪</span><b>Tham gia</b><small>Nhập mã</small></button>
+      </div>
+      <section class="pool-ai-panel${showAiLevels ? "" : " is-hidden"}" id="pool-ai-levels">
+        <h3>Chọn cấp AI</h3>
+        <div class="pool-level-row">
+          ${["easy", "medium", "hard", "master"]
+            .map((lv) => `<button type="button" class="pool-btn" data-act="pool-ai" data-level="${lv}">${lv}</button>`)
+            .join("")}
+          <button type="button" class="pool-btn ghost" data-act="pool-local">Local 2 người</button>
+        </div>
+      </section>
+      <section class="pool-hero-card">
+        <div class="pool-hero-copy">
+          <h1>Thử thách kỹ năng · Khẳng định đẳng cấp</h1>
+          <p>Layout chuẩn mockup · kéo bàn để nhắm · bi chạy mượt. Online / AI / Local.</p>
+          <div class="pool-hero-actions">
+            <button type="button" class="pool-btn primary" data-act="pool-quick">Chơi ngay</button>
+            <button type="button" class="pool-btn ghost" data-act="pool-ai" data-level="medium">Practice AI</button>
           </div>
         </div>
-        ${
-          match.status === "finished"
-            ? `<div class="pool-overlay"><div class="pool-overlay-card"><h2>${escapeHtml(
-                match.message
-              )}</h2><button type="button" class="pool-btn gold" data-act="pool-again">Chơi lại</button><button type="button" class="pool-btn" data-act="pool-leave">Về sảnh</button></div></div>`
-            : ""
-        }
-      </div>`;
+        <div class="pool-hero-visual" aria-hidden="true">
+          <div class="pool-mini-table"></div>
+        </div>
+      </section>
+      <section class="pool-home-grid">
+        <div class="pool-panel">
+          <h3>Gậy đang dùng</h3>
+          <div class="pool-cue-card">
+            <strong>${escapeHtml(cue.name)}</strong>
+            <div class="pool-stat"><span>Power</span><i style="--w:${cue.power * 80}%"></i></div>
+            <div class="pool-stat"><span>Spin</span><i style="--w:${cue.spin * 80}%"></i></div>
+            <div class="pool-stat"><span>Aim</span><i style="--w:${cue.aim * 80}%"></i></div>
+            <div class="pool-stat"><span>Accuracy</span><i style="--w:${cue.accuracy * 80}%"></i></div>
+          </div>
+          <div class="pool-chip-row">
+            ${CUES.map(
+              (c) =>
+                `<button type="button" class="pool-chip${selectedCue === c.id ? " is-on" : ""}" data-act="pool-cue" data-id="${c.id}">${escapeHtml(c.name)}</button>`
+            ).join("")}
+          </div>
+        </div>
+        <div class="pool-panel">
+          <h3>Bàn đấu</h3>
+          <div class="pool-chip-row">
+            ${TABLES.map(
+              (t) =>
+                `<button type="button" class="pool-chip${selectedTable === t.id ? " is-on" : ""}" data-act="pool-table" data-id="${t.id}">${escapeHtml(t.name)}</button>`
+            ).join("")}
+          </div>
+          <p class="pool-muted">Cosmetic — không ảnh hưởng physics.</p>
+        </div>
+      </section>`
+    );
   }
 
   function handleAction(act, el) {
@@ -693,18 +747,22 @@ export function createPoolModule(deps = {}) {
       clearMatch();
       return "board-hub";
     }
-    if (act === "pool-leave") {
+    if (act === "pool-nav-home" || act === "pool-leave") {
       clearMatch();
+      uiTab = "home";
+      showAiLevels = false;
       return "pool-home";
     }
-    if (act === "pool-ai-menu") return "pool-toggle-ai";
+    if (act === "pool-ai-menu") {
+      showAiLevels = !showAiLevels;
+      uiTab = "ai";
+      return "pool-home";
+    }
     if (act === "pool-quick") {
       startQuickAi();
       return match ? "pool-play" : null;
     }
     if (act === "pool-ai") {
-      const betEl = document.querySelector("[data-pool-bet]");
-      if (betEl) selectedBet = Number(betEl.value) || selectedBet;
       startAi(el?.dataset?.level || "medium");
       return match ? "pool-play" : null;
     }
@@ -712,14 +770,14 @@ export function createPoolModule(deps = {}) {
       startLocal();
       return "pool-play";
     }
-    if (act === "pool-online") return "pool-online-menu";
     if (act === "pool-create") return "pool-cmd:create";
     if (act === "pool-join") return "pool-cmd:join";
     if (act === "pool-quick-online") return "pool-cmd:quick";
     if (act === "pool-start-online") return "pool-cmd:start";
     if (act === "pool-cue") {
       selectedCue = el?.dataset?.id || selectedCue;
-      return "pool-home";
+      toast?.(`Đã trang bị ${selectedCue}`);
+      return match ? "pool-play" : "pool-home";
     }
     if (act === "pool-table") {
       selectedTable = el?.dataset?.id || selectedTable;
@@ -743,6 +801,10 @@ export function createPoolModule(deps = {}) {
       else startAi(match?.aiLevel || "medium");
       return match ? "pool-play" : null;
     }
+    if (act?.startsWith("pool-nav-")) {
+      toast?.("Tab này đang dựng theo mockup — chơi Quick/AI trước.");
+      return "pool-home";
+    }
     return null;
   }
 
@@ -760,11 +822,20 @@ export function createPoolModule(deps = {}) {
     const powerEl = root.querySelector("[data-pool-power]");
     powerEl?.addEventListener("input", () => {
       power = Number(powerEl.value) / 100;
+      const heat = root.querySelector(".pool-power-heat");
+      if (heat) heat.style.setProperty("--p", `${Math.round(power * 100)}%`);
+      const val = root.querySelector(".pool-power-val");
+      if (val) val.textContent = String(Math.round(power * 100));
       if (canvas) paintCanvas(canvas);
     });
-    const spinEl = root.querySelector("[data-pool-spin]");
-    spinEl?.addEventListener("input", () => {
-      spinX = Number(spinEl.value) / 100;
+    const disc = root.querySelector("[data-pool-spin-disc]");
+    disc?.addEventListener("pointerdown", (e) => {
+      const rect = disc.getBoundingClientRect();
+      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+      spinX = Math.max(-1, Math.min(1, nx));
+      spinY = Math.max(-1, Math.min(1, ny));
+      notify(true);
     });
   }
 
@@ -778,7 +849,6 @@ export function createPoolModule(deps = {}) {
     return true;
   }
 
-  /** Apply remote shot (online). */
   function applyRemoteShot(payload) {
     if (!match || match.moving) return false;
     const cue = match.balls.find((b) => b.id === 0);
@@ -807,9 +877,9 @@ export function createPoolModule(deps = {}) {
       turn: room.turn ?? 0,
       phase: room.phase || "break",
       groups: room.groups || [null, null],
-      status: room.status || "playing",
+      status: room.status === "lobby" ? "playing" : room.status || "playing",
       winner: room.winner,
-      message: room.message || "Online",
+      message: room.message || (room.status === "lobby" ? "Chờ bắt đầu…" : "Online"),
       ballInHand: room.ballInHand,
       meSide: room.players?.find((p) => p.name === meName)?.side ?? 0,
       roomCode: room.code,
@@ -818,6 +888,7 @@ export function createPoolModule(deps = {}) {
       shotHistory: room.shotHistory || [],
       shotLog: [],
     };
+    if (room.status === "lobby") match.message = `Phòng ${room.code} — chờ đối thủ / Bắt đầu`;
     startRenderLoop();
     notify(true);
     return match;
