@@ -11,6 +11,7 @@ import {
   oppositeSide,
   positionKey,
   repetitionResult,
+  isForbiddenPerpetualCheck,
 } from "./public/xiangqi/xiangqi-engine.js";
 
 /** @type {Map<string, object>} */
@@ -50,9 +51,23 @@ function fullState(room) {
     turnDeadline: room.turnDeadline,
     redTimeMs: room.redTimeMs,
     blackTimeMs: room.blackTimeMs,
+    clockAt: room.clockAt || null,
     chat: room.chat.slice(-40),
     createdAt: room.createdAt,
   };
+}
+
+function settleRoomClock(room) {
+  if (room.status !== "playing") return;
+  const now = Date.now();
+  const at = room.clockAt || now;
+  const elapsed = Math.max(0, now - at);
+  if (room.turn === SIDE_RED) {
+    room.redTimeMs = Math.max(0, (room.redTimeMs ?? room.turnMs) - elapsed);
+  } else {
+    room.blackTimeMs = Math.max(0, (room.blackTimeMs ?? room.turnMs) - elapsed);
+  }
+  room.clockAt = now;
 }
 
 function emitRoom(io, room) {
@@ -85,6 +100,9 @@ function startGame(room) {
   room.winner = null;
   room.checkSide = null;
   room.drawOfferFrom = null;
+  room.redTimeMs = room.turnMs || 600_000;
+  room.blackTimeMs = room.turnMs || 600_000;
+  room.clockAt = Date.now();
   room.turnDeadline = Date.now() + room.turnMs;
   // Host = Red, guest = Black
   if (room.players[0]) room.players[0].side = SIDE_RED;
@@ -217,6 +235,18 @@ export function attachXiangqiServer(io) {
       if (!legal.some(([r, c]) => r === toR && c === toC)) {
         return typeof ack === "function" && ack({ ok: false, reason: "Nước không hợp lệ." });
       }
+      if (isForbiddenPerpetualCheck(room.board, room.turn, fromR, fromC, toR, toC, room.moves)) {
+        return typeof ack === "function" && ack({
+          ok: false,
+          reason: "Không được chiếu mãi — đã chiếu 3 nước liên tiếp, phải đi nước khác.",
+        });
+      }
+      settleRoomClock(room);
+      if ((room.turn === SIDE_RED ? room.redTimeMs : room.blackTimeMs) <= 0) {
+        finishGame(room, oppositeSide(room.turn));
+        emitRoom(io, room);
+        return typeof ack === "function" && ack({ ok: false, reason: "Hết giờ." });
+      }
       const moving = room.board[fromR][fromC];
       const cap = room.board[toR][toC];
       const mover = room.turn;
@@ -236,7 +266,9 @@ export function attachXiangqiServer(io) {
       });
       if (!room.posKeys) room.posKeys = [positionKey(createInitialBoard(), SIDE_RED)];
       room.posKeys.push(positionKey(room.board, room.turn));
-      room.turnDeadline = Date.now() + room.turnMs;
+      room.clockAt = Date.now();
+      room.turnDeadline =
+        Date.now() + (room.turn === SIDE_RED ? room.redTimeMs : room.blackTimeMs);
       room.checkSide = isInCheck(room.board, room.turn) ? room.turn : null;
       const res = gameResult(room.board, room.turn);
       if (res) finishGame(room, res);

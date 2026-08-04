@@ -15,6 +15,8 @@ import {
   positionKey,
   repetitionAfterMove,
   repetitionResult,
+  isForbiddenPerpetualCheck,
+  consecutiveChecksBy,
   SIDE_BLACK,
   SIDE_RED,
 } from "./xiangqi-engine.js";
@@ -115,7 +117,7 @@ export function createXiangqiModule(deps) {
       turnDeadline: room.turnDeadline,
       redTimeMs: room.redTimeMs ?? 600000,
       blackTimeMs: room.blackTimeMs ?? 600000,
-      clockAt: Date.now(),
+      clockAt: room.clockAt || Date.now(),
       checkSide: room.checkSide || null,
       roomCode: room.code,
       host: room.host,
@@ -357,22 +359,9 @@ export function createXiangqiModule(deps) {
     match.checkSide = isInCheck(match.board, match.turn) ? match.turn : null;
 
     const rep = repetitionResult(match.posKeys || [], match.moves || []);
-    if (rep) {
-      if (rep === "draw") {
-        toast?.("⚖ Lặp thế 3 lần — hòa cờ (không kéo dài ván).");
-        finishGame("draw");
-        return;
-      }
-      const loser = oppositeSide(rep);
-      toast?.(
-        `⚖ Phạm chiếu mãi / chiếu liên tục — ${sideLabel(loser)} thua!`
-      );
-      finishGame(rep);
-      if (match) {
-        match.endReason = "perpetual-check";
-        match.revealMate = false;
-        match.showEndOverlay = true;
-      }
+    if (rep === "draw") {
+      toast?.("⚖ Lặp thế 3 lần — hòa cờ (không kéo dài ván).");
+      finishGame("draw");
       return;
     }
 
@@ -407,7 +396,19 @@ export function createXiangqiModule(deps) {
       let mv = null;
       try {
         const legal = allLegalMoves(match.board, side);
-        const safe = legal.filter((m) => {
+        const safe = legal.filter(
+          (m) =>
+            !isForbiddenPerpetualCheck(
+              match.board,
+              side,
+              m.fromR,
+              m.fromC,
+              m.toR,
+              m.toC,
+              match.moves
+            )
+        );
+        const nonDraw = safe.filter((m) => {
           const rep = repetitionAfterMove(
             match.board,
             side,
@@ -418,11 +419,11 @@ export function createXiangqiModule(deps) {
             match.posKeys,
             match.moves
           );
-          return !(rep && rep !== "draw" && rep === oppositeSide(side));
+          return rep !== "draw";
         });
         mv = pickAiMove(match.board, side, level, {
           ply: match.moves?.length || 0,
-          legalPool: safe.length ? safe : legal,
+          legalPool: nonDraw.length ? nonDraw : safe.length ? safe : legal,
         });
       } catch (err) {
         console.error("pickAiMove", err);
@@ -508,6 +509,14 @@ export function createXiangqiModule(deps) {
     const legal = legalMovesFrom(match.board, fromR, fromC, match.turn);
     if (!legal.some(([tr, tc]) => tr === toR && tc === toC)) return false;
 
+    if (
+      isForbiddenPerpetualCheck(match.board, match.turn, fromR, fromC, toR, toC, match.moves)
+    ) {
+      toast?.("⛔ Không được chiếu mãi — đã chiếu 3 nước liên tiếp, phải đi nước khác!");
+      beep?.(220, 120, "square", 0.05);
+      return false;
+    }
+
     if (match.mode === "online") {
       selected = null;
       targets = [];
@@ -564,7 +573,10 @@ export function createXiangqiModule(deps) {
       // Click quân mình khác → chọn lại
       if (p !== "." && pieceSide(p) === mySide) {
         selected = [r, c];
-        targets = legalMovesFrom(board, r, c, mySide);
+        targets = legalMovesFrom(board, r, c, mySide).filter(
+          ([tr, tc]) =>
+            !isForbiddenPerpetualCheck(board, mySide, r, c, tr, tc, match.moves)
+        );
         return true;
       }
       selected = null;
@@ -574,7 +586,10 @@ export function createXiangqiModule(deps) {
 
     if (p !== "." && pieceSide(p) === mySide) {
       selected = [r, c];
-      targets = legalMovesFrom(board, r, c, mySide);
+      targets = legalMovesFrom(board, r, c, mySide).filter(
+        ([tr, tc]) =>
+          !isForbiddenPerpetualCheck(board, mySide, r, c, tr, tc, match.moves)
+      );
       return true;
     }
     return false;
@@ -742,6 +757,7 @@ export function createXiangqiModule(deps) {
 
   function getDisplayTimes() {
     if (!match) return { red: 0, black: 0, current: 0 };
+    if (match.status === "playing" && !match.clockAt) match.clockAt = Date.now();
     let red = match.redTimeMs ?? 0;
     let black = match.blackTimeMs ?? 0;
     if (match.status === "playing" && match.clockAt) {
@@ -756,41 +772,43 @@ export function createXiangqiModule(deps) {
     };
   }
 
-  /** Gọi mỗi ~250ms từ UI — cập nhật đồng hồ + hết giờ thì thua. */
+  /** Gọi mỗi ~200ms từ UI — cập nhật đồng hồ + hết giờ thì thua. */
   function patchClocksIn(rootEl) {
     if (!match || !rootEl) return false;
-    if (match.status !== "playing") {
-      const times = getDisplayTimes();
-      const main = rootEl.querySelector("[data-xq-clock]");
-      if (main) main.textContent = formatTime(times.current || times.red);
-      const redEl = rootEl.querySelector("[data-xq-clock-red]");
-      const blackEl = rootEl.querySelector("[data-xq-clock-black]");
-      if (redEl) redEl.textContent = formatTime(times.red);
-      if (blackEl) blackEl.textContent = formatTime(times.black);
-      return true;
-    }
+    if (match.status === "playing" && !match.clockAt) match.clockAt = Date.now();
 
     const times = getDisplayTimes();
-    const main = rootEl.querySelector("[data-xq-clock]");
-    if (main) {
-      main.textContent = formatTime(times.current);
-      main.classList.toggle("is-low", times.current <= 30000);
-      main.classList.toggle("is-critical", times.current <= 10000);
-    }
+    const mains = rootEl.querySelectorAll("[data-xq-clock]");
+    mains.forEach((main) => {
+      main.textContent = formatTime(times.current || times.red);
+      if (match.status === "playing") {
+        main.classList.toggle("is-low", times.current <= 30000);
+        main.classList.toggle("is-critical", times.current <= 10000);
+      }
+    });
     const redEl = rootEl.querySelector("[data-xq-clock-red]");
     const blackEl = rootEl.querySelector("[data-xq-clock-black]");
     if (redEl) {
       redEl.textContent = formatTime(times.red);
-      redEl.classList.toggle("is-active-clock", match.turn === SIDE_RED);
-      redEl.classList.toggle("is-low", match.turn === SIDE_RED && times.red <= 30000);
+      redEl.classList.toggle("is-active-clock", match.status === "playing" && match.turn === SIDE_RED);
+      redEl.classList.toggle("is-low", match.status === "playing" && match.turn === SIDE_RED && times.red <= 30000);
     }
     if (blackEl) {
       blackEl.textContent = formatTime(times.black);
-      blackEl.classList.toggle("is-active-clock", match.turn === SIDE_BLACK);
-      blackEl.classList.toggle("is-low", match.turn === SIDE_BLACK && times.black <= 30000);
+      blackEl.classList.toggle("is-active-clock", match.status === "playing" && match.turn === SIDE_BLACK);
+      blackEl.classList.toggle(
+        "is-low",
+        match.status === "playing" && match.turn === SIDE_BLACK && times.black <= 30000
+      );
     }
 
-    if (times.current <= 0) {
+    // Header label: side to move
+    const label = rootEl.querySelector("[data-xq-clock-label]");
+    if (label && match.status === "playing") {
+      label.textContent = `Đồng hồ ${match.turn === SIDE_RED ? "Đỏ" : "Đen"}`;
+    }
+
+    if (match.status === "playing" && times.current <= 0) {
       settleClock();
       const loser = match.turn;
       finishGame(loser === SIDE_RED ? SIDE_BLACK : SIDE_RED);
@@ -798,9 +816,7 @@ export function createXiangqiModule(deps) {
         match.endReason = "timeout";
         match.revealMate = false;
         match.showEndOverlay = true;
-        toast?.(
-          `⏱ Hết giờ — ${sideLabel(loser)} thua!`
-        );
+        toast?.(`⏱ Hết giờ — ${sideLabel(loser)} thua!`);
       }
       notifyUi();
       return true;
@@ -946,7 +962,7 @@ export function createXiangqiModule(deps) {
               <li>Pháo nhảy 1 quân để ăn</li>
               <li>Tượng không qua sông · Mã bị chặn chân</li>
               <li>Lặp thế 3 lần → hòa</li>
-              <li>Chiếu mãi / chiếu liên tục → bên chiếu thua</li>
+              <li>Chiếu liên tiếp tối đa 3 nước — nước thứ 4 không được chiếu</li>
             </ul>
           </div>
         </div>
@@ -1134,7 +1150,7 @@ export function createXiangqiModule(deps) {
           <div class="xq-play-timer-pill">
             <span class="xq-timer-ico" aria-hidden="true">⏱</span>
             <div>
-              <small>Đồng hồ ${match.turn === SIDE_RED ? "Đỏ" : "Đen"}</small>
+              <small data-xq-clock-label>Đồng hồ ${match.turn === SIDE_RED ? "Đỏ" : "Đen"}</small>
               <strong data-xq-clock>${formatTime(getDisplayTimes().current)}</strong>
             </div>
           </div>
@@ -1215,6 +1231,25 @@ export function createXiangqiModule(deps) {
                   : `<div class="xq-check-banner is-hidden" data-xq-check-banner hidden></div>`
               }
               <div class="xq-turn-chip" data-xq-turn-chip>${getTurnChipText()}</div>
+              ${
+                match.status === "playing" && match.mode !== "online"
+                  ? `<button type="button" class="xq-undo-fab" data-act="xq-undo" ${
+                      match.moves?.length ? "" : "disabled"
+                    } title="Đi lại">↩ Đi lại${
+                      match.mode === "ai" ? "" : ""
+                    }${
+                      consecutiveChecksBy(match.moves, match.turn) >= 3
+                        ? " · không chiếu mãi"
+                        : ""
+                    }</button>`
+                  : ""
+              }
+              ${
+                consecutiveChecksBy(match.moves, match.mode === "local" ? match.turn : match.meSide) >= 3 &&
+                match.status === "playing"
+                  ? `<p class="xq-perpetual-warn">⚠ Đã chiếu 3 nước liên tiếp — nước tiếp theo không được chiếu!</p>`
+                  : ""
+              }
               ${
                 lastMove()
                   ? `<p class="xq-last-move-caption" data-xq-last-caption>Nước vừa đi: <strong>${escapeHtml(

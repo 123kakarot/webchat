@@ -41,6 +41,10 @@ export const EVAL_WEIGHTS = {
   midgame: 0.8,
   endgame: 1,
   blunder: 1,
+  coordination: 1,
+  initiative: 0.9,
+  structure: 0.85,
+  pressure: 0.9,
 };
 
 /** King safety feature weights */
@@ -78,11 +82,12 @@ export const MOBILITY_W = {
 
 /** Search */
 export const SEARCH = {
-  easy: { depth: 2, noise: 35, useBook: false },
-  medium: { depth: 3, noise: 0, useBook: true },
-  hard: { depth: 4, noise: 0, useBook: true },
-  master: { depth: 4, noise: 0, useBook: true },
+  easy: { depth: 2, noise: 35, useBook: false, bookPlies: 0 },
+  medium: { depth: 3, noise: 0, useBook: true, bookPlies: 8 },
+  hard: { depth: 4, noise: 0, useBook: true, bookPlies: 12 },
+  master: { depth: 5, noise: 0, useBook: true, bookPlies: 20, master: true },
   qDepth: 2,
+  masterQDepth: 4,
   ttSize: 1 << 16,
   mateScore: 100000,
 };

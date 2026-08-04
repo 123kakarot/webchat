@@ -367,9 +367,16 @@ export function mountCaroApp(ctx) {
   function startTimerUi() {
     stopTimer();
     timerId = setInterval(() => {
-      if (view === "xiangqi-play" && xiangqi.getMatch()?.status === "playing") {
-        xiangqi.patchClocksIn(root);
-        return;
+      try {
+        if (view === "xiangqi-play") {
+          const m = xiangqi.getMatch();
+          if (m && (m.status === "playing" || m.status === "lobby")) {
+            xiangqi.patchClocksIn(root);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("[xq-clock]", err);
       }
       const tEl = root.querySelector("[data-caro-timer]");
       if (!tEl) return;
@@ -383,12 +390,11 @@ export function mountCaroApp(ctx) {
       tEl.textContent = String(left);
       if (left <= 5 && left > 0) beep(880, 40, "square", 0.03);
       if (localMatch && localMatch.status === "playing" && left <= 0) {
-        // local timeout -> current player loses
         const loser = localMatch.turn;
         const winnerStone = loser === STONE_X ? STONE_O : STONE_X;
         endLocal(winnerStone === STONE_X ? "x" : "o", "timeout");
       }
-    }, 250);
+    }, 200);
   }
 
   async function requireLogin() {

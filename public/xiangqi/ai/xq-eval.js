@@ -118,8 +118,13 @@ export function evaluateBreakdown(board, meta = {}) {
     midgame: 0,
     endgame: 0,
     blunder: 0,
+    coordination: 0,
+    initiative: 0,
+    structure: 0,
+    pressure: 0,
   };
 
+  const master = Boolean(meta.master);
   const redKing = findKing(board, SIDE_RED);
   const blackKing = findKing(board, SIDE_BLACK);
 
@@ -188,13 +193,28 @@ export function evaluateBreakdown(board, meta = {}) {
   // Hung pieces — skip heavy O(n²) scan in hot path; light proxy via mobility already
   terms.threat += 0;
 
+  if (master) {
+    terms.coordination += coordinationTerms(board);
+    terms.structure += structureTerms(board);
+    terms.initiative += (terms.attack - terms.defense) * 0.12;
+    // Heavy tactical scans only at root — too costly every leaf
+    if (meta.masterHeavy) {
+      terms.pressure += pressureTerms(board, redKing, blackKing);
+      terms.threat += lightHanging(board);
+    } else {
+      terms.pressure += terms.attack * 0.06;
+    }
+  }
+
   // Phase bonuses
   if (ply < OPENING_PLIES) {
     terms.opening += openingTerms(board, ply);
   } else if (phase < 0.55) {
     terms.midgame += terms.center * 0.15;
+    if (master) terms.midgame += terms.coordination * 0.08;
   } else {
     terms.endgame += endgameTerms(board);
+    if (master) terms.endgame += masterEndgame(board, redKing, blackKing);
   }
 
   let total = 0;
@@ -284,6 +304,123 @@ function endgameTerms(board) {
       if (p === "p" && isCrossedPawn(p, r)) s -= 25;
       if (p === "R") s += pieceMoves(board, r, c).length * 2;
       if (p === "r") s -= pieceMoves(board, r, c).length * 2;
+    }
+  }
+  return s;
+}
+
+function coordinationTerms(board) {
+  let s = 0;
+  // Battery: two rooks / rook+cannon same file
+  for (let c = 0; c < 9; c++) {
+    let R = 0,
+      C = 0,
+      r = 0,
+      cn = 0;
+    for (let row = 0; row < 10; row++) {
+      const p = board[row][c];
+      if (p === "R") R++;
+      if (p === "C") C++;
+      if (p === "r") r++;
+      if (p === "c") cn++;
+    }
+    if (R >= 2) s += 45;
+    if (R && C) s += 35;
+    if (r >= 2) s -= 45;
+    if (r && cn) s -= 35;
+  }
+  // Advisors+elephants present
+  const na = countType(board, "A");
+  const ne = countType(board, "B");
+  const naB = countType(board, "a");
+  const neB = countType(board, "b");
+  if (na === 2 && ne === 2) s += 40;
+  if (naB === 2 && neB === 2) s -= 40;
+  return s;
+}
+
+function structureTerms(board) {
+  let s = 0;
+  // Connected crossed pawns
+  for (let r = 0; r < 10; r++) {
+    for (let c = 0; c < 8; c++) {
+      if (board[r][c] === "P" && board[r][c + 1] === "P") s += 18;
+      if (board[r][c] === "p" && board[r][c + 1] === "p") s -= 18;
+    }
+  }
+  return s;
+}
+
+function pressureTerms(board, redKing, blackKing) {
+  let s = 0;
+  if (!redKing || !blackKing) return 0;
+  // Pieces aiming near enemy king (coarse)
+  for (let r = 0; r < 10; r++) {
+    for (let c = 0; c < 9; c++) {
+      const p = board[r][c];
+      if (p === "." || p.toLowerCase() === "k") continue;
+      const side = pieceSide(p);
+      const ek = side === SIDE_RED ? blackKing : redKing;
+      const moves = pieceMoves(board, r, c);
+      let near = 0;
+      for (const [tr, tc] of moves) {
+        if (Math.abs(tr - ek[0]) + Math.abs(tc - ek[1]) <= 2) near++;
+      }
+      const sign = side === SIDE_RED ? 1 : -1;
+      s += sign * near * 6;
+    }
+  }
+  return s;
+}
+
+function lightHanging(board) {
+  let s = 0;
+  // Sample major pieces only — hung if attacked and not defended (coarse)
+  for (let r = 0; r < 10; r++) {
+    for (let c = 0; c < 9; c++) {
+      const p = board[r][c];
+      if (p !== "R" && p !== "r" && p !== "C" && p !== "c" && p !== "N" && p !== "n") continue;
+      const side = pieceSide(p);
+      const opp = oppositeSide(side);
+      let attacked = false;
+      let defended = false;
+      for (let rr = 0; rr < 10; rr++) {
+        for (let cc = 0; cc < 9; cc++) {
+          const q = board[rr][cc];
+          if (q === ".") continue;
+          const qs = pieceSide(q);
+          if (qs !== opp && qs !== side) continue;
+          const ms = pieceMoves(board, rr, cc);
+          if (!ms.some(([tr, tc]) => tr === r && tc === c)) continue;
+          if (qs === opp) attacked = true;
+          else defended = true;
+        }
+      }
+      if (attacked && !defended) {
+        const sign = side === SIDE_RED ? 1 : -1;
+        s -= sign * Math.min(220, (MATERIAL[p] || 100) * 0.35);
+      }
+    }
+  }
+  return s;
+}
+
+function masterEndgame(board, redKing, blackKing) {
+  let s = 0;
+  // Push passed-ish pawns, centralize rook, cut king
+  for (let r = 0; r < 10; r++) {
+    for (let c = 0; c < 9; c++) {
+      const p = board[r][c];
+      if (p === "P" && isCrossedPawn(p, r)) {
+        s += (9 - r) * 8;
+        if (blackKing) s += Math.max(0, 4 - Math.abs(c - blackKing[1])) * 4;
+      }
+      if (p === "p" && isCrossedPawn(p, r)) {
+        s -= r * 8;
+        if (redKing) s -= Math.max(0, 4 - Math.abs(c - redKing[1])) * 4;
+      }
+      if (p === "R" && c >= 3 && c <= 5) s += 22;
+      if (p === "r" && c >= 3 && c <= 5) s -= 22;
     }
   }
   return s;

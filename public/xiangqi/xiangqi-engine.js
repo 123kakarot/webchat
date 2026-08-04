@@ -318,50 +318,54 @@ export function positionKey(board, side) {
 }
 
 /**
- * Luật lặp / chiếu mãi (đơn giản hóa Asian rules):
- * - Cùng thế + cùng lượt xuất hiện ≥ 3 lần:
- *   - Nếu bên vừa đi đã chiếu liên tiếp ≥ 3 nước của họ → phạm chiếu mãi → bên đó thua
- *   - Ngược lại → hòa (lặp nước kéo dài ván)
- *
- * @param {string[]} posKeys lịch sử khóa sau mỗi nước (kể cả thế ban đầu)
- * @param {Array<{ side: string, gaveCheck?: boolean }>} moves
- * @returns {null | "draw" | "red" | "black"} null | hòa | bên thắng
+ * Số nước chiếu liên tiếp của `side` (chỉ đếm nước của bên đó).
+ */
+export function consecutiveChecksBy(moves, side) {
+  let n = 0;
+  for (let i = (moves?.length || 0) - 1; i >= 0; i--) {
+    if (moves[i].side !== side) continue;
+    if (moves[i].gaveCheck) n++;
+    else break;
+  }
+  return n;
+}
+
+export function moveGivesCheck(board, side, fromR, fromC, toR, toC) {
+  const next = applyMove(board, fromR, fromC, toR, toC);
+  return isInCheck(next, oppositeSide(side));
+}
+
+/**
+ * Sau khi đã chiếu liên tiếp 3 nước, nước thứ 4 (và tiếp) không được chiếu nữa.
+ * Trả true nếu nước này bị cấm.
+ */
+export function isForbiddenPerpetualCheck(board, side, fromR, fromC, toR, toC, moves) {
+  if (consecutiveChecksBy(moves, side) < 3) return false;
+  return moveGivesCheck(board, side, fromR, fromC, toR, toC);
+}
+
+/**
+ * Luật lặp thế 3 lần → hòa (không còn xử thua chiếu mãi ở đây;
+ * chiếu mãi được chặn trước khi đi bằng isForbiddenPerpetualCheck).
  */
 export function repetitionResult(posKeys, moves) {
   if (!posKeys?.length || posKeys.length < 2) return null;
   const cur = posKeys[posKeys.length - 1];
   let count = 0;
   for (const k of posKeys) if (k === cur) count++;
-  if (count < 3) return null;
-
-  const last = moves?.[moves.length - 1];
-  if (!last?.side) return "draw";
-
-  // Đếm số nước chiếu liên tiếp của đúng bên vừa đi (bỏ qua nước đối thủ)
-  let consecutiveChecks = 0;
-  for (let i = moves.length - 1; i >= 0; i--) {
-    if (moves[i].side !== last.side) continue;
-    if (moves[i].gaveCheck) consecutiveChecks++;
-    else break;
-  }
-
-  // Chiếu mãi / chiếu liên tục trong vòng lặp ≥ 3 lần → bên chiếu thua
-  if (consecutiveChecks >= 3) {
-    return oppositeSide(last.side);
-  }
-  return "draw";
+  if (count >= 3) return "draw";
+  void moves;
+  return null;
 }
 
 /**
- * Thử nước đi có dẫn tới kết quả lặp không (để AI tránh chiếu mãi).
- * @returns {null | "draw" | "red" | "black"}
+ * Thử nước đi có dẫn tới lặp thế hòa không.
  */
 export function repetitionAfterMove(board, side, fromR, fromC, toR, toC, posKeys, moves) {
   const next = applyMove(board, fromR, fromC, toR, toC);
   const nextSide = oppositeSide(side);
-  const gaveCheck = isInCheck(next, nextSide);
   const keys = [...(posKeys || []), positionKey(next, nextSide)];
-  const mv = [...(moves || []), { side, gaveCheck }];
+  const mv = [...(moves || []), { side, gaveCheck: isInCheck(next, nextSide) }];
   return repetitionResult(keys, mv);
 }
 
