@@ -69,19 +69,17 @@ export function isCue(n) {
   return n === 0;
 }
 
-/** Pocket lips on cushion line (table units) — aligned with playable mouth, not outer corner. */
+/** Pocket mouths at play-rect corners / mid-rails (felt line on art). */
 export function pockets() {
-  const lip = CUSHION + 4;
+  const { minX, maxX, minY, maxY } = playBounds();
   const midX = TABLE_W / 2;
-  const farX = TABLE_W - lip;
-  const farY = TABLE_H - lip;
   return [
-    { x: lip, y: lip, kind: "corner" },
-    { x: midX, y: lip, kind: "side" },
-    { x: farX, y: lip, kind: "corner" },
-    { x: lip, y: farY, kind: "corner" },
-    { x: midX, y: farY, kind: "side" },
-    { x: farX, y: farY, kind: "corner" },
+    { x: minX, y: minY, kind: "corner" },
+    { x: midX, y: minY, kind: "side" },
+    { x: maxX, y: minY, kind: "corner" },
+    { x: minX, y: maxY, kind: "corner" },
+    { x: midX, y: maxY, kind: "side" },
+    { x: maxX, y: maxY, kind: "corner" },
   ];
 }
 
@@ -267,7 +265,7 @@ function enforcePlayBounds(ball, { bounce = false } = {}) {
       ball.vy = -ball.vy * CUSHION_REST;
       hit = true;
     }
-  } else   if (ball.y > maxY) {
+  } else if (ball.y > maxY) {
     ball.y = maxY;
     if (bounce && ball.vy > 0) {
       strength = Math.max(strength, Math.abs(ball.vy));
