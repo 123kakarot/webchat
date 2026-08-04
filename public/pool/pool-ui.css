@@ -862,11 +862,15 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
   font-style: normal;
   font-weight: 800;
   color: #111;
-  background: radial-gradient(circle at 35% 30%, #fff, var(--c, #999) 55%, #222);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: radial-gradient(circle at 32% 28%, #fff 0%, var(--c, #999) 52%, #1a1a1a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 4px rgba(20, 60, 140, 0.25);
 }
 .pool-ball-ico.is-stripe {
-  background: linear-gradient(180deg, #f5f5f5 0%, #f5f5f5 32%, var(--c, #999) 32%, var(--c, #999) 68%, #f5f5f5 68%, #f5f5f5 100%);
+  background: linear-gradient(180deg, #f8f8f8 0%, #f8f8f8 28%, var(--c, #999) 28%, var(--c, #999) 72%, #f8f8f8 72%, #f8f8f8 100%);
+  box-shadow:
+    inset 0 -2px 4px rgba(0, 0, 0, 0.12),
+    0 2px 4px rgba(20, 60, 140, 0.22);
 }
 .pool-ball-ico.is-out {
   opacity: 0.28;

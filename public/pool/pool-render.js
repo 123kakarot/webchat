@@ -3,7 +3,7 @@
 import { FELT_GUARD } from "./pool-physics.js";
 
 const tableLayerCache = new Map();
-const TABLE_STYLE_VER = "v7-art";
+const TABLE_STYLE_VER = "v8-balls";
 export const TABLE_BG_URL = "/pool/table-arena.png";
 export const TABLE_BG_VER = "8";
 /** Felt region on mockup (normalized 0–1). */
@@ -541,73 +541,96 @@ export function paintCueAimOverlay(ctx, opt) {
   ctx.stroke();
 }
 
+function ballGlossGradient(ctx, x, y, r, base, { light = true } = {}) {
+  const g = ctx.createRadialGradient(x - r * 0.38, y - r * 0.42, r * 0.02, x + r * 0.08, y + r * 0.1, r * 1.08);
+  if (light) {
+    g.addColorStop(0, "#ffffff");
+    g.addColorStop(0.22, shadeColor(base, 55));
+    g.addColorStop(0.55, base);
+    g.addColorStop(0.88, shadeColor(base, -42));
+    g.addColorStop(1, shadeColor(base, -72));
+  } else {
+    g.addColorStop(0, "#4a4a4a");
+    g.addColorStop(0.35, "#222");
+    g.addColorStop(0.7, "#0a0a0a");
+    g.addColorStop(1, "#000");
+  }
+  return g;
+}
+
+function drawBallNumber(ctx, x, y, r, id) {
+  const nr = r * (id >= 9 ? 0.44 : 0.4);
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(x, y, nr, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(0,0,0,0.08)";
+  ctx.lineWidth = Math.max(0.5, r * 0.035);
+  ctx.stroke();
+  ctx.fillStyle = id === 8 ? "#111" : "#0a0a0a";
+  ctx.font = `800 ${Math.max(9, r * 0.58)}px system-ui, "Segoe UI", sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(String(id), x, y + 0.5);
+}
+
 function drawOneBall(ctx, x, y, r, b, colors) {
   const base = colors[b.id] || "#ccc";
-  ctx.fillStyle = "rgba(0,0,0,0.32)";
+  const id = b.id;
+
+  ctx.fillStyle = "rgba(28, 72, 160, 0.22)";
   ctx.beginPath();
-  ctx.ellipse(x + r * 0.1, y + r * 0.58, r * 1.05, r * 0.4, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + r * 0.06, y + r * 0.62, r * 1.02, r * 0.36, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.beginPath();
+  ctx.ellipse(x + r * 0.04, y + r * 0.58, r * 0.88, r * 0.28, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  const body = ctx.createRadialGradient(x - r * 0.36, y - r * 0.42, r * 0.05, x + r * 0.06, y + r * 0.12, r * 1.1);
-  if (b.id === 0) {
-    body.addColorStop(0, "#ffffff");
-    body.addColorStop(0.35, "#f6f6f6");
-    body.addColorStop(0.72, "#d4d4d4");
-    body.addColorStop(1, "#9a9a9a");
-  } else if (b.id === 8) {
-    body.addColorStop(0, "#555");
-    body.addColorStop(0.4, "#1a1a1a");
-    body.addColorStop(1, "#000");
-  } else {
-    body.addColorStop(0, shadeColor(base, 70));
-    body.addColorStop(0.32, base);
-    body.addColorStop(0.72, shadeColor(base, -35));
-    body.addColorStop(1, shadeColor(base, -80));
-  }
   ctx.beginPath();
-  ctx.fillStyle = body;
   ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fill();
 
-  if (b.id >= 9 && b.id <= 15) {
+  if (id === 0) {
+    ctx.fillStyle = ballGlossGradient(ctx, x, y, r, "#f4f4f4");
+    ctx.fill();
+  } else if (id >= 9 && id <= 15) {
+    ctx.fillStyle = ballGlossGradient(ctx, x, y, r, "#f0f0f0");
+    ctx.fill();
     ctx.save();
     ctx.beginPath();
     ctx.arc(x, y, r - 0.5, 0, Math.PI * 2);
     ctx.clip();
-    ctx.fillStyle = "#f3f3f3";
-    ctx.fillRect(x - r, y - r * 0.42, r * 2, r * 0.84);
+    const bandH = r * 0.52;
     const stripe = ctx.createLinearGradient(x - r, y, x + r, y);
-    stripe.addColorStop(0, shadeColor(base, -20));
+    stripe.addColorStop(0, shadeColor(base, -28));
     stripe.addColorStop(0.5, base);
-    stripe.addColorStop(1, shadeColor(base, -20));
+    stripe.addColorStop(1, shadeColor(base, -28));
     ctx.fillStyle = stripe;
-    ctx.fillRect(x - r, y - r * 0.28, r * 2, r * 0.56);
+    ctx.fillRect(x - r, y - bandH * 0.5, r * 2, bandH);
     ctx.restore();
-  }
-
-  if (b.id !== 0) {
-    const nr = r * (b.id >= 9 ? 0.46 : 0.42);
-    ctx.fillStyle = b.id === 8 ? "#0d0d0d" : "#ffffff";
-    ctx.beginPath();
-    ctx.arc(x, y, nr, 0, Math.PI * 2);
+  } else if (id === 8) {
+    ctx.fillStyle = ballGlossGradient(ctx, x, y, r, "#222", { light: false });
     ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,0.12)";
-    ctx.lineWidth = Math.max(0.6, r * 0.04);
-    ctx.stroke();
-    ctx.fillStyle = b.id === 8 ? "#fff" : "#111";
-    ctx.font = `800 ${Math.max(10, r * 0.62)}px system-ui,sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(String(b.id), x, y + 0.5);
+  } else {
+    ctx.fillStyle = ballGlossGradient(ctx, x, y, r, base);
+    ctx.fill();
   }
 
-  ctx.fillStyle = "rgba(255,255,255,0.88)";
+  ctx.strokeStyle = "rgba(0,0,0,0.14)";
+  ctx.lineWidth = Math.max(0.45, r * 0.028);
   ctx.beginPath();
-  ctx.arc(x - r * 0.32, y - r * 0.36, r * 0.19, 0, Math.PI * 2);
+  ctx.arc(x, y, r - 0.3, 0, Math.PI * 2);
+  ctx.stroke();
+
+  if (id !== 0) drawBallNumber(ctx, x, y, r, id);
+
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  ctx.beginPath();
+  ctx.arc(x - r * 0.34, y - r * 0.38, r * 0.2, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
   ctx.beginPath();
-  ctx.arc(x - r * 0.18, y - r * 0.22, r * 0.08, 0, Math.PI * 2);
+  ctx.arc(x - r * 0.2, y - r * 0.24, r * 0.07, 0, Math.PI * 2);
   ctx.fill();
 }
 
