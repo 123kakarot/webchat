@@ -253,14 +253,37 @@ export function createPoolModule(deps = {}) {
     }
     const cue = match.balls.find((b) => b.id === 0 && !b.pocketed);
     if (cue) {
-      const back = 40 + power * 75;
-      const tip = 16;
-      ctx.strokeStyle = "#d4a574";
-      ctx.lineWidth = 6;
+      const pull = 90 + power * 175;
+      const tipGap = BALL_R + 4;
+      const sx = w / TABLE_W;
+      const sy = h / TABLE_H;
+      const cos = Math.cos(aimAngle);
+      const sin = Math.sin(aimAngle);
+      const tipX = cue.x * sx - cos * tipGap * sx;
+      const tipY = cue.y * sy - sin * tipGap * sy;
+      const buttX = cue.x * sx - cos * pull * sx;
+      const buttY = cue.y * sy - sin * pull * sy;
+      const midX = cue.x * sx - cos * pull * 0.42 * sx;
+      const midY = cue.y * sy - sin * pull * 0.42 * sy;
       ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "#1a1208";
+      ctx.lineWidth = Math.max(5, 7 * sx);
       ctx.beginPath();
-      ctx.moveTo(cue.x * sx - Math.cos(aimAngle) * tip * sx, cue.y * sy - Math.sin(aimAngle) * tip * sy);
-      ctx.lineTo(cue.x * sx - Math.cos(aimAngle) * back * sx, cue.y * sy - Math.sin(aimAngle) * back * sy);
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(midX, midY);
+      ctx.stroke();
+      ctx.strokeStyle = "#c9a066";
+      ctx.lineWidth = Math.max(6, 9 * sx);
+      ctx.beginPath();
+      ctx.moveTo(midX, midY);
+      ctx.lineTo(buttX, buttY);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.35)";
+      ctx.lineWidth = Math.max(2, 2.5 * sx);
+      ctx.beginPath();
+      ctx.moveTo(midX, midY);
+      ctx.lineTo(buttX, buttY);
       ctx.stroke();
     }
   }
@@ -811,13 +834,14 @@ export function createPoolModule(deps = {}) {
   function mountPlay(root) {
     const canvas = root.querySelector("[data-pool-canvas]");
     if (canvas) {
+      const needRebind = canvasEl !== canvas;
       canvasEl = canvas;
-      canvas._poolBound = false;
-      bindCanvas(canvas);
+      if (needRebind || !canvas._poolBound) {
+        canvas._poolBound = false;
+        bindCanvas(canvas);
+      }
       paintCanvas(canvas);
-      loopRunning = false;
-      stopAnim();
-      startRenderLoop();
+      if (!loopRunning) startRenderLoop();
     }
     const powerEl = root.querySelector("[data-pool-power]");
     powerEl?.addEventListener("input", () => {

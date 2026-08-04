@@ -162,16 +162,32 @@ export function mountCaroApp(ctx) {
     },
     onUpdate: () => {
       if (view === "pool-play") {
-        if (!pool.patchCanvas(root)) render();
-        else {
-          const msg = root.querySelector(".pool-msg");
-          const m = pool.getMatch();
-          if (msg && m) {
-            msg.textContent = `${m.message || ""}${m.moving ? " · bi đang chạy…" : ""}${
-              pool.isAiBusy() ? " · AI đang nghĩ…" : ""
-            }`;
+        try {
+          if (!pool.patchCanvas(root)) render();
+          else {
+            const m = pool.getMatch();
+            if (m) {
+              const statusEl = root.querySelector(".pool-arena-status");
+              if (statusEl) {
+                statusEl.textContent = `${m.message || ""}${m.moving ? " · bi đang chạy…" : ""}${
+                  pool.isAiBusy() ? " · AI đang nghĩ…" : ""
+                }`;
+              }
+              const clockEl = root.querySelector(".pool-vs-clock");
+              if (clockEl && m.turnDeadline) {
+                const left = Math.max(0, Math.ceil((m.turnDeadline - Date.now()) / 1000));
+                const mm = String(Math.floor(left / 60)).padStart(2, "0");
+                const ss = String(left % 60).padStart(2, "0");
+                clockEl.textContent = `${mm}:${ss}`;
+              }
+              const heat = root.querySelector(".pool-power-heat");
+              const pwr = root.querySelector("[data-pool-power]");
+              if (heat && pwr) heat.style.setProperty("--p", `${pwr.value}%`);
+            }
+            if (m?.status === "finished") render();
           }
-          if (m?.status === "finished") render();
+        } catch (err) {
+          console.error("pool onUpdate", err);
         }
         return;
       }
@@ -182,6 +198,9 @@ export function mountCaroApp(ctx) {
   ctx.socket?.on?.("pool:state", (room) => {
     if (!room) return;
     const m = pool.getMatch();
+    // Không ghi đè trận AI/local bằng state online lạ
+    if (m && m.mode !== "online") return;
+    if (m?.mode === "online" && m.roomCode && room.code && room.code !== m.roomCode) return;
     // Đừng snap bàn khi bi đang animate
     if (m?.moving && room.status === "playing") {
       m._pendingRoom = room;
@@ -414,6 +433,7 @@ export function mountCaroApp(ctx) {
       render();
     } catch (err) {
       console.error("caro render", err);
+      if (view === "pool-play" && pool.getMatch()) return;
       view = "board-hub";
       onlineRoom = null;
       localMatch = null;
@@ -1940,7 +1960,13 @@ export function mountCaroApp(ctx) {
       }</div>`;
       startTimerUi();
       if (view === "pool-play") {
-        queuePromise.resolve().then(() => pool.mountPlay(root));
+        requestAnimationFrame(() => {
+          try {
+            pool.mountPlay(root);
+          } catch (err) {
+            console.error("pool mountPlay", err);
+          }
+        });
       }
       saveUiSession();
       return;
