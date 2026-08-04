@@ -1174,6 +1174,9 @@ html.pool-force-landscape body {
   }
 }
 
+.pool-arena .pool-canvas:not(.is-preparing) {
+  cursor: crosshair;
+}
 .pool-arena .pool-canvas.is-preparing {
   cursor: grabbing;
   box-shadow:

@@ -81,6 +81,7 @@ export function createPoolModule(deps = {}) {
   let aimPrep = false;
   let prepPointerId = null;
   let prepIsTouch = false;
+  let prepLockAim = 0;
   let loopRunning = false;
   let physAcc = 0;
   let lastFrame = 0;
@@ -222,6 +223,7 @@ export function createPoolModule(deps = {}) {
     aiBusy = false;
     aimPrep = false;
     prepPointerId = null;
+    prepLockAim = 0;
     match = null;
     canvasEl = null;
     uiTab = "home";
@@ -489,13 +491,26 @@ export function createPoolModule(deps = {}) {
       const cue = match.balls.find((b) => b.id === 0 && !b.pocketed);
       if (!cue) return;
 
+      // Desktop: rê chuột → cơ xoay theo (chưa giữ chuột)
+      if (e.type === "pointermove" && !aimPrep && e.pointerType === "mouse") {
+        aimAngle = Math.atan2(y - cue.y, x - cue.x);
+        if (power < 0.32) power = 0.38;
+        paintCanvas(canvas);
+        return;
+      }
+
       if (e.type === "pointerdown") {
         e.preventDefault();
         aimPrep = true;
         prepPointerId = e.pointerId;
         prepIsTouch = e.pointerType === "touch";
-        aimAngle = Math.atan2(y - cue.y, x - cue.x);
-        power = prepIsTouch ? 0.1 : 0.48;
+        if (prepIsTouch) {
+          aimAngle = Math.atan2(y - cue.y, x - cue.x);
+          power = 0.1;
+        } else {
+          prepLockAim = aimAngle;
+          power = 0.16;
+        }
         canvas.classList.add("is-preparing");
         try {
           canvas.setPointerCapture(e.pointerId);
@@ -509,12 +524,16 @@ export function createPoolModule(deps = {}) {
 
       if (e.type === "pointermove" && aimPrep) {
         e.preventDefault();
-        aimAngle = Math.atan2(y - cue.y, x - cue.x);
-        const dist = Math.hypot(x - cue.x, y - cue.y);
         if (prepIsTouch) {
+          aimAngle = Math.atan2(y - cue.y, x - cue.x);
+          const dist = Math.hypot(x - cue.x, y - cue.y);
           power = Math.max(0.1, Math.min(1, dist / 165));
         } else {
-          power = Math.max(0.28, Math.min(1, 0.28 + dist / 220));
+          aimAngle = prepLockAim;
+          const cos = Math.cos(prepLockAim);
+          const sin = Math.sin(prepLockAim);
+          const pullAlong = -((x - cue.x) * cos + (y - cue.y) * sin);
+          power = Math.max(0.15, Math.min(1, pullAlong / 195));
         }
         paintCanvas(canvas);
         syncPowerHud(canvas.closest(".pool-arena") || canvas.parentElement);
@@ -528,8 +547,8 @@ export function createPoolModule(deps = {}) {
         try {
           canvas.releasePointerCapture(e.pointerId);
         } catch (_) {}
-        const shotPower = prepIsTouch ? Math.max(0.12, power) : Math.max(0.32, power);
-        const a = aimAngle;
+        const shotPower = prepIsTouch ? Math.max(0.12, power) : Math.max(0.18, power);
+        const a = prepIsTouch ? aimAngle : prepLockAim;
         prepPointerId = null;
         playShot(a, shotPower, { x: spinX, y: spinY });
       }
@@ -677,7 +696,7 @@ export function createPoolModule(deps = {}) {
 
         <section class="pool-hud-actions">
           <p class="pool-pull-hint">
-            <span class="pool-hint-desktop">Chuột: <strong>Giữ</strong> trên bàn để ngắm · <strong>Thả</strong> để bắn</span>
+            <span class="pool-hint-desktop">Chuột: <strong>Rê</strong> để ngắm · <strong>Giữ + kéo lùi</strong> chỉnh lực · <strong>Thả</strong> bắn</span>
             <span class="pool-hint-mobile">Mobile: <strong>Kéo cơ</strong> từ bi cái · <strong>Thả tay</strong> để bắn</span>
           </p>
           <div class="pool-btn-row">
