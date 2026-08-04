@@ -14,6 +14,7 @@ import {
   aimGuide,
   anyMoving,
   stepPhysics,
+  clampAllBallsToTable,
 } from "./pool-physics.js";
 import { paintTable, paintBalls, warmTablePaint, paintCueAimOverlay, loadTableBackground, canvasCoordToTable, tableCanvasTransform, paintRailFrameOverlay } from "./pool-render.js";
 import {
@@ -351,6 +352,7 @@ export function createPoolModule(deps = {}) {
   }
   function drawBalls(ctx, w, h) {
     if (!match) return;
+    clampAllBallsToTable(match.balls);
     paintBalls(ctx, {
       w,
       h,
@@ -871,7 +873,12 @@ export function createPoolModule(deps = {}) {
           </aside>
         </div>
 
-        <footer class="pool-arena-hud">
+        <button type="button" class="pool-hud-fab" data-pool-hud-fab data-act="pool-toggle-hud" aria-label="Menu gậy, bộ bóng, điều khiển" aria-expanded="false">
+          <span class="pool-hud-fab-ico" aria-hidden="true">☰</span>
+        </button>
+        <div class="pool-hud-backdrop" data-pool-hud-backdrop hidden aria-hidden="true"></div>
+
+        <footer class="pool-arena-hud pool-arena-hud-drawer">
           <section class="pool-glass-card pool-hud-card pool-hud-groups">
             <h4>Bộ bóng</h4>
             ${groupBoardHtml()}
@@ -1058,7 +1065,24 @@ export function createPoolModule(deps = {}) {
     );
   }
 
+  function setPoolHudOpen(arena, open) {
+    if (!arena) return;
+    arena.classList.toggle("is-hud-open", open);
+    const fab = arena.querySelector("[data-pool-hud-fab]");
+    const bd = arena.querySelector("[data-pool-hud-backdrop]");
+    if (fab) fab.setAttribute("aria-expanded", open ? "true" : "false");
+    if (bd) {
+      bd.hidden = !open;
+      bd.setAttribute("aria-hidden", open ? "false" : "true");
+    }
+  }
+
   function handleAction(act, el) {
+    if (act === "pool-toggle-hud") {
+      const arena = el?.closest?.(".pool-arena");
+      if (arena) setPoolHudOpen(arena, !arena.classList.contains("is-hud-open"));
+      return null;
+    }
     if (act === "pool-back-hub") {
       clearMatch();
       return "board-hub";
@@ -1146,6 +1170,13 @@ export function createPoolModule(deps = {}) {
       bootCanvas();
     });
     bootCanvas();
+    const arenaEl = scope.querySelector?.(".pool-arena") || (scope.classList?.contains("pool-arena") ? scope : null);
+    const hudBackdrop = arenaEl?.querySelector("[data-pool-hud-backdrop]");
+    if (hudBackdrop && !hudBackdrop.dataset.poolBound) {
+      hudBackdrop.dataset.poolBound = "1";
+      hudBackdrop.addEventListener("click", () => setPoolHudOpen(arenaEl, false));
+    }
+    setPoolHudOpen(arenaEl, false);
     const powerEl = scope.querySelector("[data-pool-power]");
     if (powerEl && !powerEl.dataset.poolBound) {
       powerEl.dataset.poolBound = "1";

@@ -7,7 +7,7 @@ export const POCKET_R = 21;
 export const CUSHION = 30;
 
 /** Inset from cushion line — keeps ball centers off the visual rail (table units). */
-export const FELT_GUARD = 36;
+export const FELT_GUARD = 30;
 
 export function playBounds() {
   const minX = CUSHION + BALL_R + FELT_GUARD;
@@ -15,6 +15,15 @@ export function playBounds() {
   const minY = CUSHION + BALL_R + FELT_GUARD;
   const maxY = TABLE_H - CUSHION - BALL_R - FELT_GUARD;
   return { minX, maxX, minY, maxY };
+}
+
+/** Hard clamp — call before render / after network sync so balls never leave play rect. */
+export function clampAllBallsToTable(balls) {
+  if (!balls?.length) return;
+  for (const b of balls) {
+    if (b.pocketed) continue;
+    enforcePlayBounds(b);
+  }
 }
 
 /** Per fixed physics step (≈ 1/120s wall-clock when driven at 120 Hz). */
@@ -314,6 +323,8 @@ export function stepPhysics(balls, dt = 1) {
       pocketed.push(b.id);
     }
   }
+
+  clampAllBallsToTable(balls);
 
   return { pocketed, firstContact, cushionHits, maxCollision };
 }

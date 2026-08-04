@@ -195,21 +195,62 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
     display: none !important;
   }
   html.pool-force-landscape .pool-arena-hud {
-    flex-shrink: 0;
-    display: grid !important;
-    grid-template-columns: 1fr auto auto;
-    gap: 6px;
-    padding: 0;
+    display: none !important;
   }
-  html.pool-force-landscape .pool-hud-spin {
-    display: none;
+  html.pool-force-landscape .pool-arena.is-hud-open .pool-hud-groups {
+    display: block !important;
+  }
+  html.pool-force-landscape .pool-arena.is-hud-open .pool-arena-hud {
+    display: grid !important;
+    position: fixed;
+    z-index: 55;
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    max-height: min(58dvh, 380px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    grid-template-columns: 1fr !important;
+    gap: 8px;
+    padding: 10px 12px 14px;
+    border-radius: 16px;
+    background: rgba(5, 10, 26, 0.97);
+    border: 1px solid rgba(120, 160, 255, 0.32);
+    box-shadow:
+      0 -12px 48px rgba(0, 0, 0, 0.65),
+      0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  }
+  html.pool-force-landscape .pool-arena.is-hud-open .pool-hud-spin {
+    display: block;
+  }
+  html.pool-force-landscape .pool-hud-fab {
+    display: flex;
+  }
+  html.pool-force-landscape .pool-arena.is-hud-open .pool-hud-fab {
+    z-index: 56;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    right: max(12px, env(safe-area-inset-right));
+  }
+  html.pool-force-landscape .pool-arena.is-hud-open .pool-hud-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 54;
+    background: rgba(2, 6, 18, 0.55);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
   }
   html.pool-force-landscape .pool-hud-actions h4,
   html.pool-force-landscape .pool-hud-cue h4 {
-    display: none;
+    display: block;
   }
   html.pool-force-landscape .pool-hud-card.pool-glass-card {
-    padding: 8px 10px;
+    padding: 10px 12px;
+  }
+  html.pool-force-landscape .pool-canvas-stack {
+    width: min(100%, calc((100dvh - 52px) * 2));
+    max-height: calc(100dvh - 52px);
   }
   .pool-arena-top {
     gap: 6px;
@@ -1633,6 +1674,42 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
 }
 
 /* Bottom HUD cards */
+.pool-hud-fab,
+.pool-hud-backdrop {
+  display: none;
+}
+
+.pool-hud-fab {
+  position: fixed;
+  z-index: 52;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  right: max(10px, env(safe-area-inset-right));
+  width: 46px;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid rgba(120, 160, 255, 0.4);
+  background: rgba(8, 14, 36, 0.92);
+  color: #eef3ff;
+  font-size: 1.25rem;
+  cursor: pointer;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.45),
+    0 0 24px rgba(77, 226, 255, 0.15);
+  -webkit-tap-highlight-color: transparent;
+}
+.pool-hud-fab:active {
+  transform: scale(0.96);
+}
+.pool-arena.is-hud-open .pool-hud-fab {
+  border-color: rgba(245, 197, 66, 0.55);
+  color: #f5c542;
+}
+.pool-hud-fab-ico {
+  line-height: 1;
+}
+
 .pool-arena-hud {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

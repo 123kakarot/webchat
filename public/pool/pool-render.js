@@ -5,31 +5,19 @@ import { FELT_GUARD } from "./pool-physics.js";
 const tableLayerCache = new Map();
 const TABLE_STYLE_VER = "v7-art";
 export const TABLE_BG_URL = "/pool/table-arena.png";
-export const TABLE_BG_VER = "6";
+export const TABLE_BG_VER = "7";
 /** Felt region on mockup (normalized 0–1). */
 export const TABLE_ART_INSET = { x: 0.094, y: 0.134, w: 0.812, h: 0.732 };
-/** Playfield maps to inner part of felt art — avoids corner pockets on PNG. */
-export const FELT_PLAY_FRAC = 0.84;
-
-function feltPlayFracForCanvas(w) {
-  if (typeof globalThis.matchMedia === "function" && globalThis.matchMedia("(pointer: coarse)").matches) {
-    if (w > 0 && w < 820) return 0.76;
-  }
-  return FELT_PLAY_FRAC;
-}
 
 let tableBgImg = null;
 let tableBgPromise = null;
 
 export function tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION = 30, BALL_R = 14) {
   const ins = TABLE_ART_INSET;
-  const fwFull = ins.w * w;
-  const fhFull = ins.h * h;
-  const playFrac = feltPlayFracForCanvas(w);
-  const fw = fwFull * playFrac;
-  const fh = fhFull * playFrac;
-  const ox = ins.x * w + (fwFull - fw) * 0.5;
-  const oy = ins.y * h + (fhFull - fh) * 0.5;
+  const fw = ins.w * w;
+  const fh = ins.h * h;
+  const ox = ins.x * w;
+  const oy = ins.y * h;
   const innerMinX = CUSHION + BALL_R + FELT_GUARD;
   const innerMinY = CUSHION + BALL_R + FELT_GUARD;
   const playW = TABLE_W - 2 * CUSHION - 2 * BALL_R - 2 * FELT_GUARD;
@@ -613,17 +601,9 @@ export function paintBalls(ctx, opt) {
   const t = tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION ?? 30, BALL_R);
   const rPx = BALL_R * ((t.sx + t.sy) / 2);
 
-  ctx.save();
-  ctx.beginPath();
-  const padX = Math.max(t.fw * 0.02, rPx * 0.35);
-  const padY = Math.max(t.fh * 0.024, rPx * 0.35);
-  ctx.rect(t.ox + padX, t.oy + padY, t.fw - padX * 2, t.fh - padY * 2);
-  ctx.clip();
-
   for (const b of balls) {
     if (b.pocketed) continue;
     const p = tableCoordToCanvas(b.x, b.y, t);
     drawOneBall(ctx, p.x, p.y, rPx, b, colors);
   }
-  ctx.restore();
 }
