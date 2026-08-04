@@ -69,7 +69,7 @@ export function createRack() {
 
   const apexX = TABLE_W * 0.72;
   const apexY = TABLE_H / 2;
-  const gap = BALL_R * 2.02;
+  const gap = BALL_R * 2.005;
   const order = [1, 9, 2, 10, 8, 11, 3, 12, 4, 13, 5, 14, 6, 15, 7];
   let idx = 0;
   for (let row = 0; row < 5; row++) {
@@ -111,30 +111,72 @@ function pocketCheck(ball, pocks) {
   return false;
 }
 
+const BALL_D = BALL_R * 2;
+const COLLISION_PASSES = 10;
+const PHYS_SUBSTEPS = 4;
+const POS_CORRECTION = 0.92;
+
 function resolveBallBall(a, b) {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   let d = Math.hypot(dx, dy);
-  if (d === 0) d = 0.01;
-  if (d >= BALL_R * 2) return { hit: false, impulse: 0 };
-  const nx = dx / d;
-  const ny = dy / d;
-  const overlap = BALL_R * 2 - d;
-  a.x -= nx * overlap * 0.5;
-  a.y -= ny * overlap * 0.5;
-  b.x += nx * overlap * 0.5;
-  b.y += ny * overlap * 0.5;
+  if (d < 1e-6) {
+    d = 1e-6;
+    const jitter = (a.id + b.id) * 0.017;
+    b.x += Math.cos(jitter);
+    b.y += Math.sin(jitter);
+  }
+  const nx = (b.x - a.x) / d;
+  const ny = (b.y - a.y) / d;
+  const overlap = BALL_D - d;
+  if (overlap > 0) {
+    const corr = overlap * POS_CORRECTION * 0.5;
+    a.x -= nx * corr;
+    a.y -= ny * corr;
+    b.x += nx * corr;
+    b.y += ny * corr;
+  } else if (overlap <= -0.02) {
+    return { hit: false, impulse: 0 };
+  }
 
-  const dvx = a.vx - b.vx;
-  const dvy = a.vy - b.vy;
-  const vn = dvx * nx + dvy * ny;
-  if (vn > 0) return { hit: true, impulse: 0 };
-  const impulse = (-(1 + RESTITUTION) * vn) / 2;
-  a.vx += impulse * nx;
-  a.vy += impulse * ny;
-  b.vx -= impulse * nx;
-  b.vy -= impulse * ny;
-  return { hit: true, impulse: Math.abs(impulse) };
+  const rvx = b.vx - a.vx;
+  const rvy = b.vy - a.vy;
+  const velAlongNormal = rvx * nx + rvy * ny;
+  if (velAlongNormal > 0) return { hit: overlap > 0, impulse: 0 };
+
+  const j = (-(1 + RESTITUTION) * velAlongNormal) / 2;
+  a.vx -= j * nx;
+  a.vy -= j * ny;
+  b.vx += j * nx;
+  b.vy += j * ny;
+  return { hit: true, impulse: Math.abs(j) };
+}
+
+function separateOverlaps(active) {
+  for (let pass = 0; pass < COLLISION_PASSES; pass++) {
+    let any = false;
+    for (let i = 0; i < active.length; i++) {
+      for (let j = i + 1; j < active.length; j++) {
+        const a = active[i];
+        const b = active[j];
+        if (a.pocketed || b.pocketed) continue;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        let d = Math.hypot(dx, dy);
+        if (d >= BALL_D) continue;
+        if (d < 1e-6) d = 1e-6;
+        const nx = dx / d;
+        const ny = dy / d;
+        const push = (BALL_D - d) * 0.5;
+        a.x -= nx * push;
+        a.y -= ny * push;
+        b.x += nx * push;
+        b.y += ny * push;
+        any = true;
+      }
+    }
+    if (!any) break;
+  }
 }
 
 function cushion(ball) {
@@ -181,12 +223,37 @@ export function stepPhysics(balls, dt = 1) {
   let cushionHits = 0;
   let maxCollision = 0;
 
+  const subDt = dt / PHYS_SUBSTEPS;
+
+  for (let sub = 0; sub < PHYS_SUBSTEPS; sub++) {
+    for (const b of active) {
+      b.x += b.vx * subDt;
+      b.y += b.vy * subDt;
+    }
+
+    for (let pass = 0; pass < COLLISION_PASSES; pass++) {
+      for (let i = 0; i < active.length; i++) {
+        for (let j = i + 1; j < active.length; j++) {
+          const a = active[i];
+          const b = active[j];
+          if (a.pocketed || b.pocketed) continue;
+          const r = resolveBallBall(a, b);
+          if (r.hit) {
+            maxCollision = Math.max(maxCollision, r.impulse);
+            if (firstContact == null) {
+              if (a.id === 0) firstContact = b.id;
+              else if (b.id === 0) firstContact = a.id;
+            }
+          }
+        }
+      }
+    }
+    separateOverlaps(active);
+  }
+
   for (const b of active) {
-    b.x += b.vx * dt;
-    b.y += b.vy * dt;
-    const fr = Math.pow(FRICTION, dt);
-    b.vx *= fr;
-    b.vy *= fr;
+    b.vx *= Math.pow(FRICTION, dt);
+    b.vy *= Math.pow(FRICTION, dt);
     if (Math.hypot(b.vx, b.vy) < MIN_SPEED) {
       b.vx = 0;
       b.vy = 0;
@@ -195,25 +262,6 @@ export function stepPhysics(balls, dt = 1) {
     if (c.hit) {
       cushionHits++;
       maxCollision = Math.max(maxCollision, c.strength);
-    }
-  }
-
-  // Multiple collision iterations for stability
-  for (let pass = 0; pass < 3; pass++) {
-    for (let i = 0; i < active.length; i++) {
-      for (let j = i + 1; j < active.length; j++) {
-        const a = active[i];
-        const b = active[j];
-        if (a.pocketed || b.pocketed) continue;
-        const r = resolveBallBall(a, b);
-        if (r.hit) {
-          maxCollision = Math.max(maxCollision, r.impulse);
-          if (firstContact == null) {
-            if (a.id === 0) firstContact = b.id;
-            else if (b.id === 0) firstContact = a.id;
-          }
-        }
-      }
     }
   }
 

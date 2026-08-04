@@ -419,7 +419,7 @@ export function createPoolModule(deps = {}) {
       lastFrame = now;
       physAcc += dt * PHYS_HZ;
       let guard = 0;
-      while (physAcc >= 1 && guard++ < 6) {
+        while (physAcc >= 1 && guard++ < 4) {
         const ev = stepPhysics(match.balls, 1);
         accumulateShotEvent(match, ev);
         if (ev.maxCollision > 2.8) beep?.(200 + Math.min(350, ev.maxCollision * 35), 18, "triangle", 0.012);
