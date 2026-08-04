@@ -15,7 +15,7 @@ import {
   anyMoving,
   stepPhysics,
 } from "./pool-physics.js";
-import { paintTable, paintBalls } from "./pool-render.js";
+import { paintTable, paintBalls, warmTablePaint } from "./pool-render.js";
 import {
   createMatch,
   beginShot,
@@ -143,6 +143,29 @@ export function createPoolModule(deps = {}) {
     return TABLES.find((t) => t.id === (match?.tableTheme || selectedTable)) || TABLES[1];
   }
 
+  function warmPlayCanvas() {
+    const felt = tableTheme().felt;
+    warmTablePaint({
+      w: 1200,
+      h: 600,
+      TABLE_W,
+      TABLE_H,
+      CUSHION,
+      POCKET_R,
+      felt,
+      pockets,
+    });
+  }
+
+  function resetBreakAim() {
+    if (!match?.balls?.length) return;
+    const cue = match.balls.find((b) => b.id === 0 && !b.pocketed);
+    const apex = match.balls.find((b) => b.id === 8 && !b.pocketed);
+    const target = apex || match.balls.find((b) => !b.pocketed && b.id !== 0);
+    if (cue && target) aimAngle = Math.atan2(target.y - cue.y, target.x - cue.x);
+    power = 0.55;
+  }
+
   function startMatch(opts) {
     stopAnim();
     match = createMatch({
@@ -156,12 +179,10 @@ export function createPoolModule(deps = {}) {
     match.bet = opts.bet || 0;
     match.kitchenOnly = true;
     match.shotLog = [];
-    aimAngle = 0;
-    power = 0.55;
+    resetBreakAim();
     uiTab = "play";
-    toast?.(opts.toast || "Trận bắt đầu — kéo trên bàn để căn góc/lực.");
-    notify(true);
-    startRenderLoop();
+    warmPlayCanvas();
+    toast?.(opts.toast || "Kéo từ bi cái trên bàn — thả tay để đánh ngay.");
     return match;
   }
 
@@ -293,6 +314,8 @@ export function createPoolModule(deps = {}) {
     drawTable(ctx, canvas.width, canvas.height);
     drawBalls(ctx, canvas.width, canvas.height);
     drawAim(ctx, canvas.width, canvas.height);
+    canvas.classList.remove("is-loading");
+    canvas.classList.add("is-ready");
   }
 
   function startRenderLoop() {
@@ -461,8 +484,9 @@ export function createPoolModule(deps = {}) {
         aimAngle = Math.atan2(y - cue.y, x - cue.x);
         power = Math.max(0.08, Math.min(1, Math.hypot(x - cue.x, y - cue.y) / 170));
         paintCanvas(canvas);
+        notify(false);
       } else if (e.type === "pointerup" || e.type === "touchend" || e.type === "pointercancel") {
-        if (pulling && power >= 0.14) {
+        if (pulling && power >= 0.1) {
           const a = aimAngle;
           const p = power;
           pulling = false;
@@ -568,7 +592,7 @@ export function createPoolModule(deps = {}) {
 
       <div class="pool-arena-stage">
         <div class="pool-hero-table">
-          <canvas class="pool-canvas" width="1200" height="600" data-pool-canvas></canvas>
+          <canvas class="pool-canvas is-loading" width="1200" height="600" data-pool-canvas aria-label="Bàn bida"></canvas>
         </div>
         <aside class="pool-power-hero" aria-label="Lực">
           <div class="pool-power-track">
@@ -606,7 +630,7 @@ export function createPoolModule(deps = {}) {
         </section>
 
         <section class="pool-hud-actions">
-          <button type="button" class="pool-btn-strike" data-act="pool-shoot" ${!canControl() ? "disabled" : ""}>ĐÁNH</button>
+          <p class="pool-pull-hint">Kéo từ <strong>bi cái</strong> để căn góc &amp; lực · <strong>Thả tay</strong> để đánh</p>
           <div class="pool-btn-row">
             <button type="button" class="pool-btn-secondary" data-act="pool-resign">Đầu hàng</button>
             <button type="button" class="pool-btn-secondary" data-act="pool-leave">Menu</button>
@@ -702,6 +726,7 @@ export function createPoolModule(deps = {}) {
   }
 
   function renderHome() {
+    warmPlayCanvas();
     const cue = cueStats();
     return shellChrome(
       uiTab === "home" ? "home" : uiTab,
@@ -832,7 +857,8 @@ export function createPoolModule(deps = {}) {
   }
 
   function mountPlay(root) {
-    const canvas = root.querySelector("[data-pool-canvas]");
+    const scope = root.querySelector?.(".pool-arena") ? root : root;
+    const canvas = scope.querySelector("[data-pool-canvas]");
     if (canvas) {
       const needRebind = canvasEl !== canvas;
       canvasEl = canvas;
@@ -843,24 +869,31 @@ export function createPoolModule(deps = {}) {
       paintCanvas(canvas);
       if (!loopRunning) startRenderLoop();
     }
-    const powerEl = root.querySelector("[data-pool-power]");
-    powerEl?.addEventListener("input", () => {
-      power = Number(powerEl.value) / 100;
-      const heat = root.querySelector(".pool-power-heat");
-      if (heat) heat.style.setProperty("--p", `${Math.round(power * 100)}%`);
-      const val = root.querySelector(".pool-power-val");
-      if (val) val.textContent = String(Math.round(power * 100));
-      if (canvas) paintCanvas(canvas);
-    });
-    const disc = root.querySelector("[data-pool-spin-disc]");
-    disc?.addEventListener("pointerdown", (e) => {
-      const rect = disc.getBoundingClientRect();
-      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-      spinX = Math.max(-1, Math.min(1, nx));
-      spinY = Math.max(-1, Math.min(1, ny));
-      notify(true);
-    });
+    const powerEl = scope.querySelector("[data-pool-power]");
+    if (powerEl && !powerEl.dataset.poolBound) {
+      powerEl.dataset.poolBound = "1";
+      powerEl.addEventListener("input", () => {
+        power = Number(powerEl.value) / 100;
+        const heat = scope.querySelector(".pool-power-heat");
+        if (heat) heat.style.setProperty("--p", `${Math.round(power * 100)}%`);
+        const val = scope.querySelector(".pool-power-val");
+        if (val) val.textContent = String(Math.round(power * 100));
+        if (canvasEl) paintCanvas(canvasEl);
+      });
+    }
+    const disc = scope.querySelector("[data-pool-spin-disc]");
+    if (disc && !disc.dataset.poolBound) {
+      disc.dataset.poolBound = "1";
+      disc.addEventListener("pointerdown", (e) => {
+        const rect = disc.getBoundingClientRect();
+        const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+        spinX = Math.max(-1, Math.min(1, nx));
+        spinY = Math.max(-1, Math.min(1, ny));
+        notify(false);
+        if (canvasEl) paintCanvas(canvasEl);
+      });
+    }
   }
 
   function patchCanvas(root) {
@@ -913,8 +946,8 @@ export function createPoolModule(deps = {}) {
       shotLog: [],
     };
     if (room.status === "lobby") match.message = `Phòng ${room.code} — chờ đối thủ / Bắt đầu`;
-    startRenderLoop();
-    notify(true);
+    resetBreakAim();
+    warmPlayCanvas();
     return match;
   }
 
@@ -925,6 +958,7 @@ export function createPoolModule(deps = {}) {
     clearMatch,
     getMatch: () => match,
     mountPlay,
+    warmPlayCanvas,
     patchCanvas,
     isAiBusy: () => aiBusy,
     applyRemoteShot,

@@ -1960,12 +1960,15 @@ export function mountCaroApp(ctx) {
       }</div>`;
       startTimerUi();
       if (view === "pool-play") {
+        try {
+          pool.mountPlay(root);
+        } catch (err) {
+          console.error("pool mountPlay", err);
+        }
         requestAnimationFrame(() => {
           try {
             pool.mountPlay(root);
-          } catch (err) {
-            console.error("pool mountPlay", err);
-          }
+          } catch (_) {}
         });
       }
       saveUiSession();

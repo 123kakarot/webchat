@@ -1,5 +1,7 @@
 /** High-quality pool table / ball canvas rendering. */
 
+const tableLayerCache = new Map();
+
 export function shadeColor(hex, amt) {
   const h = String(hex).replace("#", "");
   if (h.length !== 6) return hex;
@@ -15,6 +17,28 @@ export function shadeColor(hex, amt) {
  * @param {{ w:number,h:number,TABLE_W:number,TABLE_H:number,CUSHION:number,POCKET_R:number,felt:string,pockets:()=>any[] }} opt
  */
 export function paintTable(ctx, opt) {
+  const { w, h, TABLE_W, TABLE_H, CUSHION, POCKET_R, felt, pockets } = opt;
+  const cacheKey = `${w}x${h}:${felt}`;
+  let layer = tableLayerCache.get(cacheKey);
+  if (!layer) {
+    layer = document.createElement("canvas");
+    layer.width = w;
+    layer.height = h;
+    paintTableLayer(layer.getContext("2d"), opt);
+    tableLayerCache.set(cacheKey, layer);
+  }
+  ctx.drawImage(layer, 0, 0);
+}
+
+/** Pre-build table bitmap (wood, felt, pockets) — call from lobby to avoid lag on first shot. */
+export function warmTablePaint(opt) {
+  const c = document.createElement("canvas");
+  c.width = opt.w;
+  c.height = opt.h;
+  paintTable(c.getContext("2d"), opt);
+}
+
+function paintTableLayer(ctx, opt) {
   const { w, h, TABLE_W, TABLE_H, CUSHION, POCKET_R, felt, pockets } = opt;
   const sx = w / TABLE_W;
   const sy = h / TABLE_H;

@@ -977,6 +977,28 @@
     0 0 24px rgba(0, 40, 20, 0.4);
 }
 
+.pool-arena .pool-canvas.is-loading {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 45%, rgba(20, 120, 70, 0.35), rgba(6, 40, 28, 0.92)),
+    linear-gradient(160deg, #0a3d28, #062318);
+  min-height: min(42vh, 320px);
+}
+
+.pool-pull-hint {
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(77, 226, 255, 0.28);
+  background: rgba(12, 24, 56, 0.75);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #c8d8f5;
+  text-align: center;
+}
+.pool-pull-hint strong {
+  color: #f5c542;
+}
+
 /* Tall POWER meter ≈ table height */
 .pool-power-hero {
   display: flex;
