@@ -170,24 +170,31 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
     flex-direction: column;
     max-width: none;
   }
-  html.pool-force-landscape .pool-hero-table,
-  html.pool-force-landscape .pool-canvas-stack {
+  html.pool-force-landscape .pool-hero-table {
     flex: 1;
     min-height: 0;
     width: 100%;
-    max-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
   }
   html.pool-force-landscape .pool-canvas-stack {
+    position: relative;
+    flex: 0 0 auto;
+    width: min(calc(100vw - 20px), calc((100dvh - 44px) * 2));
+    max-width: 100%;
+    max-height: calc(100dvh - 44px);
+    height: auto;
     aspect-ratio: 2 / 1;
-    width: min(100%, calc((100dvh - 88px) * 2));
-    max-height: calc(100dvh - 88px);
     margin: 0 auto;
   }
   html.pool-force-landscape .pool-arena .pool-canvas,
   html.pool-force-landscape .pool-arena .pool-aim-layer {
+    width: 100% !important;
+    height: auto !important;
     max-height: none !important;
-    width: 100%;
-    height: 100%;
+    aspect-ratio: 2 / 1;
   }
   html.pool-force-landscape .pool-hud-groups,
   html.pool-force-landscape .pool-arena-status,
@@ -207,10 +214,16 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
   html.pool-force-landscape .pool-stage-row {
     flex: 1;
     min-height: 0;
+    justify-content: center;
+    align-items: center;
   }
   html.pool-force-landscape .pool-table-card {
-    flex: 1 1 100%;
+    flex: 0 1 auto;
     width: 100%;
+    max-width: 100%;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
   }
   html.pool-force-landscape .pool-hud-match-head,
   html.pool-force-landscape .pool-hud-power-mobile {
@@ -273,10 +286,6 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
   }
   html.pool-force-landscape .pool-hud-card.pool-glass-card {
     padding: 10px 12px;
-  }
-  html.pool-force-landscape .pool-canvas-stack {
-    width: min(100%, calc((100dvh - 36px) * 2));
-    max-height: calc(100dvh - 36px);
   }
   .pool-arena-top {
     gap: 6px;
@@ -1398,6 +1407,9 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
 .pool-canvas-stack {
   position: relative;
   width: 100%;
+  max-width: 100%;
+  aspect-ratio: 2 / 1;
+  margin: 0 auto;
   line-height: 0;
 }
 
@@ -1414,6 +1426,7 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
 .pool-arena .pool-canvas {
   width: 100%;
   height: auto;
+  aspect-ratio: 2 / 1;
   max-height: min(58vh, 540px);
   border-radius: 12px;
   display: block;
@@ -1578,10 +1591,8 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
 }
 
 .pool-arena .pool-canvas.is-loading {
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 45%, rgba(30, 80, 160, 0.35), rgba(6, 12, 32, 0.95)),
-    linear-gradient(160deg, #0a1638, #040818);
-  min-height: min(28dvh, 200px);
+  background: rgba(4, 8, 20, 0.92);
+  min-height: 0;
 }
 
 .pool-pull-hint {

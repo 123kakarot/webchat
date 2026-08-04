@@ -120,19 +120,22 @@ export function createPoolModule(deps = {}) {
   }
 
   function fitCanvasResolution(canvas, aimCanvas) {
-    const frame = canvas.closest(".pool-hero-table") || canvas.closest(".pool-canvas-stack");
-    if (!frame) return;
-    let cssW = frame.clientWidth || canvas.clientWidth;
-    if (cssW < 80) {
-      const stack = canvas.closest(".pool-canvas-stack");
-      const coarse = window.matchMedia("(pointer: coarse)").matches;
-      if (coarse && stack) {
-        const rect = stack.getBoundingClientRect();
-        cssW = rect.width || rect.height * 2;
-      }
-      if (cssW < 80) cssW = Math.max(280, Math.min(window.innerWidth, window.innerHeight * 2) - 16);
-    }
+    const stack = canvas.closest(".pool-canvas-stack") || canvas.closest(".pool-hero-table");
+    if (!stack) return;
+    const rect = stack.getBoundingClientRect();
+    let cssW = rect.width;
+    let cssH = rect.height;
     const coarse = window.matchMedia("(pointer: coarse)").matches;
+    if (cssW < 48 || cssH < 24) {
+      const vw = window.visualViewport?.width || window.innerWidth;
+      const vh = window.visualViewport?.height || window.innerHeight;
+      const strip = coarse ? 44 : 80;
+      cssH = Math.max(100, vh - strip);
+      cssW = Math.min(vw - 12, cssH * 2);
+    } else {
+      cssW = Math.min(cssW, cssH > 0 ? cssH * 2 : cssW);
+      cssH = cssW / 2;
+    }
     const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 1.35 : 1.65);
     const w = Math.round(Math.min(1200, cssW * dpr));
     const h = Math.round(w / 2);
@@ -856,7 +859,7 @@ export function createPoolModule(deps = {}) {
               <div class="pool-glass-card pool-table-card">
                 <div class="pool-hero-table">
                   <div class="pool-canvas-stack">
-                    <canvas class="pool-canvas is-loading" width="1200" height="600" data-pool-canvas aria-label="Bàn bida"></canvas>
+                    <canvas class="pool-canvas" width="1200" height="600" data-pool-canvas aria-label="Bàn bida"></canvas>
                     <canvas class="pool-aim-layer" width="1200" height="600" data-pool-aim-canvas aria-hidden="true"></canvas>
                   </div>
                 </div>
@@ -1189,11 +1192,14 @@ export function createPoolModule(deps = {}) {
       paintCanvas(canvas);
       if (match?.moving) startRenderLoop();
     };
+    const scheduleBoot = () => {
+      requestAnimationFrame(() => requestAnimationFrame(bootCanvas));
+    };
     void loadTableBackground().then(() => {
       invalidateStaticFrame();
-      bootCanvas();
+      scheduleBoot();
     });
-    bootCanvas();
+    scheduleBoot();
     const arenaEl = scope.querySelector?.(".pool-arena") || (scope.classList?.contains("pool-arena") ? scope : null);
     const hudBackdrop = arenaEl?.querySelector("[data-pool-hud-backdrop]");
     if (hudBackdrop && !hudBackdrop.dataset.poolBound) {
@@ -1233,7 +1239,7 @@ export function createPoolModule(deps = {}) {
         notify(false);
       });
     }
-    const frame = canvas?.closest(".pool-hero-table");
+    const frame = canvas?.closest(".pool-canvas-stack") || canvas?.closest(".pool-hero-table");
     if (frame && !frame._poolRo) {
       frame._poolRo = true;
       new ResizeObserver(() => {
