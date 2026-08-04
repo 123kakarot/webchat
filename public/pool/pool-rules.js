@@ -8,6 +8,7 @@ import {
   simulateUntilStop,
   placeCueBall,
   placeCueInKitchen,
+  respotObjectBall,
   isSolid,
   isStripe,
   isEight,
@@ -30,7 +31,7 @@ export function createMatch(opts = {}) {
     names: opts.names || ["Bạn", "Đối thủ"],
     shotHistory: [],
     lastShot: null,
-    message: "Phát bóng — đặt bi cái trong khu vực nhà rồi đánh.",
+    message: "Phát bóng — ngắm và kéo cơ, thả để đánh.",
     tableTheme: opts.tableTheme || "classic",
     cueId: opts.cueId || "starter",
     turnMs: opts.turnMs || 30000,
@@ -79,7 +80,7 @@ export function resolveShot(match, shotMeta, events) {
   const { pocketed, firstContact, cushionHits } = events;
   const cuePocketed = pocketed.includes(0);
   const eightPocketed = pocketed.includes(8);
-  const objectPotted = pocketed.filter((id) => id !== 0 && id !== 8);
+  let objectPotted = pocketed.filter((id) => id !== 0 && id !== 8);
 
   match.stats.shots[side]++;
   match.lastShot = {
@@ -92,6 +93,7 @@ export function resolveShot(match, shotMeta, events) {
 
   let foul = false;
   let foulReason = "";
+  let opponentBonus = false;
 
   // First contact rules
   if (firstContact == null) {
@@ -112,6 +114,18 @@ export function resolveShot(match, shotMeta, events) {
   if (cuePocketed) {
     foul = true;
     foulReason = foulReason || "Bi cái vào lỗ";
+  }
+
+  // Wrong group pocketed — không tính, lấy lại bi, lợi cho đối phương
+  if (match.phase === "groups" && objectPotted.length) {
+    const g = match.groups[side];
+    const illegal = objectPotted.filter((id) => groupOfBall(id) && groupOfBall(id) !== g);
+    if (illegal.length) {
+      for (const id of illegal) respotObjectBall(match.balls, id);
+      objectPotted = objectPotted.filter((id) => !illegal.includes(id));
+      opponentBonus = true;
+      match.message = `${match.names[1 - side]} được lợi — ${match.names[side]} vào nhóm đối phương (không tính).`;
+    }
   }
 
   // Break: need 4 cushion hits OR pot — simplified: pot or cushion ok
@@ -163,15 +177,15 @@ export function resolveShot(match, shotMeta, events) {
     }
   }
 
-  // Assign groups on first legally potted object after break/open
-  if (!foul && objectPotted.length && (match.phase === "open" || match.phase === "break")) {
+  // Assign groups on first object potted after break/open (bi đầu tiên vào lỗ chọn phe)
+  if (!foul && objectPotted.length && match.groups[side] == null && (match.phase === "open" || match.phase === "break")) {
     const first = objectPotted[0];
     const g = groupOfBall(first);
     if (g) {
       match.groups[side] = g;
       match.groups[1 - side] = g === "solid" ? "stripe" : "solid";
       match.phase = "groups";
-      match.message = `${match.names[side]} nhận ${g === "solid" ? "Solid (1–7)" : "Stripe (9–15)"}.`;
+      match.message = `${match.names[side]} nhận ${g === "solid" ? "Trơn (1–7)" : "Sọc (9–15)"}.`;
     }
   }
 
@@ -181,16 +195,24 @@ export function resolveShot(match, shotMeta, events) {
 
   if (foul) {
     match.stats.fouls[side]++;
-    match.ballInHand = true;
-    match.kitchenOnly = false;
     match.turn = 1 - side;
-    match.message = `Phạm lỗi: ${foulReason}. ${match.names[match.turn]} — Ball in Hand.`;
-    // restore cue if pocketed
-    const cue = match.balls.find((b) => b.id === 0);
-    if (cue?.pocketed) {
-      cue.pocketed = false;
-      placeCueBall(match.balls, 900 * 0.25, 450 / 2);
+    if (cuePocketed) {
+      match.ballInHand = true;
+      match.kitchenOnly = false;
+      match.message = `Bi cái vào lỗ — ${match.names[match.turn]} đặt bi cái trên bàn.`;
+      const cue = match.balls.find((b) => b.id === 0);
+      if (cue?.pocketed) {
+        cue.pocketed = false;
+        cue.vx = 0;
+        cue.vy = 0;
+      }
+    } else {
+      match.ballInHand = false;
+      match.message = `Phạm lỗi: ${foulReason}. Lượt ${match.names[match.turn]}.`;
     }
+  } else if (opponentBonus) {
+    match.ballInHand = false;
+    match.turn = 1 - side;
   } else {
     // Continue if pot own group (or any object on open)
     let continueTurn = false;
@@ -273,8 +295,8 @@ export function shoot(match, angle, power, spin) {
 }
 
 export function tryPlaceCue(match, x, y) {
-  if (!match.ballInHand && match.phase !== "break") return false;
-  if (match.phase === "break" || match.kitchenOnly) return placeCueInKitchen(match.balls, x, y);
+  if (!match.ballInHand) return false;
+  if (match.kitchenOnly) return placeCueInKitchen(match.balls, x, y);
   return placeCueBall(match.balls, x, y);
 }
 

@@ -158,7 +158,7 @@ export function createPoolModule(deps = {}) {
     }
     const sctx = staticFrame.getContext("2d");
     drawTable(sctx, w, h);
-    drawBalls(sctx, w, h, true);
+    drawBalls(sctx, w, h);
     staticFrameKey = key;
     return staticFrame;
   }
@@ -339,7 +339,7 @@ export function createPoolModule(deps = {}) {
   function drawTable(ctx, w, h) {
     paintTable(ctx, tablePaintOptions(w, h));
   }
-  function drawBalls(ctx, w, h, fast = false) {
+  function drawBalls(ctx, w, h) {
     if (!match) return;
     paintBalls(ctx, {
       w,
@@ -349,7 +349,6 @@ export function createPoolModule(deps = {}) {
       BALL_R,
       balls: match.balls,
       colors: BALL_COLORS,
-      fast,
     });
   }
   function paintAimOverlay() {
@@ -389,7 +388,7 @@ export function createPoolModule(deps = {}) {
     if (match.moving) {
       invalidateStaticFrame();
       drawTable(ctx, w, h);
-      drawBalls(ctx, w, h, true);
+      drawBalls(ctx, w, h);
     } else {
       ctx.drawImage(ensureStaticFrame(w, h), 0, 0);
     }
@@ -476,8 +475,8 @@ export function createPoolModule(deps = {}) {
 
   function doShoot() {
     if (!canControl()) return false;
-    if (match.ballInHand && match.phase !== "break") {
-      toast?.("Chạm bàn để đặt bi cái.");
+    if (match.ballInHand) {
+      toast?.("Chạm bàn để đặt bi cái (sau khi bi trắng vào lỗ).");
       return false;
     }
     return playShot(aimAngle, power, { x: spinX, y: spinY });
@@ -564,11 +563,14 @@ export function createPoolModule(deps = {}) {
       if (!canControl()) return;
       const { x, y } = canvasToTable(canvas, e.clientX, e.clientY);
       if (match.ballInHand) {
-        tryPlaceCue(match, x, y);
-        if (e.type === "pointerup" || e.type === "pointercancel") {
-          match.ballInHand = false;
-          invalidateStaticFrame();
-          toast?.("Đã đặt bi cái.");
+        if (e.type === "pointerdown") {
+          if (tryPlaceCue(match, x, y)) {
+            match.ballInHand = false;
+            invalidateStaticFrame();
+            toast?.("Đã đặt bi cái.");
+          } else {
+            toast?.("Chọn chỗ trống trên bàn.");
+          }
         }
         requestPaint();
         return;
@@ -649,7 +651,7 @@ export function createPoolModule(deps = {}) {
   function groupLabel(side) {
     const g = match?.groups?.[side];
     if (!g) return "Chưa chọn";
-    return g === "solid" ? "Solid" : "Stripe";
+    return g === "solid" ? "Trơn" : g === "stripe" ? "Sọc" : "—";
   }
 
   function ballIconsFor(side) {
@@ -660,7 +662,7 @@ export function createPoolModule(deps = {}) {
     return ids
       .map((id) => {
         const gone = match.balls.find((b) => b.id === id)?.pocketed;
-        return `<i class="pool-ball-ico${gone ? " is-out" : ""}" style="--c:${BALL_COLORS[id]}">${id}</i>`;
+        return `<i class="pool-ball-ico${gone ? " is-out" : ""}${id >= 9 ? " is-stripe" : ""}" style="--c:${BALL_COLORS[id]}">${id}</i>`;
       })
       .join("");
   }
@@ -677,7 +679,7 @@ export function createPoolModule(deps = {}) {
       if (g0 === "solid" && id >= 9) own = " is-opp";
       if (g0 === "stripe" && id >= 1 && id <= 7) own = " is-opp";
       if (id === 8) own = " is-eight";
-      return `<i class="pool-ball-ico${gone ? " is-out" : ""}${own}" style="--c:${BALL_COLORS[id]}">${id}</i>`;
+      return `<i class="pool-ball-ico${gone ? " is-out" : ""}${own}${id >= 9 ? " is-stripe" : ""}" style="--c:${BALL_COLORS[id]}">${id}</i>`;
     };
     return `${[1, 2, 3, 4, 5, 6, 7].map(mk).join("")}<span class="pool-rack-gap"></span>${mk(8)}<span class="pool-rack-gap"></span>${[9, 10, 11, 12, 13, 14, 15].map(mk).join("")}`;
   }

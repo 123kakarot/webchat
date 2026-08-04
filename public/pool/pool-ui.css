@@ -699,6 +699,9 @@ html.pool-force-landscape body {
   background: radial-gradient(circle at 35% 30%, #fff, var(--c, #999) 55%, #222);
   border: 1px solid rgba(255, 255, 255, 0.35);
 }
+.pool-ball-ico.is-stripe {
+  background: linear-gradient(180deg, #f5f5f5 0%, #f5f5f5 32%, var(--c, #999) 32%, var(--c, #999) 68%, #f5f5f5 68%, #f5f5f5 100%);
+}
 .pool-ball-ico.is-out {
   opacity: 0.28;
   filter: grayscale(0.8);

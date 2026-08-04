@@ -47,15 +47,17 @@ export function isCue(n) {
 }
 
 export function pockets() {
-  const inset = CUSHION + POCKET_R * 0.62;
-  const sideY = CUSHION + POCKET_R * 0.42;
+  const edge = CUSHION;
+  const midX = TABLE_W / 2;
+  const farX = TABLE_W - CUSHION;
+  const farY = TABLE_H - CUSHION;
   return [
-    { x: inset, y: inset, kind: "corner" },
-    { x: TABLE_W / 2, y: sideY, kind: "side" },
-    { x: TABLE_W - inset, y: inset, kind: "corner" },
-    { x: inset, y: TABLE_H - inset, kind: "corner" },
-    { x: TABLE_W / 2, y: TABLE_H - sideY, kind: "side" },
-    { x: TABLE_W - inset, y: TABLE_H - inset, kind: "corner" },
+    { x: edge, y: edge, kind: "corner" },
+    { x: midX, y: edge, kind: "side" },
+    { x: farX, y: edge, kind: "corner" },
+    { x: edge, y: farY, kind: "corner" },
+    { x: midX, y: farY, kind: "side" },
+    { x: farX, y: farY, kind: "corner" },
   ];
 }
 
@@ -325,18 +327,68 @@ export function aimGuide(balls, angle, maxLen = 460) {
   const endY = cue.y + dy * hitT;
   let ghost = null;
   if (hit) {
-    const hx = endX - hit.x;
-    const hy = endY - hit.y;
-    const hn = Math.hypot(hx, hy) || 1;
+    const lx = hit.x - endX;
+    const ly = hit.y - endY;
+    const ln = Math.hypot(lx, ly) || 1;
+    const nx = lx / ln;
+    const ny = ly / ln;
+    const objLen = 320;
+    const cueLen = 220;
+    const cross = dx * ny - dy * nx;
+    const sign = cross >= 0 ? 1 : -1;
+    const tx = -ny * sign;
+    const ty = nx * sign;
     ghost = {
-      x: hit.x,
-      y: hit.y,
-      tx: hit.x - (hx / hn) * 60,
-      ty: hit.y - (hy / hn) * 60,
+      x: endX,
+      y: endY,
+      objX: hit.x + nx * objLen,
+      objY: hit.y + ny * objLen,
+      cueX: endX + tx * cueLen,
+      cueY: endY + ty * cueLen,
       ballId: hit.id,
     };
   }
   return { x0: cue.x, y0: cue.y, x1: endX, y1: endY, hit, ghost };
+}
+
+/** Re-spot illegally potted object ball (8-ball house rules). */
+export function respotObjectBall(balls, id) {
+  const ball = balls.find((b) => b.id === id);
+  if (!ball || id === 0) return false;
+  const minX = CUSHION + BALL_R + 2;
+  const maxX = TABLE_W - CUSHION - BALL_R - 2;
+  const minY = CUSHION + BALL_R + 2;
+  const maxY = TABLE_H - CUSHION - BALL_R - 2;
+  const candidates = [
+    { x: TABLE_W * 0.68, y: TABLE_H * 0.38 },
+    { x: TABLE_W * 0.68, y: TABLE_H * 0.62 },
+    { x: TABLE_W * 0.62, y: TABLE_H * 0.5 },
+    { x: TABLE_W * 0.58, y: TABLE_H * 0.42 },
+    { x: TABLE_W * 0.58, y: TABLE_H * 0.58 },
+  ];
+  ball.pocketed = false;
+  ball.vx = 0;
+  ball.vy = 0;
+  for (const s of candidates) {
+    const nx = Math.max(minX, Math.min(maxX, s.x));
+    const ny = Math.max(minY, Math.min(maxY, s.y));
+    let ok = true;
+    for (const b of balls) {
+      if (b.pocketed || b.id === id) continue;
+      if (Math.hypot(nx - b.x, ny - b.y) < BALL_R * 2.08) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) {
+      ball.x = nx;
+      ball.y = ny;
+      return true;
+    }
+  }
+  ball.x = TABLE_W * 0.65;
+  ball.y = TABLE_H / 2;
+  return true;
 }
 
 export function placeCueBall(balls, x, y) {

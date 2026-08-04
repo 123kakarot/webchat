@@ -1,7 +1,7 @@
 /** High-quality pool table / ball canvas rendering. */
 
 const tableLayerCache = new Map();
-const TABLE_STYLE_VER = "v3";
+const TABLE_STYLE_VER = "v4";
 
 export function shadeColor(hex, amt) {
   const h = String(hex).replace("#", "");
@@ -73,35 +73,74 @@ function drawRailDiamonds(ctx, x, y, w, h) {
   }
 }
 
+function drawRailPocket(ctx, px, py, holeR, corner) {
+  ctx.save();
+  const pg = ctx.createRadialGradient(px - holeR * 0.12, py - holeR * 0.12, holeR * 0.08, px, py, holeR);
+  pg.addColorStop(0, "#1a1a1a");
+  pg.addColorStop(0.55, "#060606");
+  pg.addColorStop(1, "#000");
+  ctx.beginPath();
+  ctx.arc(px, py, holeR, 0, Math.PI * 2);
+  ctx.fillStyle = pg;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.strokeStyle = "rgba(190,200,215,0.88)";
+  ctx.lineWidth = Math.max(1.8, holeR * 0.12);
+  let a0 = 0;
+  let a1 = Math.PI * 2;
+  if (corner === "tl") {
+    a0 = 0;
+    a1 = Math.PI / 2;
+  } else if (corner === "tr") {
+    a0 = Math.PI / 2;
+    a1 = Math.PI;
+  } else if (corner === "bl") {
+    a0 = -Math.PI / 2;
+    a1 = 0;
+  } else if (corner === "br") {
+    a0 = Math.PI;
+    a1 = Math.PI * 1.5;
+  } else if (corner === "top") {
+    a0 = Math.PI * 0.15;
+    a1 = Math.PI * 0.85;
+  } else if (corner === "bottom") {
+    a0 = Math.PI * 1.15;
+    a1 = Math.PI * 1.85;
+  }
+  ctx.arc(px, py, holeR + 1, a0, a1);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCushionRails(ctx, w, h, fx, fy, fw, fh, cushionPx) {
+  const rw = cushionPx;
+  const rail = ctx.createLinearGradient(0, 0, w, h);
+  rail.addColorStop(0, "#5c3820");
+  rail.addColorStop(0.45, "#3d2412");
+  rail.addColorStop(1, "#2a160c");
+  ctx.fillStyle = rail;
+  ctx.fillRect(0, 0, w, rw);
+  ctx.fillRect(0, h - rw, w, rw);
+  ctx.fillRect(0, 0, rw, h);
+  ctx.fillRect(w - rw, 0, rw, h);
+  ctx.strokeStyle = "rgba(120,80,45,0.55)";
+  ctx.lineWidth = Math.max(2, rw * 0.08);
+  ctx.strokeRect(fx - 1, fy - 1, fw + 2, fh + 2);
+}
+
 function drawCornerChrome(ctx, cx, cy, pr, corner) {
   ctx.save();
   ctx.strokeStyle = "rgba(210,220,235,0.95)";
   ctx.lineWidth = Math.max(2.5, pr * 0.12);
   ctx.lineCap = "round";
   ctx.beginPath();
-  const r = pr * 1.15;
+  const r = pr * 1.05;
   if (corner === "tl") ctx.arc(cx, cy, r, 0, Math.PI / 2);
   if (corner === "tr") ctx.arc(cx, cy, r, Math.PI / 2, Math.PI);
   if (corner === "bl") ctx.arc(cx, cy, r, -Math.PI / 2, 0);
   if (corner === "br") ctx.arc(cx, cy, r, Math.PI, Math.PI * 1.5);
   ctx.stroke();
   ctx.restore();
-}
-
-function drawPocketHole(ctx, px, py, pr) {
-  const pg = ctx.createRadialGradient(px - pr * 0.15, py - pr * 0.15, pr * 0.05, px, py, pr);
-  pg.addColorStop(0, "#2a2a2a");
-  pg.addColorStop(0.5, "#0a0a0a");
-  pg.addColorStop(1, "#000");
-  ctx.beginPath();
-  ctx.fillStyle = pg;
-  ctx.arc(px, py, pr, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.strokeStyle = "rgba(80,70,60,0.9)";
-  ctx.lineWidth = Math.max(1.5, pr * 0.08);
-  ctx.arc(px, py, pr + 1.2, 0, Math.PI * 2);
-  ctx.stroke();
 }
 
 function paintTableLayer(ctx, opt) {
@@ -177,15 +216,20 @@ function paintTableLayer(ctx, opt) {
   ctx.stroke();
   ctx.restore();
 
-  const pocks = pockets();
-  for (const p of pocks) {
-    drawPocketHole(ctx, p.x * sx, p.y * sy, pr);
-  }
+  drawCushionRails(ctx, w, h, fx, fy, fw, fh, fx);
 
-  drawCornerChrome(ctx, fx, fy, pr, "tl");
-  drawCornerChrome(ctx, fx + fw, fy, pr, "tr");
-  drawCornerChrome(ctx, fx, fy + fh, pr, "bl");
-  drawCornerChrome(ctx, fx + fw, fy + fh, pr, "br");
+  const holeR = Math.min(fx * 0.52, POCKET_R * sx * 0.68);
+  drawRailPocket(ctx, fx, fy, holeR, "tl");
+  drawRailPocket(ctx, fx + fw, fy, holeR, "tr");
+  drawRailPocket(ctx, fx, fy + fh, holeR, "bl");
+  drawRailPocket(ctx, fx + fw, fy + fh, holeR, "br");
+  drawRailPocket(ctx, fx + fw * 0.5, fy, holeR, "top");
+  drawRailPocket(ctx, fx + fw * 0.5, fy + fh, holeR, "bottom");
+
+  drawCornerChrome(ctx, fx, fy, holeR, "tl");
+  drawCornerChrome(ctx, fx + fw, fy, holeR, "tr");
+  drawCornerChrome(ctx, fx, fy + fh, holeR, "bl");
+  drawCornerChrome(ctx, fx + fw, fy + fh, holeR, "br");
 
   drawRailDiamonds(ctx, fx - 8, fy - 10, fw + 16, 10);
   drawRailDiamonds(ctx, fx - 8, fy + fh, fw + 16, 10);
@@ -248,17 +292,26 @@ export function paintCueAimOverlay(ctx, opt) {
   ctx.stroke();
 
   if (showGhost && guide.ghost) {
-    ctx.strokeStyle = "rgba(255,255,255,0.92)";
+    const g = guide.ghost;
+    ctx.strokeStyle = "rgba(255,255,255,0.35)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(guide.ghost.x * sx, guide.ghost.y * sy, BALL_R * sx, 0, Math.PI * 2);
+    ctx.arc(g.x * sx, g.y * sy, BALL_R * sx, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.setLineDash([5, 6]);
-    ctx.strokeStyle = "rgba(255,255,255,0.75)";
-    ctx.lineWidth = 1.6;
+
+    ctx.strokeStyle = "rgba(255,255,255,0.92)";
+    ctx.lineWidth = 2.2;
     ctx.beginPath();
-    ctx.moveTo(guide.ghost.x * sx, guide.ghost.y * sy);
-    ctx.lineTo(guide.ghost.tx * sx, guide.ghost.ty * sy);
+    ctx.moveTo(g.x * sx, g.y * sy);
+    if (g.objX != null) ctx.lineTo(g.objX * sx, g.objY * sy);
+    ctx.stroke();
+
+    ctx.setLineDash([6, 7]);
+    ctx.strokeStyle = "rgba(255,255,255,0.72)";
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(g.x * sx, g.y * sy);
+    if (g.cueX != null) ctx.lineTo(g.cueX * sx, g.cueY * sy);
     ctx.stroke();
     ctx.setLineDash([]);
   }
@@ -311,105 +364,86 @@ export function paintCueAimOverlay(ctx, opt) {
   ctx.fill();
 }
 
+function drawOneBall(ctx, x, y, r, b, colors) {
+  const base = colors[b.id] || "#ccc";
+  ctx.fillStyle = "rgba(0,0,0,0.32)";
+  ctx.beginPath();
+  ctx.ellipse(x + r * 0.1, y + r * 0.58, r * 1.05, r * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const body = ctx.createRadialGradient(x - r * 0.36, y - r * 0.42, r * 0.05, x + r * 0.06, y + r * 0.12, r * 1.1);
+  if (b.id === 0) {
+    body.addColorStop(0, "#ffffff");
+    body.addColorStop(0.35, "#f6f6f6");
+    body.addColorStop(0.72, "#d4d4d4");
+    body.addColorStop(1, "#9a9a9a");
+  } else if (b.id === 8) {
+    body.addColorStop(0, "#555");
+    body.addColorStop(0.4, "#1a1a1a");
+    body.addColorStop(1, "#000");
+  } else {
+    body.addColorStop(0, shadeColor(base, 70));
+    body.addColorStop(0.32, base);
+    body.addColorStop(0.72, shadeColor(base, -35));
+    body.addColorStop(1, shadeColor(base, -80));
+  }
+  ctx.beginPath();
+  ctx.fillStyle = body;
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (b.id >= 9 && b.id <= 15) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, r - 0.5, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.fillStyle = "#f3f3f3";
+    ctx.fillRect(x - r, y - r * 0.42, r * 2, r * 0.84);
+    const stripe = ctx.createLinearGradient(x - r, y, x + r, y);
+    stripe.addColorStop(0, shadeColor(base, -20));
+    stripe.addColorStop(0.5, base);
+    stripe.addColorStop(1, shadeColor(base, -20));
+    ctx.fillStyle = stripe;
+    ctx.fillRect(x - r, y - r * 0.28, r * 2, r * 0.56);
+    ctx.restore();
+  }
+
+  if (b.id !== 0) {
+    const nr = r * (b.id >= 9 ? 0.46 : 0.42);
+    ctx.fillStyle = b.id === 8 ? "#0d0d0d" : "#ffffff";
+    ctx.beginPath();
+    ctx.arc(x, y, nr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.12)";
+    ctx.lineWidth = Math.max(0.6, r * 0.04);
+    ctx.stroke();
+    ctx.fillStyle = b.id === 8 ? "#fff" : "#111";
+    ctx.font = `800 ${Math.max(10, r * 0.62)}px system-ui,sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(b.id), x, y + 0.5);
+  }
+
+  ctx.fillStyle = "rgba(255,255,255,0.88)";
+  ctx.beginPath();
+  ctx.arc(x - r * 0.32, y - r * 0.36, r * 0.19, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  ctx.beginPath();
+  ctx.arc(x - r * 0.18, y - r * 0.22, r * 0.08, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 /**
  * @param {CanvasRenderingContext2D} ctx
  */
 export function paintBalls(ctx, opt) {
-  const { w, h, TABLE_W, TABLE_H, BALL_R, balls, colors, fast } = opt;
+  const { w, h, TABLE_W, TABLE_H, BALL_R, balls, colors } = opt;
   const sx = w / TABLE_W;
   const sy = h / TABLE_H;
 
-  if (fast) {
-    for (const b of balls) {
-      if (b.pocketed) continue;
-      const x = b.x * sx;
-      const y = b.y * sy;
-      const r = BALL_R * sx;
-      const base = colors[b.id] || "#ccc";
-      ctx.fillStyle = "rgba(0,0,0,0.32)";
-      ctx.beginPath();
-      ctx.ellipse(x + r * 0.08, y + r * 0.55, r * 0.95, r * 0.38, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.fillStyle = b.id === 0 ? "#f0f0f0" : b.id === 8 ? "#1a1a1a" : base;
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-      if (b.id !== 0) {
-        ctx.fillStyle = b.id === 8 ? "#fff" : "#111";
-        ctx.font = `bold ${Math.max(10, r * 0.65)}px sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(String(b.id), x, y + 0.5);
-      }
-      ctx.fillStyle = "rgba(255,255,255,0.45)";
-      ctx.beginPath();
-      ctx.arc(x - r * 0.28, y - r * 0.32, r * 0.22, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    return;
-  }
-
   for (const b of balls) {
     if (b.pocketed) continue;
-    const x = b.x * sx;
-    const y = b.y * sy;
-    const r = BALL_R * sx;
-    const base = colors[b.id] || "#ccc";
-    ctx.fillStyle = "rgba(0,0,0,0.28)";
-    ctx.beginPath();
-    ctx.ellipse(x + r * 0.1, y + r * 0.58, r * 1.05, r * 0.4, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    const body = ctx.createRadialGradient(x - r * 0.34, y - r * 0.4, r * 0.04, x + r * 0.05, y + r * 0.15, r * 1.08);
-    if (b.id === 0) {
-      body.addColorStop(0, "#ffffff");
-      body.addColorStop(0.4, "#f4f4f4");
-      body.addColorStop(0.78, "#c9c9c9");
-      body.addColorStop(1, "#8e8e8e");
-    } else if (b.id === 8) {
-      body.addColorStop(0, "#666");
-      body.addColorStop(0.35, "#222");
-      body.addColorStop(1, "#000");
-    } else {
-      body.addColorStop(0, shadeColor(base, 60));
-      body.addColorStop(0.38, base);
-      body.addColorStop(0.78, shadeColor(base, -40));
-      body.addColorStop(1, shadeColor(base, -75));
-    }
-    ctx.beginPath();
-    ctx.fillStyle = body;
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-
-    if (b.id >= 9) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(x, y, r - 0.2, 0, Math.PI * 2);
-      ctx.clip();
-      const band = ctx.createLinearGradient(x, y - r * 0.4, x, y + r * 0.4);
-      band.addColorStop(0.16, "#fff");
-      band.addColorStop(0.84, "#fff");
-      ctx.fillStyle = band;
-      ctx.fillRect(x - r, y - r * 0.4, r * 2, r * 0.8);
-      ctx.restore();
-    }
-
-    if (b.id !== 0) {
-      const nr = r * (b.id >= 9 ? 0.44 : 0.4);
-      ctx.fillStyle = b.id === 8 ? "#151515" : "#fafafa";
-      ctx.beginPath();
-      ctx.arc(x, y, nr, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = b.id === 8 ? "#fff" : "#111";
-      ctx.font = `bold ${Math.max(11, r * 0.68)}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(String(b.id), x, y + 0.5);
-    }
-
-    ctx.fillStyle = "rgba(255,255,255,0.82)";
-    ctx.beginPath();
-    ctx.arc(x - r * 0.3, y - r * 0.34, r * 0.2, 0, Math.PI * 2);
-    ctx.fill();
+    drawOneBall(ctx, b.x * sx, b.y * sy, BALL_R * sx, b, colors);
   }
 }
