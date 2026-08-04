@@ -78,7 +78,9 @@ export function createPoolModule(deps = {}) {
   let selectedTable = "neon";
   let selectedBet = 0;
   let canvasEl = null;
-  let pulling = false;
+  let aimPrep = false;
+  let prepPointerId = null;
+  let prepIsTouch = false;
   let loopRunning = false;
   let physAcc = 0;
   let lastFrame = 0;
@@ -182,7 +184,7 @@ export function createPoolModule(deps = {}) {
     resetBreakAim();
     uiTab = "play";
     warmPlayCanvas();
-    toast?.(opts.toast || "Kéo từ bi cái trên bàn — thả tay để đánh ngay.");
+    toast?.(opts.toast || "Giữ chuột / kéo cơ trên bàn — thả để bắn.");
     return match;
   }
 
@@ -218,6 +220,8 @@ export function createPoolModule(deps = {}) {
     loopRunning = false;
     aiGen++;
     aiBusy = false;
+    aimPrep = false;
+    prepPointerId = null;
     match = null;
     canvasEl = null;
     uiTab = "home";
@@ -452,20 +456,30 @@ export function createPoolModule(deps = {}) {
     };
   }
 
+  function syncPowerHud(root) {
+    if (!root) return;
+    const heat = root.querySelector(".pool-power-heat");
+    const pwr = root.querySelector("[data-pool-power]");
+    const val = root.querySelector(".pool-power-val");
+    const pct = Math.round(power * 100);
+    if (heat) heat.style.setProperty("--p", `${pct}%`);
+    if (pwr) pwr.value = String(pct);
+    if (val) val.textContent = String(pct);
+  }
+
   function bindCanvas(canvas) {
     if (!canvas || canvas._poolBound) return;
     canvas._poolBound = true;
     canvasEl = canvas;
     const onPointer = (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
       if (!canControl()) return;
-      const pt = e.touches ? e.touches[0] : e;
-      if (!pt) return;
-      const { x, y } = canvasToTable(canvas, pt.clientX, pt.clientY);
+      const { x, y } = canvasToTable(canvas, e.clientX, e.clientY);
       const placing =
         match.ballInHand || (match.phase === "break" && match.kitchenOnly && !match.shotHistory.length);
       if (placing) {
         tryPlaceCue(match, x, y);
-        if (e.type === "pointerup" || e.type === "touchend") {
+        if (e.type === "pointerup") {
           if (match.ballInHand) match.ballInHand = false;
           toast?.("Đã đặt bi cái.");
         }
@@ -474,32 +488,57 @@ export function createPoolModule(deps = {}) {
       }
       const cue = match.balls.find((b) => b.id === 0 && !b.pocketed);
       if (!cue) return;
-      if (e.type === "pointerdown" || e.type === "touchstart") {
-        pulling = true;
+
+      if (e.type === "pointerdown") {
+        e.preventDefault();
+        aimPrep = true;
+        prepPointerId = e.pointerId;
+        prepIsTouch = e.pointerType === "touch";
         aimAngle = Math.atan2(y - cue.y, x - cue.x);
+        power = prepIsTouch ? 0.1 : 0.48;
+        canvas.classList.add("is-preparing");
         try {
-          canvas.setPointerCapture?.(e.pointerId);
+          canvas.setPointerCapture(e.pointerId);
         } catch (_) {}
-      } else if ((e.type === "pointermove" || e.type === "touchmove") && pulling) {
-        aimAngle = Math.atan2(y - cue.y, x - cue.x);
-        power = Math.max(0.08, Math.min(1, Math.hypot(x - cue.x, y - cue.y) / 170));
         paintCanvas(canvas);
-        notify(false);
-      } else if (e.type === "pointerup" || e.type === "touchend" || e.type === "pointercancel") {
-        if (pulling && power >= 0.1) {
-          const a = aimAngle;
-          const p = power;
-          pulling = false;
-          playShot(a, p, { x: spinX, y: spinY });
-          return;
+        syncPowerHud(canvas.closest(".pool-arena") || canvas.parentElement);
+        return;
+      }
+
+      if (e.pointerId !== prepPointerId) return;
+
+      if (e.type === "pointermove" && aimPrep) {
+        e.preventDefault();
+        aimAngle = Math.atan2(y - cue.y, x - cue.x);
+        const dist = Math.hypot(x - cue.x, y - cue.y);
+        if (prepIsTouch) {
+          power = Math.max(0.1, Math.min(1, dist / 165));
+        } else {
+          power = Math.max(0.28, Math.min(1, 0.28 + dist / 220));
         }
-        pulling = false;
+        paintCanvas(canvas);
+        syncPowerHud(canvas.closest(".pool-arena") || canvas.parentElement);
+        return;
+      }
+
+      if ((e.type === "pointerup" || e.type === "pointercancel") && aimPrep) {
+        e.preventDefault();
+        aimPrep = false;
+        canvas.classList.remove("is-preparing");
+        try {
+          canvas.releasePointerCapture(e.pointerId);
+        } catch (_) {}
+        const shotPower = prepIsTouch ? Math.max(0.12, power) : Math.max(0.32, power);
+        const a = aimAngle;
+        prepPointerId = null;
+        playShot(a, shotPower, { x: spinX, y: spinY });
       }
     };
-    canvas.addEventListener("pointerdown", onPointer);
-    canvas.addEventListener("pointermove", onPointer);
-    canvas.addEventListener("pointerup", onPointer);
-    canvas.addEventListener("pointercancel", onPointer);
+    const opts = { passive: false };
+    canvas.addEventListener("pointerdown", onPointer, opts);
+    canvas.addEventListener("pointermove", onPointer, opts);
+    canvas.addEventListener("pointerup", onPointer, opts);
+    canvas.addEventListener("pointercancel", onPointer, opts);
   }
 
   function groupLabel(side) {
@@ -630,7 +669,10 @@ export function createPoolModule(deps = {}) {
         </section>
 
         <section class="pool-hud-actions">
-          <p class="pool-pull-hint">Kéo từ <strong>bi cái</strong> để căn góc &amp; lực · <strong>Thả tay</strong> để đánh</p>
+          <p class="pool-pull-hint">
+            <span class="pool-hint-desktop">Chuột: <strong>Giữ</strong> trên bàn để ngắm · <strong>Thả</strong> để bắn</span>
+            <span class="pool-hint-mobile">Mobile: <strong>Kéo cơ</strong> từ bi cái · <strong>Thả tay</strong> để bắn</span>
+          </p>
           <div class="pool-btn-row">
             <button type="button" class="pool-btn-secondary" data-act="pool-resign">Đầu hàng</button>
             <button type="button" class="pool-btn-secondary" data-act="pool-leave">Menu</button>
