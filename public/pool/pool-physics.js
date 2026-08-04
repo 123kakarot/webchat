@@ -7,8 +7,8 @@ export const POCKET_R = 21;
 export const CUSHION = 30;
 
 /** Inset from cushion — X ok; Y extra inset (top/bottom rails on art). */
-export const FELT_GUARD_X = 14;
-export const FELT_GUARD_Y = 32;
+export const FELT_GUARD_X = 4;
+export const FELT_GUARD_Y = 42;
 /** @deprecated use FELT_GUARD_X */
 export const FELT_GUARD = FELT_GUARD_X;
 
