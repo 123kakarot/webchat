@@ -7,7 +7,7 @@ export const POCKET_R = 21;
 export const CUSHION = 30;
 
 /** Inset from cushion line — ball edge ≈ inner felt (table units). */
-export const FELT_GUARD = 10;
+export const FELT_GUARD = 14;
 
 export function playBounds() {
   const minX = CUSHION + BALL_R + FELT_GUARD;
