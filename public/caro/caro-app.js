@@ -8,6 +8,7 @@ import {
 } from "./caro-engine.js";
 import { pickAiMove, aiThinkDelay } from "./caro-ai.js";
 import { createXiangqiModule } from "../xiangqi/xiangqi-module.js";
+import { createPoolModule } from "../pool/pool-module.js";
 
 const STORAGE_HISTORY = "caro-local-history";
 const STORAGE_STATS = "caro-local-stats";
@@ -20,6 +21,7 @@ const STORAGE_UI_SESSION = "caro-ui-session";
 const BOARD_GAMES = [
   { id: "caro", title: "Cờ Caro", sub: "AI · 2 người · online realtime", status: "live", icon: "⊞", art: "/caro/games/caro.png" },
   { id: "xiangqi", title: "Cờ tướng", sub: "Xiangqi · chiến thuật 9×10", status: "live", icon: "帥", art: "/caro/games/xiangqi.png" },
+  { id: "pool", title: "Bida 8 Ball", sub: "AI · Local · căn góc & lực", status: "live", icon: "🎱", art: "/caro/games/pool.svg" },
   { id: "chess", title: "Cờ vua", sub: "Chess · cờ quốc tế", status: "soon", icon: "♔", art: "/caro/games/chess.png" },
   { id: "go", title: "Cờ vây", sub: "Go · Baduk · Weiqi", status: "soon", icon: "⚫", art: "/caro/games/go.png" },
 ];
@@ -145,6 +147,29 @@ export function mountCaroApp(ctx) {
       sockEmit("xq:leave", {});
       sockEmit("xq:cancel_quick", {});
       xqQuickWaiting = false;
+    },
+  });
+
+  const pool = createPoolModule({
+    escapeHtml,
+    playerName,
+    toast,
+    beep,
+    onUpdate: () => {
+      if (view === "pool-play") {
+        if (!pool.patchCanvas(root)) render();
+        else {
+          // refresh message / overlay lightly
+          const msg = root.querySelector(".pool-msg");
+          const m = pool.getMatch();
+          if (msg && m) {
+            msg.textContent = `${m.message || ""}${pool.isAiBusy() ? " · AI đang nghĩ…" : ""}`;
+          }
+          if (m?.status === "finished") render();
+        }
+        return;
+      }
+      render();
     },
   });
 
@@ -786,6 +811,39 @@ export function mountCaroApp(ctx) {
             <button type="button" class="caro-btn ghost" data-act="board-portal">← Sảnh game</button>
           </div>
         </section>
+      </div>`;
+  }
+
+  function renderPoolHomeDash() {
+    return `
+      <div class="caro-dash">
+        <aside class="caro-dash-nav" aria-label="WebChat Hub">
+          <div class="caro-dash-logo">
+            <span class="caro-dash-logo-ico" aria-hidden="true">🎱</span>
+            <span>8 Ball<br><small class="caro-dash-logo-sub">Pool</small></span>
+          </div>
+          <nav class="caro-dash-menu">${renderWebchatHubNav("board")}</nav>
+          <div class="caro-nav-join-card">
+            <p class="caro-nav-join-title">Board Game</p>
+            <button type="button" class="caro-nav-join-btn" data-act="board-portal">← Sảnh game</button>
+          </div>
+        </aside>
+        <div class="caro-dash-main">${pool.renderHome()}</div>
+      </div>`;
+  }
+
+  function renderPoolPlayDash() {
+    if (!pool.getMatch()) return renderPoolHomeDash();
+    return `
+      <div class="caro-dash caro-dash-play">
+        <aside class="caro-dash-nav" aria-label="WebChat Hub">
+          <div class="caro-dash-logo">
+            <span class="caro-dash-logo-ico" aria-hidden="true">🎱</span>
+            <span>8 Ball<br><small class="caro-dash-logo-sub">Đang chơi</small></span>
+          </div>
+          <nav class="caro-dash-menu">${renderWebchatHubNav("board")}</nav>
+        </aside>
+        <div class="caro-dash-main" data-pool-root>${pool.renderPlay()}</div>
       </div>`;
   }
 
@@ -1780,6 +1838,9 @@ export function mountCaroApp(ctx) {
     if (view === "xiangqi-home" || view === "xiangqi-play" || view === "xiangqi-friends") {
       return `CỜ <span>TƯỚNG</span>`;
     }
+    if (view === "pool-home" || view === "pool-play") {
+      return `8 BALL <span>POOL</span>`;
+    }
     return `CỜ <span>CARO</span>`;
   }
 
@@ -1792,6 +1853,8 @@ export function mountCaroApp(ctx) {
     if (view === "xiangqi-home") return "Cờ Tướng";
     if (view === "xiangqi-friends") return "Chơi với bạn";
     if (view === "xiangqi-play") return "Đang chơi";
+    if (view === "pool-home") return "Bida 8 Ball";
+    if (view === "pool-play") return "Đang chơi Bida";
     if (view === "caro-home") return "Caro";
     if (view === "ai-setup") return "AI";
     if (view === "create") return "Tạo phòng";
@@ -1827,16 +1890,32 @@ export function mountCaroApp(ctx) {
         view = "xiangqi-home";
         body = renderXiangqiHomeDash();
       } else body = renderXiangqiPlayDash();
+    } else if (view === "pool-home") body = renderPoolHomeDash();
+    else if (view === "pool-play") {
+      if (!pool.getMatch()) {
+        view = "pool-home";
+        body = renderPoolHomeDash();
+      } else body = renderPoolPlayDash();
     }
 
-    const inCaro = !["board-hub", "game-soon", "xiangqi-home", "xiangqi-friends", "xiangqi-play"].includes(view);
+    const inCaro = ![
+      "board-hub",
+      "game-soon",
+      "xiangqi-home",
+      "xiangqi-friends",
+      "xiangqi-play",
+      "pool-home",
+      "pool-play",
+    ].includes(view);
 
     const isDash =
       view === "caro-home" ||
       view === "board-hub" ||
       view === "xiangqi-home" ||
       view === "xiangqi-friends" ||
-      view === "xiangqi-play";
+      view === "xiangqi-play" ||
+      view === "pool-home" ||
+      view === "pool-play";
 
     if (isDash) {
       root.innerHTML = `<div class="caro-shell-dash">
@@ -1847,6 +1926,9 @@ export function mountCaroApp(ctx) {
           : ""
       }</div>`;
       startTimerUi();
+      if (view === "pool-play") {
+        queuePromise.resolve().then(() => pool.mountPlay(root));
+      }
       saveUiSession();
       return;
     }
@@ -1949,6 +2031,33 @@ export function mountCaroApp(ctx) {
     }
 
     const act = t.dataset.act;
+    if (act && act.startsWith("pool-")) {
+      if (act === "pool-toggle-ai" || act === "pool-ai-menu") {
+        const box = root.querySelector("#pool-ai-levels");
+        if (box) box.hidden = !box.hidden;
+        return;
+      }
+      const next = pool.handleAction(act, t);
+      if (next === "board-hub") {
+        view = "board-hub";
+        render();
+        return;
+      }
+      if (next === "pool-home") {
+        view = "pool-home";
+        render();
+        return;
+      }
+      if (next === "pool-play") {
+        view = "pool-play";
+        render();
+        return;
+      }
+      if (view === "pool-play") {
+        render();
+      }
+      return;
+    }
     if (act && act.startsWith("xq-")) {
       const next = xiangqi.handleAction(act, t);
       if (next === "xiangqi-friends") {
@@ -2035,6 +2144,11 @@ export function mountCaroApp(ctx) {
         render();
         return;
       }
+      if (g.id === "pool") {
+        view = "pool-home";
+        render();
+        return;
+      }
       if (g.status === "live") {
         view = "caro-home";
         refreshMeta().then(() => render());
@@ -2073,6 +2187,7 @@ export function mountCaroApp(ctx) {
       localMatch = null;
       quickWaiting = false;
       xiangqi.clearMatch();
+      pool.clearMatch();
       sockEmit("caro:leave", {});
       sockEmit("caro:cancel_quick", {});
       view = "board-hub";
