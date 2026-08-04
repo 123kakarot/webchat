@@ -8,7 +8,7 @@ export const CUSHION = 30;
 
 /** Inset from cushion — X ok; Y extra inset (top/bottom rails on art). */
 export const FELT_GUARD_X = 4;
-export const FELT_GUARD_Y = 42;
+export const FELT_GUARD_Y = 55;
 /** @deprecated use FELT_GUARD_X */
 export const FELT_GUARD = FELT_GUARD_X;
 
