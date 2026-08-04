@@ -191,8 +191,34 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
   }
   html.pool-force-landscape .pool-hud-groups,
   html.pool-force-landscape .pool-arena-status,
-  html.pool-force-landscape .pool-play-rail {
+  html.pool-force-landscape .pool-play-rail,
+  html.pool-force-landscape .pool-arena-top,
+  html.pool-force-landscape .pool-power-card--stage {
     display: none !important;
+  }
+  html.pool-force-landscape .pool-mobile-strip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 4px 8px 2px;
+    z-index: 2;
+  }
+  html.pool-force-landscape .pool-stage-row {
+    flex: 1;
+    min-height: 0;
+  }
+  html.pool-force-landscape .pool-table-card {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+  html.pool-force-landscape .pool-hud-match-head,
+  html.pool-force-landscape .pool-hud-power-mobile {
+    display: none;
+  }
+  html.pool-force-landscape .pool-arena.is-hud-open .pool-hud-match-head,
+  html.pool-force-landscape .pool-arena.is-hud-open .pool-hud-power-mobile {
+    display: block;
   }
   html.pool-force-landscape .pool-arena-hud {
     display: none !important;
@@ -249,8 +275,8 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
     padding: 10px 12px;
   }
   html.pool-force-landscape .pool-canvas-stack {
-    width: min(100%, calc((100dvh - 52px) * 2));
-    max-height: calc(100dvh - 52px);
+    width: min(100%, calc((100dvh - 36px) * 2));
+    max-height: calc(100dvh - 36px);
   }
   .pool-arena-top {
     gap: 6px;
@@ -1674,6 +1700,104 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
 }
 
 /* Bottom HUD cards */
+.pool-hud-fab,
+.pool-hud-backdrop,
+.pool-mobile-strip {
+  display: none;
+}
+
+.pool-mobile-strip {
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px;
+}
+.pool-mobile-strip-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 160, 255, 0.35);
+  background: rgba(8, 14, 36, 0.9);
+  color: #eef3ff;
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.pool-mobile-strip-clock {
+  font-family: Orbitron, monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f5c542;
+  min-width: 3.2em;
+}
+.pool-mobile-strip-phase {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #93a4c7;
+  flex: 1;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pool-hud-match-head,
+.pool-hud-power-mobile {
+  display: none;
+}
+
+.pool-match-compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.pool-match-name.is-turn {
+  color: #f5c542;
+  text-shadow: 0 0 12px rgba(245, 197, 66, 0.35);
+}
+.pool-match-vs {
+  font-size: 0.72rem;
+  color: #93a4c7;
+  flex-shrink: 0;
+}
+.pool-match-meta {
+  margin: 8px 0 0;
+  font-size: 0.72rem;
+  color: #93a4c7;
+  line-height: 1.35;
+}
+
+.pool-power-track--h {
+  position: relative;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
+  width: 100%;
+  border-radius: 999px;
+  border: 2px solid rgba(120, 180, 255, 0.35);
+  background: rgba(4, 8, 20, 0.95);
+  overflow: hidden;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+.pool-power-track--h .pool-power-heat {
+  height: 100%;
+  width: var(--p, 40%);
+  left: 0;
+  right: auto;
+  bottom: auto;
+  top: 0;
+  border-radius: 999px;
+}
+.pool-power-input--h {
+  writing-mode: horizontal-tb;
+  direction: ltr;
+}
+
 .pool-hud-fab,
 .pool-hud-backdrop {
   display: none;

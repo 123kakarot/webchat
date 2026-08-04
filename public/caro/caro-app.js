@@ -215,16 +215,19 @@ export function mountCaroApp(ctx) {
                   pool.isAiBusy() ? " · AI đang nghĩ…" : ""
                 }`;
               }
-              const clockEl = root.querySelector(".pool-vs-clock");
-              if (clockEl && m.turnDeadline) {
+              const clockEls = root.querySelectorAll(".pool-vs-clock");
+              if (clockEls.length && m.turnDeadline) {
                 const left = Math.max(0, Math.ceil((m.turnDeadline - Date.now()) / 1000));
                 const mm = String(Math.floor(left / 60)).padStart(2, "0");
                 const ss = String(left % 60).padStart(2, "0");
-                clockEl.textContent = `${mm}:${ss}`;
+                clockEls.forEach((clockEl) => {
+                  clockEl.textContent = `${mm}:${ss}`;
+                });
               }
-              const heat = root.querySelector(".pool-power-heat");
-              const pwr = root.querySelector("[data-pool-power]");
-              if (heat && pwr) heat.style.setProperty("--p", `${pwr.value}%`);
+              root.querySelectorAll(".pool-power-heat").forEach((heat) => {
+                const pwr = root.querySelector("[data-pool-power]");
+                if (pwr) heat.style.setProperty("--p", `${pwr.value}%`);
+              });
             }
             if (m?.status === "finished") render();
           }

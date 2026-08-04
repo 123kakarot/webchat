@@ -805,6 +805,12 @@ export function createPoolModule(deps = {}) {
       </div>
       <div class="pool-arena-bg" aria-hidden="true"><span class="pool-arena-particles"></span></div>
 
+      <div class="pool-mobile-strip">
+        <button type="button" class="pool-mobile-strip-btn" data-act="pool-leave" title="Sảnh">⌂</button>
+        <span class="pool-mobile-strip-clock pool-vs-clock">${mm}:${ss}</span>
+        <span class="pool-mobile-strip-phase">${escapeHtml(match.phase || "PLAY")}</span>
+      </div>
+
       <div class="pool-arena-shell">
         <div class="pool-arena-main">
           <div class="pool-arena-center">
@@ -856,7 +862,7 @@ export function createPoolModule(deps = {}) {
                 </div>
               </div>
 
-              <aside class="pool-glass-card pool-power-card" aria-label="Lực">
+              <aside class="pool-glass-card pool-power-card pool-power-card--stage" aria-label="Lực">
                 <span class="pool-power-icon" aria-hidden="true">⚡</span>
                 <div class="pool-power-track">
                   <div class="pool-power-heat" style="--p:${Math.round(power * 100)}%"></div>
@@ -879,6 +885,24 @@ export function createPoolModule(deps = {}) {
         <div class="pool-hud-backdrop" data-pool-hud-backdrop hidden aria-hidden="true"></div>
 
         <footer class="pool-arena-hud pool-arena-hud-drawer">
+          <section class="pool-glass-card pool-hud-card pool-hud-match-head">
+            <h4>Trận đấu</h4>
+            <div class="pool-match-compact">
+              <span class="pool-match-name${match.turn === 0 ? " is-turn" : ""}">${escapeHtml(n0)}</span>
+              <span class="pool-match-vs">VS · <span class="pool-vs-clock">${mm}:${ss}</span></span>
+              <span class="pool-match-name${match.turn === 1 ? " is-turn" : ""}">${escapeHtml(n1)}</span>
+            </div>
+            <p class="pool-match-meta">${escapeHtml(match.message || "")}</p>
+          </section>
+
+          <section class="pool-glass-card pool-hud-card pool-hud-power-mobile" aria-label="Lực">
+            <h4>Power · ${Math.round(power * 100)}</h4>
+            <div class="pool-power-track pool-power-track--h">
+              <div class="pool-power-heat" style="--p:${Math.round(power * 100)}%"></div>
+              <input type="range" min="5" max="100" value="${Math.round(power * 100)}" data-pool-power class="pool-power-input pool-power-input--h" />
+            </div>
+          </section>
+
           <section class="pool-glass-card pool-hud-card pool-hud-groups">
             <h4>Bộ bóng</h4>
             ${groupBoardHtml()}
@@ -1177,15 +1201,23 @@ export function createPoolModule(deps = {}) {
       hudBackdrop.addEventListener("click", () => setPoolHudOpen(arenaEl, false));
     }
     setPoolHudOpen(arenaEl, false);
-    const powerEl = scope.querySelector("[data-pool-power]");
-    if (powerEl && !powerEl.dataset.poolBound) {
-      powerEl.dataset.poolBound = "1";
-      powerEl.addEventListener("input", () => {
-        power = Number(powerEl.value) / 100;
-        const heat = scope.querySelector(".pool-power-heat");
-        if (heat) heat.style.setProperty("--p", `${Math.round(power * 100)}%`);
-        const val = scope.querySelector(".pool-power-val");
-        if (val) val.textContent = String(Math.round(power * 100));
+    if (arenaEl && !arenaEl.dataset.poolPowerBound) {
+      arenaEl.dataset.poolPowerBound = "1";
+      arenaEl.addEventListener("input", (ev) => {
+        const el = ev.target;
+        if (!el?.matches?.("[data-pool-power]")) return;
+        power = Number(el.value) / 100;
+        arenaEl.querySelectorAll("[data-pool-power]").forEach((inp) => {
+          if (inp !== el) inp.value = el.value;
+        });
+        arenaEl.querySelectorAll(".pool-power-heat").forEach((heat) => {
+          heat.style.setProperty("--p", `${Math.round(power * 100)}%`);
+        });
+        arenaEl.querySelectorAll(".pool-power-val").forEach((val) => {
+          val.textContent = String(Math.round(power * 100));
+        });
+        const pwrTitle = arenaEl.querySelector(".pool-hud-power-mobile h4");
+        if (pwrTitle) pwrTitle.textContent = `Power · ${Math.round(power * 100)}`;
         if (canvasEl) requestPaint();
       });
     }
