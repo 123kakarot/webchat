@@ -5,13 +5,11 @@ import { FELT_GUARD_X, FELT_GUARD_Y } from "./pool-physics.js";
 const tableLayerCache = new Map();
 const TABLE_STYLE_VER = "v8-balls";
 export const TABLE_BG_URL = "/pool/table-arena.png";
-export const TABLE_BG_VER = "11";
-/** Felt region on mockup (normalized 0–1) — khung đỏ reference. */
-export const TABLE_ART_INSET = { x: 0.091, y: 0.13, w: 0.818, h: 0.738 };
+export const TABLE_BG_VER = "12";
 /** Play line inset inside felt (fraction per side). */
-export const TABLE_PLAY_MARGIN = { x: 0.012, y: 0.016 };
-/** Ball-edge padding on canvas map (× ball radius px). */
-export const TABLE_BALL_EDGE_PAD = 0.34;
+export const TABLE_PLAY_MARGIN = { x: 0.012, y: 0.032 };
+/** Ball-edge padding on canvas map (× ball radius). */
+export const TABLE_BALL_EDGE_PAD = { x: 0.34, y: 0.5 };
 
 let tableBgImg = null;
 let tableBgPromise = null;
