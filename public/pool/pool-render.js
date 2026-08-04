@@ -6,6 +6,8 @@ const tableLayerCache = new Map();
 const TABLE_STYLE_VER = "v8-balls";
 export const TABLE_BG_URL = "/pool/table-arena.png";
 export const TABLE_BG_VER = "12";
+/** Felt region on mockup (normalized 0–1). */
+export const TABLE_ART_INSET = { x: 0.091, y: 0.13, w: 0.818, h: 0.738 };
 /** Play line inset inside felt (fraction per side). */
 export const TABLE_PLAY_MARGIN = { x: 0.012, y: 0.032 };
 /** Ball-edge padding on canvas map (× ball radius). */
