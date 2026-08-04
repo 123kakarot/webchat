@@ -347,6 +347,7 @@ export function createPoolModule(deps = {}) {
       h,
       TABLE_W,
       TABLE_H,
+      CUSHION,
       BALL_R,
       balls: match.balls,
       colors: BALL_COLORS,
@@ -370,6 +371,7 @@ export function createPoolModule(deps = {}) {
       h,
       TABLE_W,
       TABLE_H,
+      CUSHION,
       BALL_R,
       guide,
       aimAngle,
@@ -538,7 +540,7 @@ export function createPoolModule(deps = {}) {
     const rect = canvas.getBoundingClientRect();
     const px = ((clientX - rect.left) / rect.width) * canvas.width;
     const py = ((clientY - rect.top) / rect.height) * canvas.height;
-    const t = tableCanvasTransform(canvas.width, canvas.height, TABLE_W, TABLE_H);
+    const t = tableCanvasTransform(canvas.width, canvas.height, TABLE_W, TABLE_H, CUSHION);
     return canvasCoordToTable(px, py, t);
   }
 
