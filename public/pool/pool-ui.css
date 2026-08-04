@@ -65,7 +65,8 @@ html.pool-force-landscape body {
     background: rgba(3, 8, 20, 0.94);
     backdrop-filter: blur(8px);
   }
-  html.pool-force-landscape .pool-arena .pool-arena-stage,
+  html.pool-force-landscape .pool-arena .pool-arena-shell,
+  html.pool-force-landscape .pool-arena .pool-stage-row,
   html.pool-force-landscape .pool-arena .pool-arena-hud,
   html.pool-force-landscape .pool-arena .pool-arena-top,
   html.pool-force-landscape .pool-arena .pool-arena-status {
@@ -141,10 +142,18 @@ html.pool-force-landscape body {
   .pool-vs-clock {
     font-size: 1rem;
   }
-  .pool-arena-stage {
-    width: 100%;
-    grid-template-columns: minmax(0, 1fr) 52px;
+  .pool-stage-row {
+    flex-direction: row;
     gap: 8px;
+  }
+  .pool-table-card {
+    flex: 1 1 auto;
+    max-width: 100%;
+  }
+  .pool-power-card {
+    flex: 0 0 52px;
+    width: 52px;
+    padding: 8px 4px !important;
   }
   .pool-arena .pool-canvas {
     max-height: min(58dvh, 100%);
@@ -883,11 +892,24 @@ html.pool-force-landscape body {
 }
 
 /* ============================================================
-   ARENA PLAY — AAA game HUD (table = hero ~75–80% width)
+   ARENA PLAY — AAA game HUD (table ~65%, glass cards, hierarchy)
    ============================================================ */
+.pool-glass-card {
+  border-radius: 20px;
+  background: rgba(15, 20, 40, 0.92);
+  border: 1px solid rgba(120, 180, 255, 0.18);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.42),
+    0 0 48px rgba(70, 120, 220, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    inset 0 -16px 32px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
 .pool-arena {
-  --arena-pad: 14px;
-  --arena-gap: 12px;
+  --arena-pad: 20px;
+  --arena-gap: 22px;
   --arena-gold: #f5c542;
   --arena-cyan: #4de2ff;
   --arena-purple: #8b5cf6;
@@ -895,14 +917,44 @@ html.pool-force-landscape body {
   flex: 1;
   min-height: 0;
   height: 100%;
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-  gap: var(--arena-gap);
-  padding: var(--arena-pad);
+  display: flex;
+  flex-direction: column;
   color: #eef3ff;
   font-family: "Be Vietnam Pro", system-ui, sans-serif;
   overflow: hidden;
   isolation: isolate;
+}
+
+.pool-arena-shell {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--arena-gap);
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+  padding: var(--arena-pad) 24px;
+  box-sizing: border-box;
+}
+
+.pool-arena-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 260px);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.pool-arena-center {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  min-height: 0;
 }
 
 .pool-arena-bg {
@@ -911,17 +963,42 @@ html.pool-force-landscape body {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(88, 60, 220, 0.42), transparent 62%),
-    radial-gradient(ellipse 45% 40% at 12% 18%, rgba(40, 140, 255, 0.22), transparent 55%),
-    radial-gradient(ellipse 40% 35% at 92% 78%, rgba(245, 197, 66, 0.1), transparent 50%),
-    linear-gradient(180deg, #060b1c 0%, #030712 55%, #02040c 100%);
+    radial-gradient(ellipse 55% 45% at 50% 38%, rgba(88, 60, 220, 0.38), transparent 68%),
+    radial-gradient(ellipse 35% 30% at 8% 12%, rgba(40, 140, 255, 0.2), transparent 58%),
+    radial-gradient(ellipse 30% 28% at 94% 82%, rgba(245, 197, 66, 0.12), transparent 55%),
+    linear-gradient(180deg, #070c1a 0%, #030712 50%, #010308 100%);
 }
 .pool-arena-bg::after {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.07;
+  opacity: 0.08;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.pool-arena-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 90% 80% at 50% 50%, transparent 35%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+}
+.pool-arena-particles {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(2px 2px at 20% 30%, rgba(255, 255, 255, 0.35), transparent),
+    radial-gradient(2px 2px at 70% 60%, rgba(77, 226, 255, 0.25), transparent),
+    radial-gradient(1px 1px at 40% 80%, rgba(245, 197, 66, 0.3), transparent);
+  opacity: 0.35;
+  animation: pool-bg-drift 18s ease-in-out infinite alternate;
+}
+@keyframes pool-bg-drift {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(-12px, 8px);
+  }
 }
 
 .pool-arena > *:not(.pool-arena-bg) {
@@ -932,40 +1009,39 @@ html.pool-force-landscape body {
 .pool-arena-top {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
+  gap: 16px;
+  align-items: stretch;
+  max-width: 920px;
+  margin: 0 auto;
+  width: 100%;
 }
 
-.pool-arena-exit {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+.pool-arena-exit.pool-glass-card {
+  width: 52px;
+  height: auto;
+  min-height: 52px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
   border: 1px solid rgba(120, 160, 255, 0.28);
-  background: rgba(10, 16, 40, 0.75);
+  background: rgba(10, 16, 40, 0.88);
   color: #dbe7ff;
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   cursor: pointer;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 0 16px rgba(77, 226, 255, 0.12);
 }
 .pool-arena-exit:hover {
   border-color: rgba(77, 226, 255, 0.55);
-  box-shadow: 0 0 20px rgba(77, 226, 255, 0.28);
+  box-shadow:
+    0 0 24px rgba(77, 226, 255, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.pool-fighter {
+.pool-fighter.pool-glass-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: 16px;
-  border: 1px solid rgba(120, 160, 255, 0.22);
-  background:
-    linear-gradient(135deg, rgba(28, 40, 80, 0.85), rgba(12, 18, 42, 0.9));
-  box-shadow:
-    0 8px 28px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(12px);
+  gap: 16px;
+  padding: 16px 20px;
   min-width: 0;
 }
 .pool-fighter.is-right {
@@ -977,51 +1053,64 @@ html.pool-force-landscape body {
   align-items: flex-end;
 }
 .pool-fighter.is-turn {
-  border-color: rgba(245, 197, 66, 0.65);
+  border-color: rgba(245, 197, 66, 0.55);
   box-shadow:
     0 0 0 1px rgba(245, 197, 66, 0.35),
-    0 0 28px rgba(245, 197, 66, 0.22),
-    0 8px 28px rgba(0, 0, 0, 0.35);
+    0 0 36px rgba(245, 197, 66, 0.28),
+    0 8px 32px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  animation: pool-turn-glow 2.2s ease-in-out infinite;
+}
+@keyframes pool-turn-glow {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.06);
+  }
 }
 
 .pool-fighter-av {
   flex-shrink: 0;
-  width: 52px;
-  height: 52px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   font-weight: 800;
-  font-size: 1.15rem;
+  font-size: 1.65rem;
   color: #fff;
   background: linear-gradient(145deg, #a78bfa, #38bdf8 55%, #2563eb);
   box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.2),
-    0 0 18px rgba(124, 92, 255, 0.45);
+    0 0 0 3px rgba(255, 255, 255, 0.22),
+    0 0 28px rgba(124, 92, 255, 0.5),
+    inset 0 -4px 12px rgba(0, 0, 0, 0.25);
 }
 .pool-fighter-av.is-dark {
   background: linear-gradient(145deg, #64748b, #1e293b 60%, #0f172a);
   box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.12),
-    0 0 14px rgba(56, 189, 248, 0.25);
+    0 0 0 3px rgba(255, 255, 255, 0.12),
+    0 0 20px rgba(56, 189, 248, 0.3),
+    inset 0 -4px 12px rgba(0, 0, 0, 0.35);
 }
 
 .pool-fighter-meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
-.pool-fighter-meta b {
-  font-size: 0.98rem;
-  font-weight: 800;
+.pool-fighter-name {
+  font-size: 1.05rem;
+  font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .pool-fighter-meta em {
   font-style: normal;
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   color: #b7c9e6;
   display: flex;
   align-items: center;
@@ -1054,29 +1143,41 @@ html.pool-force-landscape body {
   justify-content: flex-end;
 }
 
-.pool-vs-block {
+.pool-vs-block.pool-glass-card {
   justify-self: center;
+  align-self: center;
   text-align: center;
-  padding: 8px 16px;
-  border-radius: 16px;
-  border: 1px solid rgba(168, 85, 247, 0.4);
-  background: linear-gradient(180deg, rgba(60, 30, 110, 0.75), rgba(20, 12, 48, 0.9));
-  box-shadow: 0 0 28px rgba(139, 92, 246, 0.35);
-  min-width: 88px;
+  padding: 14px 22px;
+  min-width: 108px;
+  border-color: rgba(168, 85, 247, 0.45);
+  background: linear-gradient(180deg, rgba(50, 28, 95, 0.88), rgba(18, 10, 42, 0.94));
+  box-shadow:
+    0 0 40px rgba(139, 92, 246, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: pool-vs-pulse 3s ease-in-out infinite;
+}
+@keyframes pool-vs-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 32px rgba(139, 92, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 48px rgba(168, 85, 247, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
 }
 .pool-vs-label {
   display: block;
   font-family: Orbitron, "Be Vietnam Pro", sans-serif;
   font-weight: 800;
-  letter-spacing: 0.14em;
-  font-size: 0.85rem;
+  letter-spacing: 0.16em;
+  font-size: 0.95rem;
   color: #e9d5ff;
-  text-shadow: 0 0 12px rgba(192, 132, 252, 0.8);
+  text-shadow: 0 0 14px rgba(192, 132, 252, 0.85);
 }
 .pool-vs-clock {
   display: block;
   font-family: Orbitron, monospace;
-  font-size: 1.25rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: #fff;
   margin-top: 2px;
@@ -1093,21 +1194,26 @@ html.pool-force-landscape body {
 .pool-arena-status {
   margin: 0;
   text-align: center;
-  font-size: 0.8rem;
+  font-size: 0.9375rem;
   color: #b7c9e6;
-  text-shadow: 0 0 10px rgba(77, 226, 255, 0.15);
+  text-shadow: 0 0 12px rgba(77, 226, 255, 0.12);
 }
 
-/* Hero stage: table ~78% + power bar */
-.pool-arena-stage {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 72px;
-  gap: 14px;
-  align-items: stretch;
+.pool-stage-row {
+  flex: 1;
   min-height: 0;
-  width: min(100%, 1180px);
-  margin: 0 auto;
-  max-width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 20px;
+  padding: 4px 0 8px;
+}
+
+.pool-table-card {
+  flex: 0 1 min(720px, 65%);
+  max-width: min(720px, 100%);
+  padding: 16px !important;
+  min-width: 0;
 }
 
 .pool-hero-table {
@@ -1116,16 +1222,16 @@ html.pool-force-landscape body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
-  border-radius: 18px;
+  padding: 14px;
+  border-radius: 16px;
   background:
-    linear-gradient(155deg, #5a3820 0%, #3d2614 35%, #1a0f08 100%);
-  border: 2px solid rgba(212, 175, 110, 0.45);
+    linear-gradient(160deg, #6b4224 0%, #4a2c14 28%, #2a160c 55%, #120a06 100%);
+  border: 3px solid rgba(212, 175, 110, 0.5);
   box-shadow:
-    0 18px 50px rgba(0, 0, 0, 0.55),
-    0 0 40px rgba(40, 80, 200, 0.18),
-    inset 0 1px 0 rgba(255, 220, 160, 0.25),
-    inset 0 -8px 24px rgba(0, 0, 0, 0.45);
+    0 22px 56px rgba(0, 0, 0, 0.6),
+    0 0 48px rgba(40, 80, 200, 0.15),
+    inset 0 2px 0 rgba(255, 220, 160, 0.35),
+    inset 0 -12px 28px rgba(0, 0, 0, 0.5);
 }
 
 .pool-canvas-stack {
@@ -1147,15 +1253,168 @@ html.pool-force-landscape body {
 .pool-arena .pool-canvas {
   width: 100%;
   height: auto;
-  max-height: min(58vh, 560px);
+  max-height: min(44vh, 420px);
   border-radius: 10px;
   display: block;
   touch-action: none;
   cursor: crosshair;
   contain: layout paint;
   box-shadow:
-    inset 0 0 40px rgba(0, 0, 0, 0.35),
-    0 0 24px rgba(0, 40, 20, 0.4);
+    inset 0 0 48px rgba(0, 0, 0, 0.4),
+    0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.pool-power-card {
+  flex: 0 0 112px;
+  width: 112px;
+  padding: 16px 14px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.pool-power-icon {
+  font-size: 1.35rem;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.65));
+}
+.pool-power-card .pool-power-track {
+  flex: 1;
+  width: 100%;
+  max-height: min(36vh, 320px);
+  min-height: 140px;
+  border-radius: 999px;
+  border: 2px solid rgba(120, 180, 255, 0.35);
+  background: linear-gradient(180deg, rgba(8, 12, 28, 0.95), rgba(4, 6, 16, 0.98));
+  box-shadow:
+    inset 0 2px 12px rgba(0, 0, 0, 0.55),
+    0 0 24px rgba(251, 191, 36, 0.12);
+  padding: 8px 6px;
+  position: relative;
+  overflow: hidden;
+}
+.pool-power-card .pool-power-heat {
+  border-radius: 999px;
+  margin: 0 4px;
+}
+.pool-power-card .pool-power-label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+}
+.pool-power-card .pool-power-val {
+  font-size: 1.35rem;
+}
+
+.pool-play-rail {
+  padding: 18px 16px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow: auto;
+  font-size: 0.8125rem;
+}
+.pool-rail-section h5 {
+  margin: 0 0 10px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #93a4c7;
+}
+.pool-rail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pool-rail-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(8, 14, 32, 0.65);
+  border: 1px solid rgba(120, 160, 255, 0.12);
+}
+.pool-rail-list li span:first-of-type {
+  flex: 1;
+  font-weight: 600;
+  color: #e8eef9;
+}
+.pool-rail-list small {
+  color: #64748b;
+  font-size: 0.6875rem;
+}
+.pool-rail-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #475569;
+  flex-shrink: 0;
+}
+.pool-rail-dot.is-on {
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.7);
+}
+.pool-rail-rank {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pool-rail-rank li {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+}
+.pool-rail-rank li.is-me {
+  background: rgba(77, 226, 255, 0.12);
+  border: 1px solid rgba(77, 226, 255, 0.35);
+  color: #4de2ff;
+}
+.pool-rail-rank em {
+  font-style: normal;
+  color: #f5c542;
+  font-weight: 700;
+}
+.pool-rail-msgs {
+  max-height: 72px;
+  overflow: auto;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(4, 8, 20, 0.75);
+  border: 1px solid rgba(120, 160, 255, 0.12);
+  margin-bottom: 8px;
+}
+.pool-rail-msgs p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #93a4c7;
+  line-height: 1.4;
+}
+.pool-rail-chat-in {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 160, 255, 0.2);
+  background: rgba(6, 10, 24, 0.9);
+  color: #64748b;
+  padding: 8px 10px;
+  font-size: 0.75rem;
+}
+
+/* legacy alias */
+.pool-power-hero {
+  display: none;
 }
 
 .pool-arena .pool-canvas.is-loading {
@@ -1204,23 +1463,7 @@ html.pool-force-landscape body {
     0 0 28px rgba(77, 226, 255, 0.35);
 }
 
-/* Tall POWER meter ≈ table height */
-.pool-power-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 6px;
-  border-radius: 16px;
-  border: 1px solid rgba(120, 160, 255, 0.28);
-  background:
-    linear-gradient(180deg, rgba(22, 32, 70, 0.92), rgba(8, 12, 28, 0.95));
-  box-shadow:
-    0 8px 28px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(10px);
-}
-
+/* Power track (shared) */
 .pool-power-track {
   position: relative;
   flex: 1;
@@ -1308,35 +1551,43 @@ html.pool-force-landscape body {
 /* Bottom HUD cards */
 .pool-arena-hud {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.1fr) auto minmax(160px, 0.9fr);
-  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
   align-items: stretch;
-  width: min(100%, 1180px);
-  margin: 0 auto;
+  width: 100%;
+  flex-shrink: 0;
 }
 
-.pool-hud-card {
-  padding: 12px 14px;
-  border-radius: 16px;
-  border: 1px solid rgba(120, 160, 255, 0.22);
-  background: rgba(14, 22, 52, 0.78);
-  backdrop-filter: blur(14px);
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+.pool-hud-card.pool-glass-card {
+  padding: 20px;
+}
+
+.pool-hud-groups {
+  grid-column: auto;
+  min-width: 0;
 }
 .pool-hud-card h4 {
-  margin: 0 0 8px;
-  font-size: 0.72rem;
+  margin: 0 0 12px;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: #93a4c7;
 }
 
 .pool-hud-groups {
-  grid-column: span 2;
+  grid-column: auto;
   min-width: 0;
+}
+
+.pool-hud-actions .pool-pull-hint {
+  margin: 0 0 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(77, 226, 255, 0.22);
+  background: rgba(8, 16, 36, 0.65);
+  font-size: 0.8125rem;
+  text-align: left;
 }
 
 .pool-group-board {
@@ -1552,33 +1803,46 @@ html.pool-force-landscape body {
   gap: 12px;
 }
 
+@media (max-width: 1180px) {
+  .pool-play-rail {
+    display: none;
+  }
+  .pool-arena-main {
+    grid-template-columns: 1fr;
+  }
+  .pool-table-card {
+    flex: 1 1 min(680px, 100%);
+    max-width: 100%;
+  }
+}
+
 @media (max-width: 980px) {
   .pool-arena-top {
     grid-template-columns: auto 1fr auto 1fr;
-    gap: 8px;
+    gap: 10px;
+    max-width: 100%;
   }
   .pool-fighter-av {
-    width: 42px;
-    height: 42px;
-    font-size: 1rem;
+    width: 56px;
+    height: 56px;
+    font-size: 1.25rem;
   }
-  .pool-arena-stage {
-    grid-template-columns: minmax(0, 1fr) 56px;
-    gap: 10px;
+  .pool-stage-row {
+    gap: 12px;
   }
   .pool-arena-hud {
     grid-template-columns: 1fr 1fr;
   }
+  .pool-hud-groups,
   .pool-hud-actions {
     grid-column: 1 / -1;
   }
 }
 
 @media (max-width: 720px) {
-  .pool-arena {
-    --arena-pad: 10px;
-    --arena-gap: 10px;
-    overflow: auto;
+  .pool-arena-shell {
+    padding: 12px;
+    gap: 14px;
   }
   .pool-arena-top {
     grid-template-columns: auto 1fr;
@@ -1590,17 +1854,21 @@ html.pool-force-landscape body {
   .pool-fighter.is-right {
     grid-column: 1 / -1;
   }
-  .pool-arena-stage {
-    grid-template-columns: 1fr;
+  .pool-stage-row {
+    flex-direction: column;
+    align-items: center;
   }
-  .pool-power-hero {
+  .pool-power-card {
+    flex: 0 0 auto;
+    width: min(100%, 280px);
     flex-direction: row;
-    height: auto;
+    padding: 12px 16px !important;
   }
-  .pool-power-track {
+  .pool-power-card .pool-power-track {
     width: 100%;
-    height: 36px;
-    min-height: 36px;
+    max-height: 40px;
+    min-height: 40px;
+    flex: 1;
   }
   .pool-power-heat {
     width: var(--p, 40%);
@@ -1611,7 +1879,7 @@ html.pool-force-landscape body {
     direction: ltr;
   }
   .pool-arena .pool-canvas {
-    max-height: min(42vh, 360px);
+    max-height: min(40vh, 340px);
   }
   .pool-arena-hud {
     grid-template-columns: 1fr;

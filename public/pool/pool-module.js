@@ -739,6 +739,36 @@ export function createPoolModule(deps = {}) {
     return `${[1, 2, 3, 4, 5, 6, 7].map(mk).join("")}<span class="pool-rack-gap"></span>${mk(8)}<span class="pool-rack-gap"></span>${[9, 10, 11, 12, 13, 14, 15].map(mk).join("")}`;
   }
 
+  function playRailHtml() {
+    const e = elo();
+    const name = playerName() || "Bạn";
+    return `
+      <div class="pool-rail-section">
+        <h5>Bạn bè</h5>
+        <ul class="pool-rail-list">
+          <li><span class="pool-rail-dot is-on"></span><span>PoolKing</span><small>Online</small></li>
+          <li><span class="pool-rail-dot is-on"></span><span>MiniclipPro</span><small>Online</small></li>
+          <li><span class="pool-rail-dot"></span><span>BreakMaster</span><small>Offline</small></li>
+        </ul>
+      </div>
+      <div class="pool-rail-section">
+        <h5>Xếp hạng</h5>
+        <ol class="pool-rail-rank">
+          <li><b>1</b> Shark99 <em>2450</em></li>
+          <li><b>2</b> CueLegend <em>2280</em></li>
+          <li class="is-me"><b>—</b> ${escapeHtml(name)} <em>${e}</em></li>
+          <li><b>3</b> RailRunner <em>2105</em></li>
+        </ol>
+      </div>
+      <div class="pool-rail-section pool-rail-chat">
+        <h5>Chat</h5>
+        <div class="pool-rail-msgs">
+          <p><strong>Hệ thống</strong> Trận đấu bắt đầu — chúc may mắn!</p>
+        </div>
+        <input type="text" class="pool-rail-chat-in" placeholder="Nhắn trong trận…" disabled />
+      </div>`;
+  }
+
   function renderPlay() {
     if (!match) return renderHome();
     const cue = cueStats();
@@ -758,95 +788,110 @@ export function createPoolModule(deps = {}) {
           <small>Bida chơi tốt nhất ở chế độ ngang</small>
         </div>
       </div>
-      <div class="pool-arena-bg" aria-hidden="true"></div>
+      <div class="pool-arena-bg" aria-hidden="true"><span class="pool-arena-particles"></span></div>
 
-      <header class="pool-arena-top">
-        <button type="button" class="pool-arena-exit" data-act="pool-leave" title="Sảnh">⌂</button>
+      <div class="pool-arena-shell">
+        <div class="pool-arena-main">
+          <div class="pool-arena-center">
+            <header class="pool-arena-top">
+              <button type="button" class="pool-glass-card pool-arena-exit" data-act="pool-leave" title="Sảnh">⌂</button>
 
-        <article class="pool-fighter${match.turn === 0 ? " is-turn" : ""}">
-          <span class="pool-fighter-av">${escapeHtml((n0[0] || "A").toUpperCase())}</span>
-          <div class="pool-fighter-meta">
-            <b>${escapeHtml(n0)}</b>
-            <em><span class="pool-rank-badge">${rankFromElo(e)}</span> · ${e} ELO</em>
-            <small class="pool-group-tag">${groupLabel(0)}</small>
-            <div class="pool-fighter-balls">${ballIconsFor(0)}</div>
+              <article class="pool-glass-card pool-fighter${match.turn === 0 ? " is-turn" : ""}">
+                <span class="pool-fighter-av">${escapeHtml((n0[0] || "A").toUpperCase())}</span>
+                <div class="pool-fighter-meta">
+                  <b class="pool-fighter-name">${escapeHtml(n0)}</b>
+                  <em><span class="pool-rank-badge">${rankFromElo(e)}</span> · ${e} ELO</em>
+                  <small class="pool-group-tag">${groupLabel(0)}</small>
+                  <div class="pool-fighter-balls">${ballIconsFor(0)}</div>
+                </div>
+              </article>
+
+              <div class="pool-glass-card pool-vs-block">
+                <span class="pool-vs-label">VS</span>
+                <span class="pool-vs-clock">${mm}:${ss}</span>
+                <small>${escapeHtml(match.phase || "")}</small>
+              </div>
+
+              <article class="pool-glass-card pool-fighter is-right${match.turn === 1 ? " is-turn" : ""}">
+                <div class="pool-fighter-meta">
+                  <b class="pool-fighter-name">${escapeHtml(n1)}</b>
+                  <em>${
+                    match.mode === "ai"
+                      ? `<span class="pool-rank-badge">AI</span> · ${escapeHtml(String(match.aiLevel || "HARD").toUpperCase())}`
+                      : `<span class="pool-rank-badge">Rival</span>`
+                  }</em>
+                  <small class="pool-group-tag">${groupLabel(1)}</small>
+                  <div class="pool-fighter-balls">${ballIconsFor(1)}</div>
+                </div>
+                <span class="pool-fighter-av is-dark">${escapeHtml((n1[0] || "B").toUpperCase())}</span>
+              </article>
+            </header>
+
+            <p class="pool-arena-status">${escapeHtml(match.message || "")}${match.moving ? " · bi đang chạy…" : ""}${
+              aiBusy ? " · AI đang nghĩ…" : ""
+            }</p>
+
+            <div class="pool-stage-row">
+              <div class="pool-glass-card pool-table-card">
+                <div class="pool-hero-table">
+                  <div class="pool-canvas-stack">
+                    <canvas class="pool-canvas is-loading" width="1200" height="600" data-pool-canvas aria-label="Bàn bida"></canvas>
+                    <canvas class="pool-aim-layer" width="1200" height="600" data-pool-aim-canvas aria-hidden="true"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <aside class="pool-glass-card pool-power-card" aria-label="Lực">
+                <span class="pool-power-icon" aria-hidden="true">⚡</span>
+                <div class="pool-power-track">
+                  <div class="pool-power-heat" style="--p:${Math.round(power * 100)}%"></div>
+                  <input type="range" min="5" max="100" value="${Math.round(power * 100)}" data-pool-power class="pool-power-input" />
+                </div>
+                <span class="pool-power-label">POWER</span>
+                <strong class="pool-power-val">${Math.round(power * 100)}</strong>
+              </aside>
+            </div>
           </div>
-        </article>
 
-        <div class="pool-vs-block">
-          <span class="pool-vs-label">VS</span>
-          <span class="pool-vs-clock">${mm}:${ss}</span>
-          <small>${escapeHtml(match.phase || "")}</small>
+          <aside class="pool-glass-card pool-play-rail" aria-label="Xã hội">
+            ${playRailHtml()}
+          </aside>
         </div>
 
-        <article class="pool-fighter is-right${match.turn === 1 ? " is-turn" : ""}">
-          <div class="pool-fighter-meta">
-            <b>${escapeHtml(n1)}</b>
-            <em>${
-              match.mode === "ai"
-                ? `<span class="pool-rank-badge">AI</span> · ${escapeHtml(String(match.aiLevel || "HARD").toUpperCase())}`
-                : `<span class="pool-rank-badge">Rival</span>`
-            }</em>
-            <small class="pool-group-tag">${groupLabel(1)}</small>
-            <div class="pool-fighter-balls">${ballIconsFor(1)}</div>
-          </div>
-          <span class="pool-fighter-av is-dark">${escapeHtml((n1[0] || "B").toUpperCase())}</span>
-        </article>
-      </header>
+        <footer class="pool-arena-hud">
+          <section class="pool-glass-card pool-hud-card pool-hud-groups">
+            <h4>Bộ bóng</h4>
+            ${groupBoardHtml()}
+          </section>
 
-      <p class="pool-arena-status">${escapeHtml(match.message || "")}${match.moving ? " · bi đang chạy…" : ""}${
-        aiBusy ? " · AI đang nghĩ…" : ""
-      }</p>
+          <section class="pool-glass-card pool-hud-card pool-hud-cue">
+            <h4>Gậy · ${escapeHtml(cue.name)}</h4>
+            <div class="pool-stat"><span>Power</span><i style="--w:${Math.min(100, cue.power * 82)}%"></i></div>
+            <div class="pool-stat"><span>Spin</span><i style="--w:${Math.min(100, cue.spin * 90)}%"></i></div>
+            <div class="pool-stat"><span>Aim</span><i style="--w:${Math.min(100, cue.aim * 90)}%"></i></div>
+            <div class="pool-stat"><span>Accuracy</span><i style="--w:${Math.min(100, cue.accuracy * 90)}%"></i></div>
+          </section>
 
-      <div class="pool-arena-stage">
-        <div class="pool-hero-table">
-          <div class="pool-canvas-stack">
-          <canvas class="pool-canvas is-loading" width="1200" height="600" data-pool-canvas aria-label="Bàn bida"></canvas>
-          <canvas class="pool-aim-layer" width="1200" height="600" data-pool-aim-canvas aria-hidden="true"></canvas>
-          </div>
-        </div>
-        <aside class="pool-power-hero" aria-label="Lực">
-          <div class="pool-power-track">
-            <div class="pool-power-heat" style="--p:${Math.round(power * 100)}%"></div>
-            <input type="range" min="5" max="100" value="${Math.round(power * 100)}" data-pool-power class="pool-power-input" />
-          </div>
-          <span class="pool-power-label">POWER</span>
-          <strong class="pool-power-val">${Math.round(power * 100)}</strong>
-        </aside>
+          <section class="pool-glass-card pool-hud-card pool-hud-spin">
+            <h4>Spin</h4>
+            <div class="pool-spin-disc" data-pool-spin-disc title="Chạm để chọn điểm đánh">
+              <span class="pool-spin-dot" style="left:${50 + spinX * 38}%;top:${50 + spinY * 38}%"></span>
+            </div>
+          </section>
+
+          <section class="pool-glass-card pool-hud-card pool-hud-actions">
+            <h4>Điều khiển</h4>
+            <p class="pool-pull-hint">
+              <span class="pool-hint-desktop">Chuột: <strong>Rê</strong> ngắm · <strong>Giữ + kéo lùi</strong> lực · <strong>Thả</strong> bắn</span>
+              <span class="pool-hint-mobile">Mobile: <strong>Kéo cơ</strong> · <strong>Thả</strong> bắn</span>
+            </p>
+            <div class="pool-btn-row">
+              <button type="button" class="pool-btn-secondary" data-act="pool-resign">Đầu hàng</button>
+              <button type="button" class="pool-btn-secondary" data-act="pool-leave">Menu</button>
+            </div>
+          </section>
+        </footer>
       </div>
-
-      <footer class="pool-arena-hud">
-        <section class="pool-hud-card pool-hud-groups">
-          <h4>Bộ bóng</h4>
-          ${groupBoardHtml()}
-        </section>
-
-        <section class="pool-hud-card">
-          <h4>Gậy · ${escapeHtml(cue.name)}</h4>
-          <div class="pool-stat"><span>Power</span><i style="--w:${Math.min(100, cue.power * 82)}%"></i></div>
-          <div class="pool-stat"><span>Spin</span><i style="--w:${Math.min(100, cue.spin * 90)}%"></i></div>
-          <div class="pool-stat"><span>Aim</span><i style="--w:${Math.min(100, cue.aim * 90)}%"></i></div>
-          <div class="pool-stat"><span>Accuracy</span><i style="--w:${Math.min(100, cue.accuracy * 90)}%"></i></div>
-        </section>
-
-        <section class="pool-hud-card pool-hud-spin">
-          <h4>Spin</h4>
-          <div class="pool-spin-disc" data-pool-spin-disc title="Chạm để chọn điểm đánh">
-            <span class="pool-spin-dot" style="left:${50 + spinX * 38}%;top:${50 + spinY * 38}%"></span>
-          </div>
-        </section>
-
-        <section class="pool-hud-actions">
-          <p class="pool-pull-hint">
-            <span class="pool-hint-desktop">Chuột: <strong>Rê</strong> để ngắm · <strong>Giữ + kéo lùi</strong> chỉnh lực · <strong>Thả</strong> bắn</span>
-            <span class="pool-hint-mobile">Mobile: <strong>Kéo cơ</strong> từ bi cái · <strong>Thả tay</strong> để bắn</span>
-          </p>
-          <div class="pool-btn-row">
-            <button type="button" class="pool-btn-secondary" data-act="pool-resign">Đầu hàng</button>
-            <button type="button" class="pool-btn-secondary" data-act="pool-leave">Menu</button>
-          </div>
-        </section>
-      </footer>
 
       ${
         match.status === "finished"

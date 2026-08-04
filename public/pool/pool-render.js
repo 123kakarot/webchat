@@ -1,7 +1,7 @@
 /** High-quality pool table / ball canvas rendering. */
 
 const tableLayerCache = new Map();
-const TABLE_STYLE_VER = "v5";
+const TABLE_STYLE_VER = "v6";
 
 export function shadeColor(hex, amt) {
   const h = String(hex).replace("#", "");
@@ -298,6 +298,12 @@ function paintTableLayer(ctx, opt) {
   ctx.fillStyle = rightShade;
   ctx.fillRect(fx + fw - innerShade, fy, innerShade, fh);
   ctx.restore();
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,220,170,0.12)";
+  ctx.lineWidth = Math.max(3, w * 0.004);
+  ctx.strokeRect(6, 6, w - 12, h - 12);
+  ctx.restore();
 }
 
 /**
@@ -364,10 +370,10 @@ export function paintCueAimOverlay(ctx, opt) {
   const midX = cueX * sx - cos * pull * 0.38 * sx;
   const midY = cueY * sy - sin * pull * 0.38 * sy;
 
-  const shOffX = sin * 5;
-  const shOffY = -cos * 5;
-  ctx.strokeStyle = "rgba(0,0,0,0.35)";
-  ctx.lineWidth = Math.max(8, 11 * sx);
+  const shOffX = sin * 6;
+  const shOffY = -cos * 6;
+  ctx.strokeStyle = "rgba(0,0,0,0.42)";
+  ctx.lineWidth = Math.max(9, 12 * sx);
   ctx.lineCap = "round";
   ctx.beginPath();
   ctx.moveTo(tipX + shOffX, tipY + shOffY);
@@ -375,30 +381,43 @@ export function paintCueAimOverlay(ctx, opt) {
   ctx.stroke();
 
   const cueGrad = ctx.createLinearGradient(tipX, tipY, buttX, buttY);
-  cueGrad.addColorStop(0, "#f5e6c8");
-  cueGrad.addColorStop(0.12, "#e8c896");
-  cueGrad.addColorStop(0.35, "#8b5a2b");
-  cueGrad.addColorStop(0.65, "#3d2814");
-  cueGrad.addColorStop(1, "#1a1008");
+  cueGrad.addColorStop(0, "#faf3e4");
+  cueGrad.addColorStop(0.08, "#e8c896");
+  cueGrad.addColorStop(0.22, "#c9a066");
+  cueGrad.addColorStop(0.38, "#8b5a2b");
+  cueGrad.addColorStop(0.55, "#4a3020");
+  cueGrad.addColorStop(0.72, "#2a1810");
+  cueGrad.addColorStop(1, "#120a06");
   ctx.strokeStyle = cueGrad;
-  ctx.lineWidth = Math.max(6, 8 * sx);
+  ctx.lineWidth = Math.max(6.5, 8.5 * sx);
   ctx.lineCap = "round";
   ctx.beginPath();
   ctx.moveTo(tipX, tipY);
   ctx.lineTo(buttX, buttY);
   ctx.stroke();
 
-  ctx.strokeStyle = "rgba(255,255,255,0.55)";
+  const ringX = tipX + (buttX - tipX) * 0.28;
+  const ringY = tipY + (buttY - tipY) * 0.28;
+  ctx.strokeStyle = "rgba(220,220,230,0.75)";
+  ctx.lineWidth = Math.max(2.2, 2.8 * sx);
+  ctx.beginPath();
+  ctx.arc(ringX, ringY, Math.max(4, 5.5 * sx), 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(255,255,255,0.5)";
   ctx.lineWidth = Math.max(2, 2.5 * sx);
   ctx.beginPath();
   ctx.moveTo(tipX, tipY);
   ctx.lineTo(midX, midY);
   ctx.stroke();
 
-  ctx.fillStyle = "#f8f8f8";
+  ctx.fillStyle = "#fafafa";
   ctx.beginPath();
-  ctx.arc(tipX, tipY, Math.max(2.5, 3.5 * sx), 0, Math.PI * 2);
+  ctx.arc(tipX, tipY, Math.max(2.8, 4 * sx), 0, Math.PI * 2);
   ctx.fill();
+  ctx.strokeStyle = "rgba(180,180,180,0.6)";
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
 }
 
 function drawOneBall(ctx, x, y, r, b, colors) {
