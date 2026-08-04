@@ -155,15 +155,21 @@ export function mountCaroApp(ctx) {
     playerName,
     toast,
     beep,
+    onNeedLogin: () => requireLogin(),
+    emitOnlineShot: async (payload) => {
+      const res = await sockEmit("pool:shot", payload);
+      if (!res?.ok) toast(res?.reason || "Không đánh được");
+    },
     onUpdate: () => {
       if (view === "pool-play") {
         if (!pool.patchCanvas(root)) render();
         else {
-          // refresh message / overlay lightly
           const msg = root.querySelector(".pool-msg");
           const m = pool.getMatch();
           if (msg && m) {
-            msg.textContent = `${m.message || ""}${pool.isAiBusy() ? " · AI đang nghĩ…" : ""}`;
+            msg.textContent = `${m.message || ""}${m.moving ? " · bi đang chạy…" : ""}${
+              pool.isAiBusy() ? " · AI đang nghĩ…" : ""
+            }`;
           }
           if (m?.status === "finished") render();
         }
@@ -171,6 +177,37 @@ export function mountCaroApp(ctx) {
       }
       render();
     },
+  });
+
+  ctx.socket?.on?.("pool:state", (room) => {
+    if (!room) return;
+    const m = pool.getMatch();
+    // Đừng snap bàn khi bi đang animate
+    if (m?.moving && room.status === "playing") {
+      m._pendingRoom = room;
+      return;
+    }
+    pool.applyOnlineRoom(room, playerName());
+    if (["pool-home", "pool-play"].includes(view) || room.status === "playing" || room.status === "lobby") {
+      view = room.status === "lobby" && view === "pool-home" ? "pool-play" : "pool-play";
+      render();
+    }
+  });
+  ctx.socket?.on?.("pool:shot_fx", (fx) => {
+    const m = pool.getMatch();
+    if (!m || m.mode !== "online") return;
+    if (fx?.by === m.meSide) return;
+    pool.applyRemoteShot(fx);
+  });
+  ctx.socket?.on?.("pool:quick_matched", ({ room }) => {
+    if (!room) return;
+    pool.applyOnlineRoom(room, playerName());
+    view = "pool-play";
+    toast("Đã ghép Bida online!");
+    render();
+  });
+  ctx.socket?.on?.("pool:react", (r) => {
+    if (r?.emoji) toast(`${r.name || "?"} ${r.emoji}`);
   });
 
   let xqQuickWaiting = false;
@@ -2037,7 +2074,58 @@ export function mountCaroApp(ctx) {
         if (box) box.hidden = !box.hidden;
         return;
       }
+      if (act === "pool-online") {
+        const box = root.querySelector("#pool-online-box");
+        if (box) box.hidden = !box.hidden;
+        return;
+      }
       const next = pool.handleAction(act, t);
+      if (typeof next === "string" && next.startsWith("pool-cmd:")) {
+        const cmd = next.slice("pool-cmd:".length);
+        if (!(await requireLogin())) return;
+        if (cmd === "create") {
+          const res = await sockEmit("pool:create_room", { playerName: playerName() });
+          if (!res?.ok) return toast(res?.reason || "Không tạo được phòng");
+          pool.applyOnlineRoom(res.room, playerName());
+          view = "pool-play";
+          toast(`Phòng Bida ${res.room.code} — gửi mã cho bạn`);
+          render();
+          return;
+        }
+        if (cmd === "join") {
+          const code = window.prompt("Nhập mã phòng Bida:");
+          if (!code) return;
+          const res = await sockEmit("pool:join_room", { code, playerName: playerName() });
+          if (!res?.ok) return toast(res?.reason || "Không vào được");
+          pool.applyOnlineRoom(res.room, playerName());
+          view = "pool-play";
+          toast(`Đã vào phòng ${res.room.code}`);
+          render();
+          return;
+        }
+        if (cmd === "quick") {
+          const res = await sockEmit("pool:quick_match", { playerName: playerName() });
+          if (!res?.ok) return toast(res?.reason || "Không ghép được");
+          if (res.room) {
+            pool.applyOnlineRoom(res.room, playerName());
+            view = "pool-play";
+            toast("Đã ghép Bida!");
+            render();
+          } else toast("Đang chờ đối thủ Bida…");
+          return;
+        }
+        if (cmd === "start") {
+          const res = await sockEmit("pool:start", {});
+          if (!res?.ok) toast(res?.reason || "Chưa bắt đầu được");
+          else if (res.room) {
+            pool.applyOnlineRoom(res.room, playerName());
+            view = "pool-play";
+            render();
+          }
+          return;
+        }
+        return;
+      }
       if (next === "board-hub") {
         view = "board-hub";
         render();
@@ -2053,9 +2141,7 @@ export function mountCaroApp(ctx) {
         render();
         return;
       }
-      if (view === "pool-play") {
-        render();
-      }
+      if (view === "pool-play") render();
       return;
     }
     if (act && act.startsWith("xq-")) {
@@ -2190,6 +2276,8 @@ export function mountCaroApp(ctx) {
       pool.clearMatch();
       sockEmit("caro:leave", {});
       sockEmit("caro:cancel_quick", {});
+      sockEmit("pool:leave", {});
+      sockEmit("pool:cancel_quick", {});
       view = "board-hub";
       render();
       return;

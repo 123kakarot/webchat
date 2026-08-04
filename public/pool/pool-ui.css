@@ -110,6 +110,26 @@
   font-size: 0.85rem;
 }
 
+.pool-hint {
+  color: #8aa0c2;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin: 0.35rem 0 0.85rem;
+}
+
+.pool-select {
+  margin-left: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 180, 255, 0.35);
+  background: #0f1a30;
+  color: #e8f0ff;
+  padding: 0.25rem 0.45rem;
+}
+
+.pool-canvas {
+  cursor: crosshair;
+}
+
 .pool-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;

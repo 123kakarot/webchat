@@ -1,15 +1,18 @@
-/** 2D pool physics — table units. */
+/** 2D pool physics — table units, fixed-step friendly for smooth RAF. */
 
 export const TABLE_W = 900;
 export const TABLE_H = 450;
-export const BALL_R = 11;
-export const POCKET_R = 22;
+export const BALL_R = 11.2;
+export const POCKET_R = 23;
 export const CUSHION = 28;
 
-const FRICTION = 0.985;
-const MIN_SPEED = 0.035;
-const RESTITUTION = 0.96;
-const CUSHION_REST = 0.88;
+/** Per fixed physics step (≈ 1/120s wall-clock when driven at 120 Hz). */
+const FRICTION = 0.9885;
+const MIN_SPEED = 0.028;
+const RESTITUTION = 0.965;
+const CUSHION_REST = 0.9;
+
+export const PHYS_HZ = 120;
 
 export const BALL_COLORS = {
   0: "#f5f5f5",
@@ -56,20 +59,16 @@ export function pockets() {
 }
 
 function dist(a, b) {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  return Math.hypot(dx, dy);
+  return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 export function createRack() {
   const balls = [];
-  // Cue in kitchen (left third)
   balls.push({ id: 0, x: TABLE_W * 0.25, y: TABLE_H / 2, vx: 0, vy: 0, pocketed: false });
 
   const apexX = TABLE_W * 0.72;
   const apexY = TABLE_H / 2;
-  const gap = BALL_R * 2.05;
-  // Standard-ish rack order: 8 in center, corners random solids/stripes
+  const gap = BALL_R * 2.02;
   const order = [1, 9, 2, 10, 8, 11, 3, 12, 4, 13, 5, 14, 6, 15, 7];
   let idx = 0;
   for (let row = 0; row < 5; row++) {
@@ -95,19 +94,18 @@ export function applyCueShot(balls, angle, power, spin = { x: 0, y: 0 }) {
   const cue = balls.find((b) => b.id === 0 && !b.pocketed);
   if (!cue) return null;
   const p = Math.max(0.05, Math.min(1, power));
-  const speed = 2.2 + p * 14;
+  // Tuned for ~120Hz steps — looks like real cue speed on canvas
+  const speed = 3.4 + p * 18.5;
   cue.vx = Math.cos(angle) * speed;
   cue.vy = Math.sin(angle) * speed;
-  // English: slight lateral bias
-  cue.vx += -Math.sin(angle) * spin.x * 1.2;
-  cue.vy += Math.cos(angle) * spin.x * 1.2;
-  cue.spinY = spin.y;
-  return { cueX: cue.x, cueY: cue.y, angle, power: p, spin: { ...spin } };
+  cue.vx += -Math.sin(angle) * (spin.x || 0) * 1.35;
+  cue.vy += Math.cos(angle) * (spin.x || 0) * 1.35;
+  return { cueX: cue.x, cueY: cue.y, angle, power: p, spin: { x: spin.x || 0, y: spin.y || 0 } };
 }
 
 function pocketCheck(ball, pocks) {
   for (const p of pocks) {
-    if (dist(ball, p) < POCKET_R - BALL_R * 0.15) return true;
+    if (dist(ball, p) < POCKET_R - BALL_R * 0.12) return true;
   }
   return false;
 }
@@ -116,10 +114,8 @@ function resolveBallBall(a, b) {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   let d = Math.hypot(dx, dy);
-  if (d === 0) {
-    d = 0.01;
-  }
-  if (d >= BALL_R * 2) return false;
+  if (d === 0) d = 0.01;
+  if (d >= BALL_R * 2) return { hit: false, impulse: 0 };
   const nx = dx / d;
   const ny = dy / d;
   const overlap = BALL_R * 2 - d;
@@ -131,13 +127,13 @@ function resolveBallBall(a, b) {
   const dvx = a.vx - b.vx;
   const dvy = a.vy - b.vy;
   const vn = dvx * nx + dvy * ny;
-  if (vn > 0) return true;
+  if (vn > 0) return { hit: true, impulse: 0 };
   const impulse = (-(1 + RESTITUTION) * vn) / 2;
   a.vx += impulse * nx;
   a.vy += impulse * ny;
   b.vx -= impulse * nx;
   b.vy -= impulse * ny;
-  return true;
+  return { hit: true, impulse: Math.abs(impulse) };
 }
 
 function cushion(ball) {
@@ -146,30 +142,35 @@ function cushion(ball) {
   const minY = CUSHION + BALL_R;
   const maxY = TABLE_H - CUSHION - BALL_R;
   let hit = false;
+  let strength = 0;
   if (ball.x < minX) {
     ball.x = minX;
+    strength = Math.abs(ball.vx);
     ball.vx = Math.abs(ball.vx) * CUSHION_REST;
     hit = true;
   } else if (ball.x > maxX) {
     ball.x = maxX;
+    strength = Math.abs(ball.vx);
     ball.vx = -Math.abs(ball.vx) * CUSHION_REST;
     hit = true;
   }
   if (ball.y < minY) {
     ball.y = minY;
+    strength = Math.max(strength, Math.abs(ball.vy));
     ball.vy = Math.abs(ball.vy) * CUSHION_REST;
     hit = true;
   } else if (ball.y > maxY) {
     ball.y = maxY;
+    strength = Math.max(strength, Math.abs(ball.vy));
     ball.vy = -Math.abs(ball.vy) * CUSHION_REST;
     hit = true;
   }
-  return hit;
+  return { hit, strength };
 }
 
 /**
- * Step simulation. Returns events for rules.
- * @returns {{ pocketed: number[], firstContact: number|null, cushionHits: number }}
+ * One fixed physics step.
+ * @returns {{ pocketed: number[], firstContact: number|null, cushionHits: number, maxCollision: number }}
  */
 export function stepPhysics(balls, dt = 1) {
   const pocks = pockets();
@@ -177,33 +178,46 @@ export function stepPhysics(balls, dt = 1) {
   const pocketed = [];
   let firstContact = null;
   let cushionHits = 0;
+  let maxCollision = 0;
 
   for (const b of active) {
     b.x += b.vx * dt;
     b.y += b.vy * dt;
-    b.vx *= FRICTION;
-    b.vy *= FRICTION;
+    const fr = Math.pow(FRICTION, dt);
+    b.vx *= fr;
+    b.vy *= fr;
     if (Math.hypot(b.vx, b.vy) < MIN_SPEED) {
       b.vx = 0;
       b.vy = 0;
     }
-    if (cushion(b)) cushionHits++;
+    const c = cushion(b);
+    if (c.hit) {
+      cushionHits++;
+      maxCollision = Math.max(maxCollision, c.strength);
+    }
   }
 
-  for (let i = 0; i < active.length; i++) {
-    for (let j = i + 1; j < active.length; j++) {
-      const a = active[i];
-      const b = active[j];
-      if (resolveBallBall(a, b)) {
-        if (firstContact == null) {
-          if (a.id === 0) firstContact = b.id;
-          else if (b.id === 0) firstContact = a.id;
+  // Multiple collision iterations for stability
+  for (let pass = 0; pass < 3; pass++) {
+    for (let i = 0; i < active.length; i++) {
+      for (let j = i + 1; j < active.length; j++) {
+        const a = active[i];
+        const b = active[j];
+        if (a.pocketed || b.pocketed) continue;
+        const r = resolveBallBall(a, b);
+        if (r.hit) {
+          maxCollision = Math.max(maxCollision, r.impulse);
+          if (firstContact == null) {
+            if (a.id === 0) firstContact = b.id;
+            else if (b.id === 0) firstContact = a.id;
+          }
         }
       }
     }
   }
 
   for (const b of active) {
+    if (b.pocketed) continue;
     if (pocketCheck(b, pocks)) {
       b.pocketed = true;
       b.vx = 0;
@@ -212,11 +226,10 @@ export function stepPhysics(balls, dt = 1) {
     }
   }
 
-  return { pocketed, firstContact, cushionHits };
+  return { pocketed, firstContact, cushionHits, maxCollision };
 }
 
-/** Run until rest; accumulate events. */
-export function simulateUntilStop(balls, maxSteps = 4000) {
+export function simulateUntilStop(balls, maxSteps = 8000) {
   const allPocketed = [];
   let firstContact = null;
   let cushionHits = 0;
@@ -228,7 +241,6 @@ export function simulateUntilStop(balls, maxSteps = 4000) {
     cushionHits += ev.cushionHits;
     steps++;
   }
-  // freeze leftovers
   for (const b of balls) {
     if (!b.pocketed) {
       b.vx = 0;
@@ -238,8 +250,7 @@ export function simulateUntilStop(balls, maxSteps = 4000) {
   return { pocketed: allPocketed, firstContact, cushionHits, steps };
 }
 
-/** Aim guide: ray from cue along angle until hit. */
-export function aimGuide(balls, angle, maxLen = 420) {
+export function aimGuide(balls, angle, maxLen = 460) {
   const cue = balls.find((b) => b.id === 0 && !b.pocketed);
   if (!cue) return null;
   const dx = Math.cos(angle);
@@ -248,7 +259,6 @@ export function aimGuide(balls, angle, maxLen = 420) {
   let hitT = maxLen;
   for (const b of balls) {
     if (b.pocketed || b.id === 0) continue;
-    // ray-circle
     const fx = cue.x - b.x;
     const fy = cue.y - b.y;
     const a = dx * dx + dy * dy;
@@ -272,8 +282,8 @@ export function aimGuide(balls, angle, maxLen = 420) {
     ghost = {
       x: hit.x,
       y: hit.y,
-      tx: hit.x - (hx / hn) * 55,
-      ty: hit.y - (hy / hn) * 55,
+      tx: hit.x - (hx / hn) * 60,
+      ty: hit.y - (hy / hn) * 60,
       ballId: hit.id,
     };
   }
@@ -287,12 +297,11 @@ export function placeCueBall(balls, x, y) {
   const maxX = TABLE_W - CUSHION - BALL_R - 2;
   const minY = CUSHION + BALL_R + 2;
   const maxY = TABLE_H - CUSHION - BALL_R - 2;
-  let nx = Math.max(minX, Math.min(maxX, x));
-  let ny = Math.max(minY, Math.min(maxY, y));
-  // kitchen on ball-in-hand after foul can be anywhere; break restricted separately
+  const nx = Math.max(minX, Math.min(maxX, x));
+  const ny = Math.max(minY, Math.min(maxY, y));
   for (const b of balls) {
     if (b.pocketed || b.id === 0) continue;
-    if (Math.hypot(nx - b.x, ny - b.y) < BALL_R * 2.05) return false;
+    if (Math.hypot(nx - b.x, ny - b.y) < BALL_R * 2.08) return false;
   }
   cue.x = nx;
   cue.y = ny;
@@ -304,6 +313,5 @@ export function placeCueBall(balls, x, y) {
 
 export function placeCueInKitchen(balls, x, y) {
   const maxX = TABLE_W / 3;
-  const nx = Math.min(x, maxX - BALL_R);
-  return placeCueBall(balls, nx, y);
+  return placeCueBall(balls, Math.min(x, maxX - BALL_R), y);
 }

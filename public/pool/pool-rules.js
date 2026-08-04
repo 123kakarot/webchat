@@ -215,18 +215,60 @@ export function resolveShot(match, shotMeta, events) {
   return match;
 }
 
-export function shoot(match, angle, power, spin) {
+/** Apply cue impulse only — animate with stepPhysics, then finishShot. */
+export function beginShot(match, angle, power, spin) {
   if (match.status !== "playing" || match.moving) return { ok: false, reason: "Đang mô phỏng." };
   if (match.ballInHand) return { ok: false, reason: "Đặt bi cái trước." };
   const cue = match.balls.find((b) => b.id === 0 && !b.pocketed);
   if (!cue) return { ok: false, reason: "Thiếu bi cái." };
-
-  const before = cloneBalls(match.balls);
   const meta = applyCueShot(match.balls, angle, power, spin);
-  const events = simulateUntilStop(match.balls);
-  // merge firstContact from sim — already in events
-  resolveShot(match, meta, events);
+  if (!meta) return { ok: false, reason: "Không đánh được." };
+  match.moving = true;
+  match._shotMeta = meta;
+  match._shotEvents = { pocketed: [], firstContact: null, cushionHits: 0 };
+  return { ok: true, meta };
+}
+
+export function accumulateShotEvent(match, ev) {
+  if (!match?._shotEvents) return;
+  const acc = match._shotEvents;
+  for (const id of ev.pocketed || []) {
+    if (!acc.pocketed.includes(id)) acc.pocketed.push(id);
+  }
+  if (acc.firstContact == null && ev.firstContact != null) acc.firstContact = ev.firstContact;
+  acc.cushionHits += ev.cushionHits || 0;
+}
+
+/** Call when balls stop after beginShot. */
+export function finishShot(match) {
+  if (!match?._shotMeta) return match;
+  for (const b of match.balls) {
+    if (!b.pocketed) {
+      b.vx = 0;
+      b.vy = 0;
+    }
+  }
+  const meta = match._shotMeta;
+  const events = match._shotEvents || { pocketed: [], firstContact: null, cushionHits: 0 };
+  match._shotMeta = null;
+  match._shotEvents = null;
   match.moving = false;
+  resolveShot(match, meta, events);
+  return match;
+}
+
+/** Instant simulate (AI search / server). */
+export function shoot(match, angle, power, spin) {
+  const started = beginShot(match, angle, power, spin);
+  if (!started.ok) return started;
+  const before = null;
+  const events = simulateUntilStop(match.balls);
+  match._shotEvents = {
+    pocketed: events.pocketed,
+    firstContact: events.firstContact,
+    cushionHits: events.cushionHits,
+  };
+  finishShot(match);
   return { ok: true, events, before };
 }
 
