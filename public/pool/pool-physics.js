@@ -6,14 +6,17 @@ export const BALL_R = 14;
 export const POCKET_R = 21;
 export const CUSHION = 30;
 
-/** Inset from cushion line — ball edge ≈ inner felt (table units). */
-export const FELT_GUARD = 14;
+/** Inset from cushion — X ok; Y extra inset (top/bottom rails on art). */
+export const FELT_GUARD_X = 14;
+export const FELT_GUARD_Y = 26;
+/** @deprecated use FELT_GUARD_X */
+export const FELT_GUARD = FELT_GUARD_X;
 
 export function playBounds() {
-  const minX = CUSHION + BALL_R + FELT_GUARD;
-  const maxX = TABLE_W - CUSHION - BALL_R - FELT_GUARD;
-  const minY = CUSHION + BALL_R + FELT_GUARD;
-  const maxY = TABLE_H - CUSHION - BALL_R - FELT_GUARD;
+  const minX = CUSHION + BALL_R + FELT_GUARD_X;
+  const maxX = TABLE_W - CUSHION - BALL_R - FELT_GUARD_X;
+  const minY = CUSHION + BALL_R + FELT_GUARD_Y;
+  const maxY = TABLE_H - CUSHION - BALL_R - FELT_GUARD_Y;
   return { minX, maxX, minY, maxY };
 }
 

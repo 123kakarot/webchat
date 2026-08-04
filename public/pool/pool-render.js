@@ -1,6 +1,6 @@
 /** High-quality pool table / ball canvas rendering. */
 
-import { FELT_GUARD } from "./pool-physics.js";
+import { FELT_GUARD_X, FELT_GUARD_Y } from "./pool-physics.js";
 
 const tableLayerCache = new Map();
 const TABLE_STYLE_VER = "v8-balls";
@@ -23,10 +23,10 @@ export function tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION = 30, BALL_
   const fhFull = ins.h * h;
   const mx = margin.x * fwFull;
   const my = margin.y * fhFull;
-  const innerMinX = CUSHION + BALL_R + FELT_GUARD;
-  const innerMinY = CUSHION + BALL_R + FELT_GUARD;
-  const playW = TABLE_W - 2 * CUSHION - 2 * BALL_R - 2 * FELT_GUARD;
-  const playH = TABLE_H - 2 * CUSHION - 2 * BALL_R - 2 * FELT_GUARD;
+  const innerMinX = CUSHION + BALL_R + FELT_GUARD_X;
+  const innerMinY = CUSHION + BALL_R + FELT_GUARD_Y;
+  const playW = TABLE_W - 2 * CUSHION - 2 * BALL_R - 2 * FELT_GUARD_X;
+  const playH = TABLE_H - 2 * CUSHION - 2 * BALL_R - 2 * FELT_GUARD_Y;
   let ox = ins.x * w + mx;
   let oy = ins.y * h + my;
   let fw = fwFull - 2 * mx;
@@ -34,8 +34,8 @@ export function tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION = 30, BALL_
   let sx = fw / playW;
   let sy = fh / playH;
   const rPx = BALL_R * ((sx + sy) / 2);
-  const padPx = rPx * TABLE_BALL_EDGE_PAD;
-  const padPy = BALL_R * sy * TABLE_BALL_EDGE_PAD;
+  const padPx = rPx * TABLE_BALL_EDGE_PAD.x;
+  const padPy = BALL_R * sy * TABLE_BALL_EDGE_PAD.y;
   ox += padPx;
   oy += padPy;
   fw -= 2 * padPx;
