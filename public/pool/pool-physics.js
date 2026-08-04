@@ -3,7 +3,9 @@
 export const TABLE_W = 900;
 export const TABLE_H = 450;
 export const BALL_R = 14;
-export const POCKET_R = 17;
+export const POCKET_R = 14.5;
+/** Tâm bi phải vào sâu trong vòng lỗ (khớp miệng lỗ trên ảnh). */
+export const POCKET_CAPTURE = POCKET_R - BALL_R * 0.58;
 export const CUSHION = 30;
 
 /** Inset from cushion — physics only; render scale uses full bed (see pool-render). */
@@ -69,17 +71,19 @@ export function isCue(n) {
   return n === 0;
 }
 
-/** Pocket mouths at play-rect corners / mid-rails (felt line on art). */
+/** Pocket mouths — lùi nhẹ vào trong khỏi góc play rect (khớp lỗ PNG). */
 export function pockets() {
   const { minX, maxX, minY, maxY } = playBounds();
   const midX = TABLE_W / 2;
+  const cIn = 10;
+  const sIn = 6;
   return [
-    { x: minX, y: minY, kind: "corner" },
-    { x: midX, y: minY, kind: "side" },
-    { x: maxX, y: minY, kind: "corner" },
-    { x: minX, y: maxY, kind: "corner" },
-    { x: midX, y: maxY, kind: "side" },
-    { x: maxX, y: maxY, kind: "corner" },
+    { x: minX + cIn, y: minY + cIn, kind: "corner" },
+    { x: midX, y: minY + sIn, kind: "side" },
+    { x: maxX - cIn, y: minY + cIn, kind: "corner" },
+    { x: minX + cIn, y: maxY - cIn, kind: "corner" },
+    { x: midX, y: maxY - sIn, kind: "side" },
+    { x: maxX - cIn, y: maxY - cIn, kind: "corner" },
   ];
 }
 
@@ -128,9 +132,14 @@ export function applyCueShot(balls, angle, power, spin = { x: 0, y: 0 }) {
   return { cueX: cue.x, cueY: cue.y, angle, power: p, spin: { x: spin.x || 0, y: spin.y || 0 } };
 }
 
+function pocketCaptureRadius(p) {
+  const base = POCKET_CAPTURE;
+  return p.kind === "side" ? base * 0.92 : base;
+}
+
 function pocketCheck(ball, pocks) {
   for (const p of pocks) {
-    if (dist(ball, p) < POCKET_R + BALL_R * 0.1) return true;
+    if (dist(ball, p) < pocketCaptureRadius(p)) return true;
   }
   return false;
 }
@@ -143,21 +152,16 @@ function nearestPocketDist(ball, pocks) {
   return best;
 }
 
-/** Ball center in pocket funnel — skip rail bounce. */
+/** Chỉ nới nắn sát miệng lỗ — không phải vùng hút rộng. */
 function inPocketApproach(ball, pocks) {
-  return nearestPocketDist(ball, pocks) < POCKET_R + BALL_R * 0.72;
+  for (const p of pocks) {
+    if (dist(ball, p) < POCKET_R + BALL_R * 0.22) return true;
+  }
+  return false;
 }
 
 function applyPocket(ball, pocks) {
   if (pocketCheck(ball, pocks)) {
-    ball.pocketed = true;
-    ball.vx = 0;
-    ball.vy = 0;
-    return true;
-  }
-  const { minX, maxX, minY, maxY } = playBounds();
-  const oob = ball.x < minX || ball.x > maxX || ball.y < minY || ball.y > maxY;
-  if (oob && nearestPocketDist(ball, pocks) < POCKET_R + BALL_R * 0.78) {
     ball.pocketed = true;
     ball.vx = 0;
     ball.vy = 0;

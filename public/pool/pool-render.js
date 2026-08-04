@@ -321,7 +321,7 @@ function paintTableVectorLayer(ctx, opt) {
   const fy = CUSHION * sy;
   const fw = (TABLE_W - CUSHION * 2) * sx;
   const fh = (TABLE_H - CUSHION * 2) * sy;
-  const pr = POCKET_R * sx * 0.92;
+  const pr = POCKET_R * sx * 0.88;
 
   const roundFelt = () => {
     ctx.beginPath();
