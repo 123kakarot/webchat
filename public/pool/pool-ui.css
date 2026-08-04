@@ -287,17 +287,24 @@
   grid-template-columns: 1fr 72px;
   gap: 0.65rem;
   align-items: stretch;
+  max-width: 1080px;
+  margin: 0 auto;
 }
 
 .pool-canvas {
   width: 100%;
   height: auto;
-  border-radius: 14px;
-  border: 2px solid rgba(180, 140, 80, 0.45);
+  border-radius: 16px;
+  border: 3px solid rgba(190, 150, 90, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 18px 40px rgba(0, 0, 0, 0.45),
+    inset 0 0 40px rgba(0, 0, 0, 0.2);
   background: #0a3;
   touch-action: none;
-  max-height: min(52vh, 450px);
+  max-height: min(68vh, 560px);
   object-fit: contain;
+  cursor: crosshair;
 }
 
 .pool-power {

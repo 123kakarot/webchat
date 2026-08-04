@@ -14,6 +14,7 @@ import {
   anyMoving,
   stepPhysics,
 } from "./pool-physics.js";
+import { paintTable, paintBalls } from "./pool-render.js";
 import {
   createMatch,
   beginShot,
@@ -34,14 +35,14 @@ const CUES = [
 ];
 
 const TABLES = [
-  { id: "classic", name: "Classic", felt: "#0b5e3b" },
-  { id: "neon", name: "Neon", felt: "#12305a" },
-  { id: "royal", name: "Royal", felt: "#3b1d5c" },
-  { id: "cyber", name: "Cyber", felt: "#0a3d4d" },
-  { id: "space", name: "Space", felt: "#0b1a3a" },
-  { id: "temple", name: "Temple", felt: "#3d2a14" },
-  { id: "japan", name: "Japan", felt: "#5a1020" },
-  { id: "frozen", name: "Frozen", felt: "#164e63" },
+  { id: "classic", name: "Classic", felt: "#0d6b45" },
+  { id: "neon", name: "Neon", felt: "#15406e" },
+  { id: "royal", name: "Royal", felt: "#4a2470" },
+  { id: "cyber", name: "Cyber", felt: "#0c4a58" },
+  { id: "space", name: "Space", felt: "#0e2550" },
+  { id: "temple", name: "Temple", felt: "#4a3218" },
+  { id: "japan", name: "Japan", felt: "#6b1828" },
+  { id: "frozen", name: "Frozen", felt: "#1a6578" },
 ];
 
 const BETS = [100, 500, 1000, 5000, 10000];
@@ -192,83 +193,29 @@ export function createPoolModule(deps = {}) {
   }
 
   function drawTable(ctx, w, h) {
-    const sx = w / TABLE_W;
-    const sy = h / TABLE_H;
-    const theme = tableTheme();
-    ctx.clearRect(0, 0, w, h);
-    const g = ctx.createLinearGradient(0, 0, w, h);
-    g.addColorStop(0, "#4a2c14");
-    g.addColorStop(1, "#1c1008");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = theme.felt;
-    const fx = CUSHION * sx;
-    const fy = CUSHION * sy;
-    const fw = (TABLE_W - CUSHION * 2) * sx;
-    const fh = (TABLE_H - CUSHION * 2) * sy;
-    ctx.beginPath();
-    if (typeof ctx.roundRect === "function") ctx.roundRect(fx, fy, fw, fh, 14);
-    else ctx.rect(fx, fy, fw, fh);
-    ctx.fill();
-    // felt grain
-    ctx.fillStyle = "rgba(255,255,255,0.03)";
-    for (let i = 0; i < 40; i++) {
-      ctx.fillRect(((i * 97) % w), ((i * 53) % h), 2, 2);
-    }
-    ctx.strokeStyle = "rgba(255,255,255,0.2)";
-    ctx.setLineDash([6, 6]);
-    ctx.beginPath();
-    ctx.moveTo((TABLE_W / 3) * sx, CUSHION * sy);
-    ctx.lineTo((TABLE_W / 3) * sx, (TABLE_H - CUSHION) * sy);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    for (const p of pockets()) {
-      ctx.beginPath();
-      ctx.fillStyle = "#050505";
-      ctx.arc(p.x * sx, p.y * sy, POCKET_R * sx * 0.95, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,0.5)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
+    paintTable(ctx, {
+      w,
+      h,
+      TABLE_W,
+      TABLE_H,
+      CUSHION,
+      POCKET_R,
+      felt: tableTheme().felt,
+      pockets,
+    });
   }
 
   function drawBalls(ctx, w, h) {
     if (!match) return;
-    const sx = w / TABLE_W;
-    const sy = h / TABLE_H;
-    for (const b of match.balls) {
-      if (b.pocketed) continue;
-      const x = b.x * sx;
-      const y = b.y * sy;
-      const r = BALL_R * sx;
-      ctx.beginPath();
-      ctx.fillStyle = "rgba(0,0,0,0.35)";
-      ctx.ellipse(x + r * 0.15, y + r * 0.25, r * 0.95, r * 0.7, 0, 0, Math.PI * 2);
-      ctx.fill();
-      const grd = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.08, x, y, r);
-      grd.addColorStop(0, "#ffffffcc");
-      grd.addColorStop(0.32, BALL_COLORS[b.id] || "#ccc");
-      grd.addColorStop(1, "#00000099");
-      ctx.beginPath();
-      ctx.fillStyle = grd;
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-      if (b.id >= 9) {
-        ctx.beginPath();
-        ctx.strokeStyle = "rgba(255,255,255,0.9)";
-        ctx.lineWidth = Math.max(1.5, r * 0.18);
-        ctx.arc(x, y, r * 0.58, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      if (b.id !== 0) {
-        ctx.fillStyle = b.id === 8 ? "#fff" : "#0a0a0a";
-        ctx.font = `bold ${Math.max(10, r * 0.95)}px Be Vietnam Pro, sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(String(b.id), x, y + 0.5);
-      }
-    }
+    paintBalls(ctx, {
+      w,
+      h,
+      TABLE_W,
+      TABLE_H,
+      BALL_R,
+      balls: match.balls,
+      colors: BALL_COLORS,
+    });
   }
 
   function drawAim(ctx, w, h) {
@@ -711,7 +658,7 @@ export function createPoolModule(deps = {}) {
           aiBusy ? " · AI đang nghĩ…" : ""
         }</p>
         <div class="pool-stage">
-          <canvas class="pool-canvas" width="900" height="450" data-pool-canvas></canvas>
+          <canvas class="pool-canvas" width="1100" height="550" data-pool-canvas></canvas>
           <div class="pool-power">
             <label>Lực</label>
             <input type="range" min="5" max="100" value="${Math.round(power * 100)}" data-pool-power />

@@ -2,9 +2,9 @@
 
 export const TABLE_W = 900;
 export const TABLE_H = 450;
-export const BALL_R = 11.2;
-export const POCKET_R = 23;
-export const CUSHION = 28;
+export const BALL_R = 14;
+export const POCKET_R = 26;
+export const CUSHION = 30;
 
 /** Per fixed physics step (≈ 1/120s wall-clock when driven at 120 Hz). */
 const FRICTION = 0.9885;
