@@ -11,6 +11,13 @@ export const TABLE_ART_INSET = { x: 0.094, y: 0.134, w: 0.812, h: 0.732 };
 /** Playfield maps to inner part of felt art — avoids corner pockets on PNG. */
 export const FELT_PLAY_FRAC = 0.84;
 
+function feltPlayFracForCanvas(w) {
+  if (typeof globalThis.matchMedia === "function" && globalThis.matchMedia("(pointer: coarse)").matches) {
+    if (w > 0 && w < 820) return 0.76;
+  }
+  return FELT_PLAY_FRAC;
+}
+
 let tableBgImg = null;
 let tableBgPromise = null;
 
@@ -18,8 +25,9 @@ export function tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION = 30, BALL_
   const ins = TABLE_ART_INSET;
   const fwFull = ins.w * w;
   const fhFull = ins.h * h;
-  const fw = fwFull * FELT_PLAY_FRAC;
-  const fh = fhFull * FELT_PLAY_FRAC;
+  const playFrac = feltPlayFracForCanvas(w);
+  const fw = fwFull * playFrac;
+  const fh = fhFull * playFrac;
   const ox = ins.x * w + (fwFull - fw) * 0.5;
   const oy = ins.y * h + (fhFull - fh) * 0.5;
   const innerMinX = CUSHION + BALL_R + FELT_GUARD;

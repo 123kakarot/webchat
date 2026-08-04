@@ -83,8 +83,12 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
   html.pool-force-landscape .pool-arena .pool-arena-hud,
   html.pool-force-landscape .pool-arena .pool-arena-top,
   html.pool-force-landscape .pool-arena .pool-arena-status {
-    visibility: hidden;
+    display: none !important;
     pointer-events: none;
+  }
+  html.pool-force-landscape .pool-rotate-gate {
+    display: flex !important;
+    z-index: 100;
   }
 }
 
@@ -131,8 +135,81 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
 /* Touch landscape: tighter HUD, bigger table */
 @media (orientation: landscape) and (pointer: coarse) {
   .pool-arena {
-    --arena-pad: 8px;
-    --arena-gap: 8px;
+    --arena-pad: 6px;
+    --arena-gap: 6px;
+  }
+  html.pool-force-landscape .pool-rotate-gate {
+    display: none !important;
+  }
+  html.pool-force-landscape .pool-arena-shell {
+    display: flex !important;
+    flex: 1;
+    min-height: 0;
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  html.pool-force-landscape .pool-arena-main {
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: 1fr;
+  }
+  html.pool-force-landscape .pool-arena-center {
+    flex: 1;
+    min-height: 0;
+    gap: 4px;
+  }
+  html.pool-force-landscape .pool-stage-row {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+  html.pool-force-landscape .pool-table-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    max-width: none;
+  }
+  html.pool-force-landscape .pool-hero-table,
+  html.pool-force-landscape .pool-canvas-stack {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    max-height: 100%;
+  }
+  html.pool-force-landscape .pool-canvas-stack {
+    aspect-ratio: 2 / 1;
+    width: min(100%, calc((100dvh - 88px) * 2));
+    max-height: calc(100dvh - 88px);
+    margin: 0 auto;
+  }
+  html.pool-force-landscape .pool-arena .pool-canvas,
+  html.pool-force-landscape .pool-arena .pool-aim-layer {
+    max-height: none !important;
+    width: 100%;
+    height: 100%;
+  }
+  html.pool-force-landscape .pool-hud-groups,
+  html.pool-force-landscape .pool-arena-status,
+  html.pool-force-landscape .pool-play-rail {
+    display: none !important;
+  }
+  html.pool-force-landscape .pool-arena-hud {
+    flex-shrink: 0;
+    display: grid !important;
+    grid-template-columns: 1fr auto auto;
+    gap: 6px;
+    padding: 0;
+  }
+  html.pool-force-landscape .pool-hud-spin {
+    display: none;
+  }
+  html.pool-force-landscape .pool-hud-actions h4,
+  html.pool-force-landscape .pool-hud-cue h4 {
+    display: none;
+  }
+  html.pool-force-landscape .pool-hud-card.pool-glass-card {
+    padding: 8px 10px;
   }
   .pool-arena-top {
     gap: 6px;
@@ -1426,9 +1503,9 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
 
 .pool-arena .pool-canvas.is-loading {
   background:
-    radial-gradient(ellipse 80% 60% at 50% 45%, rgba(20, 120, 70, 0.35), rgba(6, 40, 28, 0.92)),
-    linear-gradient(160deg, #0a3d28, #062318);
-  min-height: min(42vh, 320px);
+    radial-gradient(ellipse 80% 60% at 50% 45%, rgba(30, 80, 160, 0.35), rgba(6, 12, 32, 0.95)),
+    linear-gradient(160deg, #0a1638, #040818);
+  min-height: min(28dvh, 200px);
 }
 
 .pool-pull-hint {

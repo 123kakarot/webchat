@@ -121,10 +121,18 @@ export function createPoolModule(deps = {}) {
   function fitCanvasResolution(canvas, aimCanvas) {
     const frame = canvas.closest(".pool-hero-table") || canvas.closest(".pool-canvas-stack");
     if (!frame) return;
-    const cssW = frame.clientWidth || canvas.clientWidth;
-    if (cssW < 80) return;
+    let cssW = frame.clientWidth || canvas.clientWidth;
+    if (cssW < 80) {
+      const stack = canvas.closest(".pool-canvas-stack");
+      const coarse = window.matchMedia("(pointer: coarse)").matches;
+      if (coarse && stack) {
+        const rect = stack.getBoundingClientRect();
+        cssW = rect.width || rect.height * 2;
+      }
+      if (cssW < 80) cssW = Math.max(280, Math.min(window.innerWidth, window.innerHeight * 2) - 16);
+    }
     const coarse = window.matchMedia("(pointer: coarse)").matches;
-    const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 1.2 : 1.65);
+    const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 1.35 : 1.65);
     const w = Math.round(Math.min(1200, cssW * dpr));
     const h = Math.round(w / 2);
     if (canvas.width !== w || canvas.height !== h) {
@@ -1120,7 +1128,8 @@ export function createPoolModule(deps = {}) {
     const scope = root.querySelector?.(".pool-arena") ? root : root;
     const canvas = scope.querySelector("[data-pool-canvas]");
     const aimCanvas = scope.querySelector("[data-pool-aim-canvas]");
-    if (canvas) {
+    const bootCanvas = () => {
+      if (!canvas) return;
       fitCanvasResolution(canvas, aimCanvas);
       aimCanvasEl = aimCanvas || null;
       const needRebind = canvasEl !== canvas;
@@ -1131,7 +1140,12 @@ export function createPoolModule(deps = {}) {
       }
       paintCanvas(canvas);
       if (match?.moving) startRenderLoop();
-    }
+    };
+    void loadTableBackground().then(() => {
+      invalidateStaticFrame();
+      bootCanvas();
+    });
+    bootCanvas();
     const powerEl = scope.querySelector("[data-pool-power]");
     if (powerEl && !powerEl.dataset.poolBound) {
       powerEl.dataset.poolBound = "1";
@@ -1165,6 +1179,17 @@ export function createPoolModule(deps = {}) {
         invalidateStaticFrame();
         requestPaint();
       }).observe(frame);
+    }
+    if (scope && !scope._poolOrientBound) {
+      scope._poolOrientBound = true;
+      const onLayout = () => {
+        if (!canvasEl) return;
+        fitCanvasResolution(canvasEl, aimCanvasEl);
+        invalidateStaticFrame();
+        requestPaint();
+      };
+      window.addEventListener("orientationchange", () => setTimeout(onLayout, 120));
+      window.visualViewport?.addEventListener?.("resize", onLayout);
     }
   }
 
