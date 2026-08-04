@@ -1,11 +1,13 @@
 /** High-quality pool table / ball canvas rendering. */
 
+import { FELT_GUARD } from "./pool-physics.js";
+
 const tableLayerCache = new Map();
 const TABLE_STYLE_VER = "v7-art";
 export const TABLE_BG_URL = "/pool/table-arena.png";
-export const TABLE_BG_VER = "4";
+export const TABLE_BG_VER = "5";
 /** Felt region on mockup (normalized 0–1). */
-export const TABLE_ART_INSET = { x: 0.084, y: 0.124, w: 0.832, h: 0.752 };
+export const TABLE_ART_INSET = { x: 0.092, y: 0.132, w: 0.816, h: 0.736 };
 
 let tableBgImg = null;
 let tableBgPromise = null;
@@ -14,10 +16,10 @@ export function tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION = 30, BALL_
   const ins = TABLE_ART_INSET;
   const fw = ins.w * w;
   const fh = ins.h * h;
-  const innerMinX = CUSHION + BALL_R;
-  const innerMinY = CUSHION + BALL_R;
-  const playW = TABLE_W - 2 * CUSHION - 2 * BALL_R;
-  const playH = TABLE_H - 2 * CUSHION - 2 * BALL_R;
+  const innerMinX = CUSHION + BALL_R + FELT_GUARD;
+  const innerMinY = CUSHION + BALL_R + FELT_GUARD;
+  const playW = TABLE_W - 2 * CUSHION - 2 * BALL_R - 2 * FELT_GUARD;
+  const playH = TABLE_H - 2 * CUSHION - 2 * BALL_R - 2 * FELT_GUARD;
   return {
     ox: ins.x * w,
     oy: ins.y * h,
@@ -599,8 +601,8 @@ export function paintBalls(ctx, opt) {
 
   ctx.save();
   ctx.beginPath();
-  const padX = t.fw * 0.02;
-  const padY = t.fh * 0.024;
+  const padX = t.fw * 0.038;
+  const padY = t.fh * 0.045;
   ctx.rect(t.ox + padX, t.oy + padY, t.fw - padX * 2, t.fh - padY * 2);
   ctx.clip();
 

@@ -6,6 +6,17 @@ export const BALL_R = 14;
 export const POCKET_R = 21;
 export const CUSHION = 30;
 
+/** Inset from cushion line — keeps ball centers off the visual rail (table units). */
+export const FELT_GUARD = 24;
+
+export function playBounds() {
+  const minX = CUSHION + BALL_R + FELT_GUARD;
+  const maxX = TABLE_W - CUSHION - BALL_R - FELT_GUARD;
+  const minY = CUSHION + BALL_R + FELT_GUARD;
+  const maxY = TABLE_H - CUSHION - BALL_R - FELT_GUARD;
+  return { minX, maxX, minY, maxY };
+}
+
 /** Per fixed physics step (≈ 1/120s wall-clock when driven at 120 Hz). */
 const FRICTION = 0.9885;
 const MIN_SPEED = 0.028;
@@ -182,13 +193,8 @@ function separateOverlaps(active) {
   }
 }
 
-const FELT_GUARD = 7;
-
 function cushion(ball) {
-  const minX = CUSHION + BALL_R + FELT_GUARD;
-  const maxX = TABLE_W - CUSHION - BALL_R - FELT_GUARD;
-  const minY = CUSHION + BALL_R + FELT_GUARD;
-  const maxY = TABLE_H - CUSHION - BALL_R - FELT_GUARD;
+  const { minX, maxX, minY, maxY } = playBounds();
   let hit = false;
   let strength = 0;
   if (ball.x < minX) {
@@ -358,10 +364,7 @@ export function aimGuide(balls, angle, maxLen = 460) {
 export function respotObjectBall(balls, id) {
   const ball = balls.find((b) => b.id === id);
   if (!ball || id === 0) return false;
-  const minX = CUSHION + BALL_R + 2;
-  const maxX = TABLE_W - CUSHION - BALL_R - 2;
-  const minY = CUSHION + BALL_R + 2;
-  const maxY = TABLE_H - CUSHION - BALL_R - 2;
+  const { minX, maxX, minY, maxY } = playBounds();
   const candidates = [
     { x: TABLE_W * 0.68, y: TABLE_H * 0.38 },
     { x: TABLE_W * 0.68, y: TABLE_H * 0.62 },
@@ -397,10 +400,7 @@ export function respotObjectBall(balls, id) {
 export function placeCueBall(balls, x, y) {
   const cue = balls.find((b) => b.id === 0);
   if (!cue) return false;
-  const minX = CUSHION + BALL_R + 2;
-  const maxX = TABLE_W - CUSHION - BALL_R - 2;
-  const minY = CUSHION + BALL_R + 2;
-  const maxY = TABLE_H - CUSHION - BALL_R - 2;
+  const { minX, maxX, minY, maxY } = playBounds();
   const nx = Math.max(minX, Math.min(maxX, x));
   const ny = Math.max(minY, Math.min(maxY, y));
   for (const b of balls) {
