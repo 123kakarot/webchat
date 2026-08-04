@@ -7,8 +7,8 @@ export const POCKET_R = 21;
 export const CUSHION = 30;
 
 /** Inset from cushion — physics only; render scale uses full bed (see pool-render). */
-export const FELT_GUARD_X = 0;
-export const FELT_GUARD_Y = 38;
+export const FELT_GUARD_X = -3;
+export const FELT_GUARD_Y = 34;
 /** @deprecated use FELT_GUARD_X */
 export const FELT_GUARD = FELT_GUARD_X;
 
