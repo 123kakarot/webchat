@@ -15,7 +15,7 @@ import {
   anyMoving,
   stepPhysics,
 } from "./pool-physics.js";
-import { paintTable, paintBalls, warmTablePaint, paintCueAimOverlay, loadTableBackground, canvasCoordToTable, tableCanvasTransform } from "./pool-render.js";
+import { paintTable, paintBalls, warmTablePaint, paintCueAimOverlay, loadTableBackground, canvasCoordToTable, tableCanvasTransform, paintRailFrameOverlay } from "./pool-render.js";
 import {
   createMatch,
   beginShot,
@@ -159,6 +159,7 @@ export function createPoolModule(deps = {}) {
     const sctx = staticFrame.getContext("2d");
     drawTable(sctx, w, h);
     drawBalls(sctx, w, h);
+    paintRailFrameOverlay(sctx, w, h);
     staticFrameKey = key;
     return staticFrame;
   }
@@ -392,6 +393,7 @@ export function createPoolModule(deps = {}) {
       invalidateStaticFrame();
       drawTable(ctx, w, h);
       drawBalls(ctx, w, h);
+      paintRailFrameOverlay(ctx, w, h);
     } else {
       ctx.drawImage(ensureStaticFrame(w, h), 0, 0);
     }

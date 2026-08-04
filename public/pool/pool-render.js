@@ -3,9 +3,9 @@
 const tableLayerCache = new Map();
 const TABLE_STYLE_VER = "v7-art";
 export const TABLE_BG_URL = "/pool/table-arena.png";
-export const TABLE_BG_VER = "3";
+export const TABLE_BG_VER = "4";
 /** Felt region on mockup (normalized 0–1). */
-export const TABLE_ART_INSET = { x: 0.082, y: 0.122, w: 0.836, h: 0.756 };
+export const TABLE_ART_INSET = { x: 0.084, y: 0.124, w: 0.832, h: 0.752 };
 
 let tableBgImg = null;
 let tableBgPromise = null;
@@ -255,6 +255,23 @@ function paintTableLayer(ctx, opt) {
     return;
   }
   paintTableVectorLayer(ctx, opt);
+}
+
+/** Redraw rail/frame from mockup on top of balls — blocks “xuyên khung”. */
+export function paintRailFrameOverlay(ctx, w, h) {
+  if (!tableBgReady()) return;
+  const ins = TABLE_ART_INSET;
+  const fx = ins.x * w;
+  const fy = ins.y * h;
+  const fw = ins.w * w;
+  const fh = ins.h * h;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, w, h);
+  ctx.rect(fx, fy, fw, fh);
+  ctx.clip("evenodd");
+  ctx.drawImage(tableBgImg, 0, 0, w, h);
+  ctx.restore();
 }
 
 function paintTableVectorLayer(ctx, opt) {
@@ -582,8 +599,9 @@ export function paintBalls(ctx, opt) {
 
   ctx.save();
   ctx.beginPath();
-  const clipPad = rPx * 0.92;
-  ctx.rect(t.ox + clipPad, t.oy + clipPad, t.fw - clipPad * 2, t.fh - clipPad * 2);
+  const padX = t.fw * 0.02;
+  const padY = t.fh * 0.024;
+  ctx.rect(t.ox + padX, t.oy + padY, t.fw - padX * 2, t.fh - padY * 2);
   ctx.clip();
 
   for (const b of balls) {

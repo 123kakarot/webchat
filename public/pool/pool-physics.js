@@ -182,11 +182,13 @@ function separateOverlaps(active) {
   }
 }
 
+const FELT_GUARD = 7;
+
 function cushion(ball) {
-  const minX = CUSHION + BALL_R;
-  const maxX = TABLE_W - CUSHION - BALL_R;
-  const minY = CUSHION + BALL_R;
-  const maxY = TABLE_H - CUSHION - BALL_R;
+  const minX = CUSHION + BALL_R + FELT_GUARD;
+  const maxX = TABLE_W - CUSHION - BALL_R - FELT_GUARD;
+  const minY = CUSHION + BALL_R + FELT_GUARD;
+  const maxY = TABLE_H - CUSHION - BALL_R - FELT_GUARD;
   let hit = false;
   let strength = 0;
   if (ball.x < minX) {
