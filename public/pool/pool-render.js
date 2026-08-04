@@ -5,30 +5,48 @@ import { FELT_GUARD } from "./pool-physics.js";
 const tableLayerCache = new Map();
 const TABLE_STYLE_VER = "v7-art";
 export const TABLE_BG_URL = "/pool/table-arena.png";
-export const TABLE_BG_VER = "7";
+export const TABLE_BG_VER = "8";
 /** Felt region on mockup (normalized 0–1). */
-export const TABLE_ART_INSET = { x: 0.094, y: 0.134, w: 0.812, h: 0.732 };
+export const TABLE_ART_INSET = { x: 0.096, y: 0.136, w: 0.808, h: 0.728 };
+/** Play line inset inside felt art (fraction of felt w/h per side) — mép nắn như mockup. */
+export const TABLE_PLAY_MARGIN = { x: 0.054, y: 0.062 };
 
 let tableBgImg = null;
 let tableBgPromise = null;
 
 export function tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION = 30, BALL_R = 14) {
   const ins = TABLE_ART_INSET;
-  const fw = ins.w * w;
-  const fh = ins.h * h;
-  const ox = ins.x * w;
-  const oy = ins.y * h;
+  const margin = TABLE_PLAY_MARGIN;
+  const fwFull = ins.w * w;
+  const fhFull = ins.h * h;
+  const mx = margin.x * fwFull;
+  const my = margin.y * fhFull;
   const innerMinX = CUSHION + BALL_R + FELT_GUARD;
   const innerMinY = CUSHION + BALL_R + FELT_GUARD;
   const playW = TABLE_W - 2 * CUSHION - 2 * BALL_R - 2 * FELT_GUARD;
   const playH = TABLE_H - 2 * CUSHION - 2 * BALL_R - 2 * FELT_GUARD;
+  let ox = ins.x * w + mx;
+  let oy = ins.y * h + my;
+  let fw = fwFull - 2 * mx;
+  let fh = fhFull - 2 * my;
+  let sx = fw / playW;
+  let sy = fh / playH;
+  const rPx = BALL_R * ((sx + sy) / 2);
+  const padPx = rPx * 1.04;
+  const padPy = BALL_R * sy * 1.04;
+  ox += padPx;
+  oy += padPy;
+  fw -= 2 * padPx;
+  fh -= 2 * padPy;
+  sx = fw / playW;
+  sy = fh / playH;
   return {
     ox,
     oy,
     fw,
     fh,
-    sx: fw / playW,
-    sy: fh / playH,
+    sx,
+    sy,
     innerMinX,
     innerMinY,
   };

@@ -6,8 +6,8 @@ export const BALL_R = 14;
 export const POCKET_R = 21;
 export const CUSHION = 30;
 
-/** Inset from cushion line — keeps ball centers off the visual rail (table units). */
-export const FELT_GUARD = 30;
+/** Inset from cushion line — aligns ball edge with inner felt on mockup (table units). */
+export const FELT_GUARD = 40;
 
 export function playBounds() {
   const minX = CUSHION + BALL_R + FELT_GUARD;
