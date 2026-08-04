@@ -7,8 +7,10 @@ databases:
 services:
   - type: web
     name: webchat
-    runtime: docker
+    runtime: node
     plan: free
+    buildCommand: npm ci --omit=dev || npm install --omit=dev
+    startCommand: npm start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
