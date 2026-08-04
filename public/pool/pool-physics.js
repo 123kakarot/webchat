@@ -47,14 +47,15 @@ export function isCue(n) {
 }
 
 export function pockets() {
-  const m = CUSHION * 0.35;
+  const inset = CUSHION + POCKET_R * 0.62;
+  const sideY = CUSHION + POCKET_R * 0.42;
   return [
-    { x: m, y: m },
-    { x: TABLE_W / 2, y: m * 0.55 },
-    { x: TABLE_W - m, y: m },
-    { x: m, y: TABLE_H - m },
-    { x: TABLE_W / 2, y: TABLE_H - m * 0.55 },
-    { x: TABLE_W - m, y: TABLE_H - m },
+    { x: inset, y: inset, kind: "corner" },
+    { x: TABLE_W / 2, y: sideY, kind: "side" },
+    { x: TABLE_W - inset, y: inset, kind: "corner" },
+    { x: inset, y: TABLE_H - inset, kind: "corner" },
+    { x: TABLE_W / 2, y: TABLE_H - sideY, kind: "side" },
+    { x: TABLE_W - inset, y: TABLE_H - inset, kind: "corner" },
   ];
 }
 

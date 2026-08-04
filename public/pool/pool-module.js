@@ -15,7 +15,7 @@ import {
   anyMoving,
   stepPhysics,
 } from "./pool-physics.js";
-import { paintTable, paintBalls, warmTablePaint } from "./pool-render.js";
+import { paintTable, paintBalls, warmTablePaint, paintCueAimOverlay } from "./pool-render.js";
 import {
   createMatch,
   beginShot,
@@ -34,10 +34,10 @@ const CUES = [
 ];
 
 const TABLES = [
-  { id: "classic", name: "Classic", felt: "#0d6b45" },
-  { id: "neon", name: "Neon", felt: "#15406e" },
-  { id: "royal", name: "Royal", felt: "#4a2470" },
-  { id: "cyber", name: "Cyber", felt: "#0c4a58" },
+  { id: "classic", name: "Classic Blue", felt: "cerulean" },
+  { id: "neon", name: "Neon Blue", felt: "cerulean" },
+  { id: "royal", name: "Royal", felt: "#2563b8" },
+  { id: "cyber", name: "Cyber", felt: "#0e7490" },
 ];
 
 const STORAGE_STATS = "pool8-stats";
@@ -75,9 +75,10 @@ export function createPoolModule(deps = {}) {
   let aiBusy = false;
   let aiGen = 0;
   let selectedCue = "classic";
-  let selectedTable = "neon";
+  let selectedTable = "classic";
   let selectedBet = 0;
   let canvasEl = null;
+  let aimCanvasEl = null;
   let aimPrep = false;
   let prepPointerId = null;
   let prepIsTouch = false;
@@ -117,14 +118,14 @@ export function createPoolModule(deps = {}) {
     return canvas._poolCtx;
   }
 
-  function fitCanvasResolution(canvas) {
-    const frame = canvas.closest(".pool-hero-table");
+  function fitCanvasResolution(canvas, aimCanvas) {
+    const frame = canvas.closest(".pool-hero-table") || canvas.closest(".pool-canvas-stack");
     if (!frame) return;
     const cssW = frame.clientWidth - 8;
     if (cssW < 80) return;
     const coarse = window.matchMedia("(pointer: coarse)").matches;
-    const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 1.25 : 1.75);
-    const w = Math.round(Math.min(1100, cssW * dpr));
+    const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 1.15 : 1.5);
+    const w = Math.round(Math.min(960, cssW * dpr));
     const h = Math.round(w / 2);
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
@@ -132,6 +133,10 @@ export function createPoolModule(deps = {}) {
       canvas._poolCtx = null;
       tablePaintOpt = null;
       invalidateStaticFrame();
+    }
+    if (aimCanvas && (aimCanvas.width !== w || aimCanvas.height !== h)) {
+      aimCanvas.width = w;
+      aimCanvas.height = h;
     }
   }
 
@@ -171,7 +176,17 @@ export function createPoolModule(deps = {}) {
     if (paintRaf) return;
     paintRaf = requestAnimationFrame(() => {
       paintRaf = 0;
-      if (canvasEl && match) paintCanvas(canvasEl);
+      if (!match) return;
+      if (match.moving) {
+        if (canvasEl) paintCanvas(canvasEl);
+        if (aimCanvasEl) {
+          const ac = aimCanvasEl.getContext("2d");
+          ac?.clearRect(0, 0, aimCanvasEl.width, aimCanvasEl.height);
+        }
+        return;
+      }
+      if (aimCanvasEl) paintAimOverlay();
+      else if (canvasEl) paintCanvas(canvasEl);
     });
   }
 
@@ -310,6 +325,7 @@ export function createPoolModule(deps = {}) {
     prepPointerId = null;
     prepLockAim = 0;
     invalidateStaticFrame();
+    aimCanvasEl = null;
     match = null;
     canvasEl = null;
     uiTab = "home";
@@ -336,74 +352,50 @@ export function createPoolModule(deps = {}) {
       fast,
     });
   }
-  function drawAim(ctx, w, h) {
-    if (!match || match.moving || match.status !== "playing") return;
+  function paintAimOverlay() {
+    if (!aimCanvasEl || !match) return;
+    const w = aimCanvasEl.width;
+    const h = aimCanvasEl.height;
+    const ctx = aimCanvasEl.getContext("2d", { alpha: true, desynchronized: true });
+    if (!ctx) return;
+    ctx.clearRect(0, 0, w, h);
+    if (match.moving || match.status !== "playing") return;
     if (match.mode === "ai" && match.turn === 1) return;
     if (match.mode === "online" && match.turn !== match.meSide) return;
     const guide = aimGuide(match.balls, aimAngle);
-    if (!guide) return;
-    const sx = w / TABLE_W;
-    const sy = h / TABLE_H;
-    ctx.strokeStyle = "rgba(255,255,255,0.95)";
-    ctx.lineWidth = 2.4;
-    ctx.beginPath();
-    ctx.moveTo(guide.x0 * sx, guide.y0 * sy);
-    ctx.lineTo(guide.x1 * sx, guide.y1 * sy);
-    ctx.stroke();
-    if (guide.ghost && (aimPrep || power > 0.2)) {
-      ctx.setLineDash([5, 6]);
-      ctx.strokeStyle = "rgba(180,220,255,0.85)";
-      ctx.beginPath();
-      ctx.moveTo(guide.ghost.x * sx, guide.ghost.y * sy);
-      ctx.lineTo(guide.ghost.tx * sx, guide.ghost.ty * sy);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
     const cue = match.balls.find((b) => b.id === 0 && !b.pocketed);
-    if (!cue) return;
-    const pull = 90 + power * 175;
-    const tipGap = BALL_R + 4;
-    const cos = Math.cos(aimAngle);
-    const sin = Math.sin(aimAngle);
-    const tipX = cue.x * sx - cos * tipGap * sx;
-    const tipY = cue.y * sy - sin * tipGap * sy;
-    const buttX = cue.x * sx - cos * pull * sx;
-    const buttY = cue.y * sy - sin * pull * sy;
-    const midX = cue.x * sx - cos * pull * 0.42 * sx;
-    const midY = cue.y * sy - sin * pull * 0.42 * sy;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.strokeStyle = "#1a1208";
-    ctx.lineWidth = Math.max(5, 7 * sx);
-    ctx.beginPath();
-    ctx.moveTo(tipX, tipY);
-    ctx.lineTo(midX, midY);
-    ctx.stroke();
-    ctx.strokeStyle = "#c9a066";
-    ctx.lineWidth = Math.max(6, 9 * sx);
-    ctx.beginPath();
-    ctx.moveTo(midX, midY);
-    ctx.lineTo(buttX, buttY);
-    ctx.stroke();
+    if (!guide || !cue) return;
+    paintCueAimOverlay(ctx, {
+      w,
+      h,
+      TABLE_W,
+      TABLE_H,
+      BALL_R,
+      guide,
+      aimAngle,
+      power,
+      cueX: cue.x,
+      cueY: cue.y,
+      showGhost: aimPrep || power > 0.2,
+    });
   }
-  function paintCanvas(canvas, { fast = false, aimOnly = false } = {}) {
+
+  function paintCanvas(canvas) {
     if (!canvas || !match) return;
     const ctx = getCanvasCtx(canvas);
     if (!ctx) return;
     const w = canvas.width;
     const h = canvas.height;
-    const moving = match.moving;
-    if (moving) {
+    if (match.moving) {
       invalidateStaticFrame();
       drawTable(ctx, w, h);
       drawBalls(ctx, w, h, true);
-      drawAim(ctx, w, h);
     } else {
       ctx.drawImage(ensureStaticFrame(w, h), 0, 0);
-      drawAim(ctx, w, h);
     }
     canvas.classList.remove("is-loading");
     canvas.classList.add("is-ready");
+    if (aimCanvasEl) paintAimOverlay();
   }
 
   function startRenderLoop() {
@@ -751,7 +743,10 @@ export function createPoolModule(deps = {}) {
 
       <div class="pool-arena-stage">
         <div class="pool-hero-table">
+          <div class="pool-canvas-stack">
           <canvas class="pool-canvas is-loading" width="1200" height="600" data-pool-canvas aria-label="Bàn bida"></canvas>
+          <canvas class="pool-aim-layer" width="1200" height="600" data-pool-aim-canvas aria-hidden="true"></canvas>
+          </div>
         </div>
         <aside class="pool-power-hero" aria-label="Lực">
           <div class="pool-power-track">
@@ -1021,8 +1016,10 @@ export function createPoolModule(deps = {}) {
   function mountPlay(root) {
     const scope = root.querySelector?.(".pool-arena") ? root : root;
     const canvas = scope.querySelector("[data-pool-canvas]");
+    const aimCanvas = scope.querySelector("[data-pool-aim-canvas]");
     if (canvas) {
-      fitCanvasResolution(canvas);
+      fitCanvasResolution(canvas, aimCanvas);
+      aimCanvasEl = aimCanvas || null;
       const needRebind = canvasEl !== canvas;
       canvasEl = canvas;
       if (needRebind || !canvas._poolBound) {
@@ -1061,7 +1058,8 @@ export function createPoolModule(deps = {}) {
       frame._poolRo = true;
       new ResizeObserver(() => {
         if (!canvasEl) return;
-        fitCanvasResolution(canvasEl);
+        fitCanvasResolution(canvasEl, aimCanvasEl);
+        invalidateStaticFrame();
         requestPaint();
       }).observe(frame);
     }
@@ -1070,7 +1068,9 @@ export function createPoolModule(deps = {}) {
   function patchCanvas(root) {
     const canvas = root.querySelector("[data-pool-canvas]");
     if (!canvas) return false;
-    fitCanvasResolution(canvas);
+    const aimCanvas = root.querySelector("[data-pool-aim-canvas]");
+    fitCanvasResolution(canvas, aimCanvas);
+    aimCanvasEl = aimCanvas || null;
     canvasEl = canvas;
     if (!canvas._poolBound) bindCanvas(canvas);
     paintCanvas(canvas);
