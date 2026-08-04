@@ -198,6 +198,8 @@ export function createSokobanModule(deps = {}) {
     const { ok, game } = tryMove(session.game, dir);
     if (!ok) return false;
     session.game = game;
+    session.playerFacing = dir;
+    session.walkFrame = (session.walkFrame ?? 0) ^ 1;
     hintDir = null;
     if (game.status === "won") onWin();
     beep?.(320, 12, "square", 0.008);
@@ -214,7 +216,11 @@ export function createSokobanModule(deps = {}) {
     if (!session?.game || !root) return false;
     const canvas = root.querySelector("[data-sk-board]");
     if (!canvas) return false;
-    renderBoardToCanvas(canvas, session.game, hintDir);
+    renderBoardToCanvas(canvas, session.game, {
+      hintDir,
+      facing: session.playerFacing || "down",
+      walkFrame: session.walkFrame ?? 0,
+    });
     return true;
   }
 
