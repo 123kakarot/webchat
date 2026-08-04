@@ -6,9 +6,9 @@ export const BALL_R = 14;
 export const POCKET_R = 21;
 export const CUSHION = 30;
 
-/** Inset from cushion — X ok; Y extra inset (top/bottom rails on art). */
+/** Inset from cushion — physics only; render scale uses full bed (see pool-render). */
 export const FELT_GUARD_X = 4;
-export const FELT_GUARD_Y = 100;
+export const FELT_GUARD_Y = 60;
 /** @deprecated use FELT_GUARD_X */
 export const FELT_GUARD = FELT_GUARD_X;
 

@@ -1,47 +1,48 @@
 /** High-quality pool table / ball canvas rendering. */
 
-import { FELT_GUARD_X, FELT_GUARD_Y } from "./pool-physics.js";
-
 const tableLayerCache = new Map();
 const TABLE_STYLE_VER = "v8-balls";
 export const TABLE_BG_URL = "/pool/table-arena.png";
-export const TABLE_BG_VER = "14";
+export const TABLE_BG_VER = "15";
 /** Felt region on mockup (normalized 0–1). */
 export const TABLE_ART_INSET = { x: 0.091, y: 0.13, w: 0.818, h: 0.738 };
-/** Play line inset inside felt (fraction per side). */
+/** Play line inset inside felt (fraction per side) — visual only. */
 export const TABLE_PLAY_MARGIN = { x: 0.012, y: 0.04 };
-/** Ball-edge padding on canvas map (× ball radius). */
+/** Extra canvas inset (× ball radius) — visual only, not physics guards. */
 export const TABLE_BALL_EDGE_PAD = { x: 0.34, y: 0.56 };
 
 let tableBgImg = null;
 let tableBgPromise = null;
 
+/**
+ * Map table coords → canvas. Scale is fixed to the bed (CUSHION+BALL_R), not FELT_GUARD,
+ * so tuning play bounds does not zoom the table art.
+ */
 export function tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION = 30, BALL_R = 14) {
   const ins = TABLE_ART_INSET;
   const margin = TABLE_PLAY_MARGIN;
+  const bedMin = CUSHION + BALL_R;
+  const bedW = TABLE_W - 2 * bedMin;
+  const bedH = TABLE_H - 2 * bedMin;
   const fwFull = ins.w * w;
   const fhFull = ins.h * h;
   const mx = margin.x * fwFull;
   const my = margin.y * fhFull;
-  const innerMinX = CUSHION + BALL_R + FELT_GUARD_X;
-  const innerMinY = CUSHION + BALL_R + FELT_GUARD_Y;
-  const playW = TABLE_W - 2 * CUSHION - 2 * BALL_R - 2 * FELT_GUARD_X;
-  const playH = TABLE_H - 2 * CUSHION - 2 * BALL_R - 2 * FELT_GUARD_Y;
   let ox = ins.x * w + mx;
   let oy = ins.y * h + my;
   let fw = fwFull - 2 * mx;
   let fh = fhFull - 2 * my;
-  let sx = fw / playW;
-  let sy = fh / playH;
+  let sx = fw / bedW;
+  let sy = fh / bedH;
   const rPx = BALL_R * ((sx + sy) / 2);
   const padPx = rPx * TABLE_BALL_EDGE_PAD.x;
-  const padPy = BALL_R * sy * TABLE_BALL_EDGE_PAD.y;
+  const padPy = rPx * TABLE_BALL_EDGE_PAD.y;
   ox += padPx;
   oy += padPy;
   fw -= 2 * padPx;
   fh -= 2 * padPy;
-  sx = fw / playW;
-  sy = fh / playH;
+  sx = fw / bedW;
+  sy = fh / bedH;
   return {
     ox,
     oy,
@@ -49,8 +50,8 @@ export function tableCanvasTransform(w, h, TABLE_W, TABLE_H, CUSHION = 30, BALL_
     fh,
     sx,
     sy,
-    innerMinX,
-    innerMinY,
+    innerMinX: bedMin,
+    innerMinY: bedMin,
   };
 }
 
