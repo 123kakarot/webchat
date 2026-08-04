@@ -7,7 +7,7 @@ export const POCKET_R = 21;
 export const CUSHION = 30;
 
 /** Inset from cushion line — ball edge ≈ inner felt (table units). */
-export const FELT_GUARD = 16;
+export const FELT_GUARD = 10;
 
 export function playBounds() {
   const minX = CUSHION + BALL_R + FELT_GUARD;
@@ -238,7 +238,7 @@ function enforcePlayBounds(ball, { bounce = false } = {}) {
     }
   }
 
-  const cornerKeepOut = POCKET_R + BALL_R * 0.62;
+  const cornerKeepOut = POCKET_R + BALL_R * 0.35;
   for (const p of pockets()) {
     if (p.kind !== "corner") continue;
     let dx = ball.x - p.x;
