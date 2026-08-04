@@ -308,9 +308,13 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
     max-width: 100%;
   }
   .pool-power-card {
-    flex: 0 0 52px;
-    width: 52px;
-    padding: 8px 4px !important;
+    flex: 0 0 40px;
+    width: 40px;
+    padding: 6px 3px !important;
+  }
+  .pool-power-card .pool-power-track {
+    max-width: 22px;
+    min-height: 80px;
   }
   .pool-arena .pool-canvas {
     max-height: min(58dvh, 100%);
@@ -1420,44 +1424,45 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
 }
 
 .pool-power-card {
-  flex: 0 0 112px;
-  width: 112px;
-  padding: 16px 14px !important;
+  flex: 0 0 56px;
+  width: 56px;
+  padding: 10px 6px !important;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
 }
 .pool-power-icon {
-  font-size: 1.35rem;
+  font-size: 1rem;
   filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.65));
 }
 .pool-power-card .pool-power-track {
   flex: 1;
   width: 100%;
+  max-width: 28px;
   max-height: min(36vh, 320px);
-  min-height: 140px;
+  min-height: 120px;
   border-radius: 999px;
-  border: 2px solid rgba(120, 180, 255, 0.35);
+  border: 1.5px solid rgba(120, 180, 255, 0.35);
   background: linear-gradient(180deg, rgba(8, 12, 28, 0.95), rgba(4, 6, 16, 0.98));
   box-shadow:
     inset 0 2px 12px rgba(0, 0, 0, 0.55),
     0 0 24px rgba(251, 191, 36, 0.12);
-  padding: 8px 6px;
+  padding: 5px 3px;
   position: relative;
   overflow: hidden;
 }
 .pool-power-card .pool-power-heat {
   border-radius: 999px;
-  margin: 0 4px;
+  margin: 0 2px;
 }
 .pool-power-card .pool-power-label {
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
 }
 .pool-power-card .pool-power-val {
-  font-size: 1.35rem;
+  font-size: 0.82rem;
 }
 
 .pool-play-rail {
@@ -1672,8 +1677,8 @@ html.pool-force-landscape:has(.pool-fullbleed.is-arena) body {
 }
 .pool-power-input::-webkit-slider-thumb {
   appearance: none;
-  width: 28px;
-  height: 16px;
+  width: 20px;
+  height: 12px;
   border-radius: 6px;
   background: #fff;
   border: 2px solid #f59e0b;

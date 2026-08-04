@@ -30,7 +30,7 @@ export function clampAllBallsToTable(balls) {
 const FRICTION = 0.9885;
 const MIN_SPEED = 0.028;
 const RESTITUTION = 0.965;
-const CUSHION_REST = 0.9;
+const CUSHION_REST = 0.93;
 
 export const PHYS_HZ = 120;
 
@@ -211,14 +211,14 @@ function enforcePlayBounds(ball, { bounce = false } = {}) {
     ball.x = minX;
     if (bounce && ball.vx < 0) {
       strength = Math.abs(ball.vx);
-      ball.vx = Math.abs(ball.vx) * CUSHION_REST;
+      ball.vx = -ball.vx * CUSHION_REST;
       hit = true;
     }
   } else if (ball.x > maxX) {
     ball.x = maxX;
     if (bounce && ball.vx > 0) {
       strength = Math.abs(ball.vx);
-      ball.vx = -Math.abs(ball.vx) * CUSHION_REST;
+      ball.vx = -ball.vx * CUSHION_REST;
       hit = true;
     }
   }
@@ -226,14 +226,14 @@ function enforcePlayBounds(ball, { bounce = false } = {}) {
     ball.y = minY;
     if (bounce && ball.vy < 0) {
       strength = Math.max(strength, Math.abs(ball.vy));
-      ball.vy = Math.abs(ball.vy) * CUSHION_REST;
+      ball.vy = -ball.vy * CUSHION_REST;
       hit = true;
     }
   } else if (ball.y > maxY) {
     ball.y = maxY;
     if (bounce && ball.vy > 0) {
       strength = Math.max(strength, Math.abs(ball.vy));
-      ball.vy = -Math.abs(ball.vy) * CUSHION_REST;
+      ball.vy = -ball.vy * CUSHION_REST;
       hit = true;
     }
   }
@@ -276,7 +276,7 @@ export function stepPhysics(balls, dt = 1) {
     for (const b of active) {
       b.x += b.vx * subDt;
       b.y += b.vy * subDt;
-      enforcePlayBounds(b);
+      enforcePlayBounds(b, { bounce: true });
     }
 
     for (let pass = 0; pass < COLLISION_PASSES; pass++) {
@@ -297,20 +297,20 @@ export function stepPhysics(balls, dt = 1) {
       }
     }
     separateOverlaps(active);
-    for (const b of active) enforcePlayBounds(b);
+    for (const b of active) enforcePlayBounds(b, { bounce: true });
   }
 
   for (const b of active) {
+    const c = cushion(b);
+    if (c.hit) {
+      cushionHits++;
+      maxCollision = Math.max(maxCollision, c.strength);
+    }
     b.vx *= Math.pow(FRICTION, dt);
     b.vy *= Math.pow(FRICTION, dt);
     if (Math.hypot(b.vx, b.vy) < MIN_SPEED) {
       b.vx = 0;
       b.vy = 0;
-    }
-    const c = cushion(b);
-    if (c.hit) {
-      cushionHits++;
-      maxCollision = Math.max(maxCollision, c.strength);
     }
   }
 
