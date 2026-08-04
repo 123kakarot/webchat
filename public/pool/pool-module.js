@@ -667,6 +667,61 @@ export function createPoolModule(deps = {}) {
       .join("");
   }
 
+  function ballIconHtml(id, role = "") {
+    const gone = match.balls.find((b) => b.id === id)?.pocketed;
+    let hi = "";
+    if (role === "mine") hi = " is-mine";
+    if (role === "opp") hi = " is-opp";
+    const stripe = id >= 9 && id <= 15 ? " is-stripe" : "";
+    const eight = id === 8 ? " is-eight" : "";
+    return `<i class="pool-ball-ico pool-ball-lg${gone ? " is-out" : ""}${stripe}${hi}${eight}" style="--c:${BALL_COLORS[id]}">${id}</i>`;
+  }
+
+  /** Mockup §7 — nhóm Trơn/Sọc của bạn vs đối thủ */
+  function groupBoardHtml() {
+    if (!match) return "";
+    const solidIds = [1, 2, 3, 4, 5, 6, 7];
+    const stripeIds = [9, 10, 11, 12, 13, 14, 15];
+    const g0 = match.groups[0];
+    const g1 = match.groups[1];
+    const open = !g0 && !g1;
+
+    function row(title, type, highlight) {
+      const typeLabel =
+        type === "solid" ? "Trơn · Solid" : type === "stripe" ? "Sọc · Stripe" : "Open table";
+      const ids = type === "solid" ? solidIds : type === "stripe" ? stripeIds : [];
+      const ballsInner = open
+        ? `<span class="pool-group-open">Bi đầu tiên vào lỗ chọn phe (1–7 hoặc 9–15)</span>`
+        : ids.map((id) => ballIconHtml(id, highlight)).join("");
+      return `
+        <div class="pool-group-row${highlight === "mine" ? " is-mine-row" : highlight === "opp" ? " is-opp-row" : ""}">
+          <div class="pool-group-row-head">
+            <strong>${title}</strong>
+            <span class="pool-group-type">${typeLabel}</span>
+          </div>
+          <div class="pool-group-balls">${ballsInner}</div>
+        </div>`;
+    }
+
+    if (open) {
+      return `
+        <div class="pool-group-board is-open">
+          ${row("Nhóm của bạn", "open", "mine")}
+          <div class="pool-group-eight-row"><span>Bi 8</span>${ballIconHtml(8, "")}</div>
+          ${row("Nhóm đối thủ", "open", "opp")}
+        </div>`;
+    }
+
+    const myType = g0;
+    const oppType = g1;
+    return `
+      <div class="pool-group-board">
+        ${row("Nhóm của bạn", myType, "mine")}
+        <div class="pool-group-eight-row"><span>Bi 8</span>${ballIconHtml(8, "")}</div>
+        ${row("Nhóm đối thủ", oppType, "opp")}
+      </div>`;
+  }
+
   /** Full rack track: 1–7 · 8 · 9–15 */
   function rackTrackHtml() {
     if (!match) return "";
@@ -761,13 +816,9 @@ export function createPoolModule(deps = {}) {
       </div>
 
       <footer class="pool-arena-hud">
-        <section class="pool-hud-card">
-          <h4>Nhóm bóng</h4>
-          <div class="pool-rack-track">${rackTrackHtml()}</div>
-          <div class="pool-group-legend">
-            <span class="leg mine">Bạn · ${groupLabel(0)}</span>
-            <span class="leg opp">Đối thủ · ${groupLabel(1)}</span>
-          </div>
+        <section class="pool-hud-card pool-hud-groups">
+          <h4>Bộ bóng</h4>
+          ${groupBoardHtml()}
         </section>
 
         <section class="pool-hud-card">

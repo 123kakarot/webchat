@@ -3,7 +3,7 @@
 export const TABLE_W = 900;
 export const TABLE_H = 450;
 export const BALL_R = 14;
-export const POCKET_R = 26;
+export const POCKET_R = 21;
 export const CUSHION = 30;
 
 /** Per fixed physics step (≈ 1/120s wall-clock when driven at 120 Hz). */
@@ -15,22 +15,22 @@ const CUSHION_REST = 0.9;
 export const PHYS_HZ = 120;
 
 export const BALL_COLORS = {
-  0: "#f5f5f5",
-  1: "#eab308",
-  2: "#2563eb",
-  3: "#dc2626",
+  0: "#f8f8f8",
+  1: "#f5c518",
+  2: "#1d6fd4",
+  3: "#d91f1f",
   4: "#7c3aed",
-  5: "#ea580c",
-  6: "#16a34a",
-  7: "#7f1d1d",
-  8: "#111111",
-  9: "#eab308",
-  10: "#2563eb",
-  11: "#dc2626",
+  5: "#f97316",
+  6: "#22a04a",
+  7: "#7b1e1e",
+  8: "#0a0a0a",
+  9: "#f5c518",
+  10: "#1d6fd4",
+  11: "#d91f1f",
   12: "#7c3aed",
-  13: "#ea580c",
-  14: "#16a34a",
-  15: "#7f1d1d",
+  13: "#f97316",
+  14: "#22a04a",
+  15: "#7b1e1e",
 };
 
 export function isStripe(n) {
@@ -46,16 +46,17 @@ export function isCue(n) {
   return n === 0;
 }
 
+/** Pocket centers sit on the cushion midline — not past the outer rail (straight shots stay true). */
 export function pockets() {
-  const edge = CUSHION;
+  const r = CUSHION * 0.5;
   const midX = TABLE_W / 2;
-  const farX = TABLE_W - CUSHION;
-  const farY = TABLE_H - CUSHION;
+  const farX = TABLE_W - r;
+  const farY = TABLE_H - r;
   return [
-    { x: edge, y: edge, kind: "corner" },
-    { x: midX, y: edge, kind: "side" },
-    { x: farX, y: edge, kind: "corner" },
-    { x: edge, y: farY, kind: "corner" },
+    { x: r, y: r, kind: "corner" },
+    { x: midX, y: r, kind: "side" },
+    { x: farX, y: r, kind: "corner" },
+    { x: r, y: farY, kind: "corner" },
     { x: midX, y: farY, kind: "side" },
     { x: farX, y: farY, kind: "corner" },
   ];

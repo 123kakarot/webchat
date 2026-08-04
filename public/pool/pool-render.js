@@ -1,7 +1,7 @@
 /** High-quality pool table / ball canvas rendering. */
 
 const tableLayerCache = new Map();
-const TABLE_STYLE_VER = "v4";
+const TABLE_STYLE_VER = "v5";
 
 export function shadeColor(hex, amt) {
   const h = String(hex).replace("#", "");
@@ -73,41 +73,84 @@ function drawRailDiamonds(ctx, x, y, w, h) {
   }
 }
 
-function drawRailPocket(ctx, px, py, holeR, corner) {
-  ctx.save();
-  const pg = ctx.createRadialGradient(px - holeR * 0.12, py - holeR * 0.12, holeR * 0.08, px, py, holeR);
-  pg.addColorStop(0, "#1a1a1a");
-  pg.addColorStop(0.55, "#060606");
-  pg.addColorStop(1, "#000");
+function clipRailCorner(ctx, w, h, fx, fy, fw, fh, corner) {
   ctx.beginPath();
-  ctx.arc(px, py, holeR, 0, Math.PI * 2);
-  ctx.fillStyle = pg;
-  ctx.fill();
-  ctx.beginPath();
-  ctx.strokeStyle = "rgba(190,200,215,0.88)";
-  ctx.lineWidth = Math.max(1.8, holeR * 0.12);
-  let a0 = 0;
-  let a1 = Math.PI * 2;
   if (corner === "tl") {
-    a0 = 0;
-    a1 = Math.PI / 2;
+    ctx.rect(0, 0, fx, h);
+    ctx.rect(0, 0, w, fy);
   } else if (corner === "tr") {
-    a0 = Math.PI / 2;
-    a1 = Math.PI;
+    ctx.rect(fx + fw, 0, w - fx - fw, h);
+    ctx.rect(0, 0, w, fy);
   } else if (corner === "bl") {
-    a0 = -Math.PI / 2;
-    a1 = 0;
+    ctx.rect(0, 0, fx, h);
+    ctx.rect(0, fy + fh, w, h - fy - fh);
   } else if (corner === "br") {
-    a0 = Math.PI;
-    a1 = Math.PI * 1.5;
+    ctx.rect(fx + fw, 0, w - fx - fw, h);
+    ctx.rect(0, fy + fh, w, h - fy - fh);
   } else if (corner === "top") {
-    a0 = Math.PI * 0.15;
-    a1 = Math.PI * 0.85;
+    ctx.rect(fx, 0, fw, fy);
   } else if (corner === "bottom") {
-    a0 = Math.PI * 1.15;
-    a1 = Math.PI * 1.85;
+    ctx.rect(fx, fy + fh, fw, h - fy - fh);
   }
-  ctx.arc(px, py, holeR + 1, a0, a1);
+  ctx.clip();
+}
+
+function drawPocketInRail(ctx, w, h, fx, fy, fw, fh, rw, corner) {
+  const hr = rw * 0.44;
+  ctx.save();
+  clipRailCorner(ctx, w, h, fx, fy, fw, fh, corner);
+  const pg = ctx.createRadialGradient(0, 0, hr * 0.1, 0, 0, hr);
+  pg.addColorStop(0, "#252525");
+  pg.addColorStop(0.6, "#080808");
+  pg.addColorStop(1, "#000");
+  ctx.fillStyle = pg;
+  ctx.beginPath();
+  if (corner === "tl") {
+    const cx = fx - hr * 0.22;
+    const cy = fy - hr * 0.22;
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, hr, 0, Math.PI / 2);
+  } else if (corner === "tr") {
+    const cx = fx + fw + hr * 0.22;
+    const cy = fy - hr * 0.22;
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, hr, Math.PI / 2, Math.PI);
+  } else if (corner === "bl") {
+    const cx = fx - hr * 0.22;
+    const cy = fy + fh + hr * 0.22;
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, hr, -Math.PI / 2, 0);
+  } else if (corner === "br") {
+    const cx = fx + fw + hr * 0.22;
+    const cy = fy + fh + hr * 0.22;
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, hr, Math.PI, Math.PI * 1.5);
+  } else if (corner === "top") {
+    const cx = fx + fw * 0.5;
+    const cy = fy - hr * 0.2;
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, hr, Math.PI * 0.15, Math.PI * 0.85);
+  } else if (corner === "bottom") {
+    const cx = fx + fw * 0.5;
+    const cy = fy + fh + hr * 0.2;
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, hr, -Math.PI * 0.85, -Math.PI * 0.15);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  clipRailCorner(ctx, w, h, fx, fy, fw, fh, corner);
+  ctx.strokeStyle = "rgba(195,205,220,0.85)";
+  ctx.lineWidth = Math.max(1.5, hr * 0.11);
+  ctx.beginPath();
+  if (corner === "tl") ctx.arc(fx - hr * 0.22, fy - hr * 0.22, hr + 0.5, 0.05, Math.PI / 2 - 0.05);
+  if (corner === "tr") ctx.arc(fx + fw + hr * 0.22, fy - hr * 0.22, hr + 0.5, Math.PI / 2 + 0.05, Math.PI - 0.05);
+  if (corner === "bl") ctx.arc(fx - hr * 0.22, fy + fh + hr * 0.22, hr + 0.5, -Math.PI / 2 + 0.05, -0.05);
+  if (corner === "br") ctx.arc(fx + fw + hr * 0.22, fy + fh + hr * 0.22, hr + 0.5, Math.PI + 0.05, Math.PI * 1.5 - 0.05);
+  if (corner === "top") ctx.arc(fx + fw * 0.5, fy - hr * 0.2, hr + 0.5, Math.PI * 0.2, Math.PI * 0.8);
+  if (corner === "bottom") ctx.arc(fx + fw * 0.5, fy + fh + hr * 0.2, hr + 0.5, -Math.PI * 0.8, -Math.PI * 0.2);
   ctx.stroke();
   ctx.restore();
 }
@@ -218,18 +261,12 @@ function paintTableLayer(ctx, opt) {
 
   drawCushionRails(ctx, w, h, fx, fy, fw, fh, fx);
 
-  const holeR = Math.min(fx * 0.52, POCKET_R * sx * 0.68);
-  drawRailPocket(ctx, fx, fy, holeR, "tl");
-  drawRailPocket(ctx, fx + fw, fy, holeR, "tr");
-  drawRailPocket(ctx, fx, fy + fh, holeR, "bl");
-  drawRailPocket(ctx, fx + fw, fy + fh, holeR, "br");
-  drawRailPocket(ctx, fx + fw * 0.5, fy, holeR, "top");
-  drawRailPocket(ctx, fx + fw * 0.5, fy + fh, holeR, "bottom");
-
-  drawCornerChrome(ctx, fx, fy, holeR, "tl");
-  drawCornerChrome(ctx, fx + fw, fy, holeR, "tr");
-  drawCornerChrome(ctx, fx, fy + fh, holeR, "bl");
-  drawCornerChrome(ctx, fx + fw, fy + fh, holeR, "br");
+  drawPocketInRail(ctx, w, h, fx, fy, fw, fh, fx, "tl");
+  drawPocketInRail(ctx, w, h, fx, fy, fw, fh, fx, "tr");
+  drawPocketInRail(ctx, w, h, fx, fy, fw, fh, fx, "bl");
+  drawPocketInRail(ctx, w, h, fx, fy, fw, fh, fx, "br");
+  drawPocketInRail(ctx, w, h, fx, fy, fw, fh, fx, "top");
+  drawPocketInRail(ctx, w, h, fx, fy, fw, fh, fx, "bottom");
 
   drawRailDiamonds(ctx, fx - 8, fy - 10, fw + 16, 10);
   drawRailDiamonds(ctx, fx - 8, fy + fh, fw + 16, 10);

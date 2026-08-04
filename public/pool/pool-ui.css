@@ -1334,6 +1334,79 @@ html.pool-force-landscape body {
   color: #93a4c7;
 }
 
+.pool-hud-groups {
+  grid-column: span 2;
+  min-width: 0;
+}
+
+.pool-group-board {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pool-group-board.is-open .pool-group-row {
+  opacity: 0.92;
+}
+.pool-group-row {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 160, 255, 0.22);
+  background: rgba(8, 14, 28, 0.55);
+}
+.pool-group-row.is-mine-row {
+  border-color: rgba(168, 85, 247, 0.55);
+  box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.25), inset 0 0 24px rgba(168, 85, 247, 0.08);
+}
+.pool-group-row.is-opp-row {
+  border-color: rgba(248, 113, 113, 0.35);
+}
+.pool-group-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.pool-group-row-head strong {
+  font-size: 0.78rem;
+  color: #e8eef9;
+}
+.pool-group-type {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #93a4c7;
+}
+.pool-group-balls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+.pool-group-open {
+  font-size: 0.72rem;
+  color: #93a4c7;
+  line-height: 1.35;
+}
+.pool-group-eight-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #f5c542;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.pool-ball-lg {
+  width: 26px !important;
+  height: 26px !important;
+  font-size: 0.68rem !important;
+}
+
 .pool-rack-track {
   display: flex;
   flex-wrap: wrap;
