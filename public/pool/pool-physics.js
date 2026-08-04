@@ -8,7 +8,7 @@ export const CUSHION = 30;
 
 /** Inset from cushion — X ok; Y extra inset (top/bottom rails on art). */
 export const FELT_GUARD_X = 14;
-export const FELT_GUARD_Y = 26;
+export const FELT_GUARD_Y = 32;
 /** @deprecated use FELT_GUARD_X */
 export const FELT_GUARD = FELT_GUARD_X;
 
@@ -69,17 +69,17 @@ export function isCue(n) {
   return n === 0;
 }
 
-/** Pocket centers sit on the cushion midline — not past the outer rail (straight shots stay true). */
+/** Pocket lips on cushion line (table units) — aligned with playable mouth, not outer corner. */
 export function pockets() {
-  const r = CUSHION * 0.5;
+  const lip = CUSHION + 4;
   const midX = TABLE_W / 2;
-  const farX = TABLE_W - r;
-  const farY = TABLE_H - r;
+  const farX = TABLE_W - lip;
+  const farY = TABLE_H - lip;
   return [
-    { x: r, y: r, kind: "corner" },
-    { x: midX, y: r, kind: "side" },
-    { x: farX, y: r, kind: "corner" },
-    { x: r, y: farY, kind: "corner" },
+    { x: lip, y: lip, kind: "corner" },
+    { x: midX, y: lip, kind: "side" },
+    { x: farX, y: lip, kind: "corner" },
+    { x: lip, y: farY, kind: "corner" },
     { x: midX, y: farY, kind: "side" },
     { x: farX, y: farY, kind: "corner" },
   ];
@@ -132,21 +132,34 @@ export function applyCueShot(balls, angle, power, spin = { x: 0, y: 0 }) {
 
 function pocketCheck(ball, pocks) {
   for (const p of pocks) {
-    if (dist(ball, p) < POCKET_R - BALL_R * 0.05) return true;
+    if (dist(ball, p) < POCKET_R + BALL_R * 0.35) return true;
   }
   return false;
 }
 
-/** Ball center in pocket funnel — skip rail bounce / corner push. */
-function inPocketApproach(ball, pocks) {
+function nearestPocketDist(ball, pocks) {
+  let best = Infinity;
   for (const p of pocks) {
-    if (dist(ball, p) < POCKET_R + BALL_R * 0.55) return true;
+    best = Math.min(best, dist(ball, p));
   }
-  return false;
+  return best;
+}
+
+/** Ball center in pocket funnel — skip rail bounce. */
+function inPocketApproach(ball, pocks) {
+  return nearestPocketDist(ball, pocks) < POCKET_R + BALL_R * 1.05;
 }
 
 function applyPocket(ball, pocks) {
   if (pocketCheck(ball, pocks)) {
+    ball.pocketed = true;
+    ball.vx = 0;
+    ball.vy = 0;
+    return true;
+  }
+  const { minX, maxX, minY, maxY } = playBounds();
+  const oob = ball.x < minX || ball.x > maxX || ball.y < minY || ball.y > maxY;
+  if (oob && nearestPocketDist(ball, pocks) < POCKET_R + BALL_R * 1.1) {
     ball.pocketed = true;
     ball.vx = 0;
     ball.vy = 0;
@@ -254,27 +267,13 @@ function enforcePlayBounds(ball, { bounce = false } = {}) {
       ball.vy = -ball.vy * CUSHION_REST;
       hit = true;
     }
-  } else if (ball.y > maxY) {
+  } else   if (ball.y > maxY) {
     ball.y = maxY;
     if (bounce && ball.vy > 0) {
       strength = Math.max(strength, Math.abs(ball.vy));
       ball.vy = -ball.vy * CUSHION_REST;
       hit = true;
     }
-  }
-
-  const cornerKeepOut = POCKET_R + BALL_R * 0.35;
-  for (const p of pocks) {
-    if (p.kind !== "corner") continue;
-    let dx = ball.x - p.x;
-    let dy = ball.y - p.y;
-    const d = Math.hypot(dx, dy);
-    if (d < POCKET_R + BALL_R * 0.5) continue;
-    if (d >= cornerKeepOut || d < 1e-6) continue;
-    ball.x = p.x + (dx / d) * cornerKeepOut;
-    ball.y = p.y + (dy / d) * cornerKeepOut;
-    ball.x = Math.max(minX, Math.min(maxX, ball.x));
-    ball.y = Math.max(minY, Math.min(maxY, ball.y));
   }
 
   return { hit, strength };
