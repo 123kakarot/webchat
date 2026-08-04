@@ -1,7 +1,57 @@
 /** High-quality pool table / ball canvas rendering. */
 
 const tableLayerCache = new Map();
-const TABLE_STYLE_VER = "v6";
+const TABLE_STYLE_VER = "v7-art";
+export const TABLE_BG_URL = "/pool/table-arena.png";
+export const TABLE_BG_VER = "1";
+/** Felt region on mockup (normalized 0–1) — aligns physics to art. */
+export const TABLE_ART_INSET = { x: 0.048, y: 0.082, w: 0.904, h: 0.836 };
+
+let tableBgImg = null;
+let tableBgPromise = null;
+
+export function tableCanvasTransform(w, h, TABLE_W, TABLE_H) {
+  const ins = TABLE_ART_INSET;
+  return {
+    ox: ins.x * w,
+    oy: ins.y * h,
+    sx: (ins.w * w) / TABLE_W,
+    sy: (ins.h * h) / TABLE_H,
+  };
+}
+
+export function tableCoordToCanvas(x, y, t) {
+  return { x: t.ox + x * t.sx, y: t.oy + y * t.sy };
+}
+
+export function canvasCoordToTable(px, py, t) {
+  return { x: (px - t.ox) / t.sx, y: (py - t.oy) / t.sy };
+}
+
+function tableBgReady() {
+  return tableBgImg?.complete && tableBgImg.naturalWidth > 0;
+}
+
+/** Preload mockup table — call before first paint. */
+export function loadTableBackground() {
+  if (tableBgPromise) return tableBgPromise;
+  if (typeof Image === "undefined") {
+    tableBgPromise = Promise.resolve(null);
+    return tableBgPromise;
+  }
+  tableBgPromise = new Promise((resolve) => {
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => {
+      tableBgImg = img;
+      tableLayerCache.clear();
+      resolve(img);
+    };
+    img.onerror = () => resolve(null);
+    img.src = `${TABLE_BG_URL}?v=${TABLE_BG_VER}`;
+  });
+  return tableBgPromise;
+}
 
 export function shadeColor(hex, amt) {
   const h = String(hex).replace("#", "");
@@ -28,8 +78,8 @@ function feltPalette(felt) {
  * @param {{ w:number,h:number,TABLE_W:number,TABLE_H:number,CUSHION:number,POCKET_R:number,felt:string,pockets:()=>any[] }} opt
  */
 export function paintTable(ctx, opt) {
-  const { w, h, felt } = opt;
-  const cacheKey = `${TABLE_STYLE_VER}:${w}x${h}:${felt}`;
+  const { w, h } = opt;
+  const cacheKey = `${TABLE_STYLE_VER}:${TABLE_BG_VER}:${w}x${h}`;
   let layer = tableLayerCache.get(cacheKey);
   if (!layer) {
     layer = document.createElement("canvas");
@@ -42,7 +92,8 @@ export function paintTable(ctx, opt) {
 }
 
 /** Pre-build table bitmap — call from lobby to avoid lag on first shot. */
-export function warmTablePaint(opt) {
+export async function warmTablePaint(opt) {
+  await loadTableBackground();
   const c = document.createElement("canvas");
   c.width = opt.w;
   c.height = opt.h;
@@ -187,11 +238,20 @@ function drawCornerChrome(ctx, cx, cy, pr, corner) {
 }
 
 function paintTableLayer(ctx, opt) {
+  const { w, h } = opt;
+  ctx.clearRect(0, 0, w, h);
+  if (tableBgReady()) {
+    ctx.drawImage(tableBgImg, 0, 0, w, h);
+    return;
+  }
+  paintTableVectorLayer(ctx, opt);
+}
+
+function paintTableVectorLayer(ctx, opt) {
   const { w, h, TABLE_W, TABLE_H, CUSHION, POCKET_R, felt, pockets } = opt;
   const sx = w / TABLE_W;
   const sy = h / TABLE_H;
   const pal = feltPalette(felt);
-  ctx.clearRect(0, 0, w, h);
 
   const wood = ctx.createLinearGradient(0, 0, w, h);
   wood.addColorStop(0, "#6b3d1f");
@@ -324,37 +384,47 @@ export function paintCueAimOverlay(ctx, opt) {
     showGhost = true,
   } = opt;
   if (!guide || cueX == null) return;
-  const sx = w / TABLE_W;
-  const sy = h / TABLE_H;
+  const t = tableCanvasTransform(w, h, TABLE_W, TABLE_H);
+  const rPx = BALL_R * ((t.sx + t.sy) / 2);
+  const map = (x, y) => tableCoordToCanvas(x, y, t);
 
+  const p0 = map(guide.x0, guide.y0);
+  const p1 = map(guide.x1, guide.y1);
   ctx.strokeStyle = "rgba(255,255,255,0.95)";
   ctx.lineWidth = 2.2;
   ctx.beginPath();
-  ctx.moveTo(guide.x0 * sx, guide.y0 * sy);
-  ctx.lineTo(guide.x1 * sx, guide.y1 * sy);
+  ctx.moveTo(p0.x, p0.y);
+  ctx.lineTo(p1.x, p1.y);
   ctx.stroke();
 
   if (showGhost && guide.ghost) {
     const g = guide.ghost;
+    const gc = map(g.x, g.y);
     ctx.strokeStyle = "rgba(255,255,255,0.35)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(g.x * sx, g.y * sy, BALL_R * sx, 0, Math.PI * 2);
+    ctx.arc(gc.x, gc.y, rPx, 0, Math.PI * 2);
     ctx.stroke();
 
     ctx.strokeStyle = "rgba(255,255,255,0.92)";
     ctx.lineWidth = 2.2;
     ctx.beginPath();
-    ctx.moveTo(g.x * sx, g.y * sy);
-    if (g.objX != null) ctx.lineTo(g.objX * sx, g.objY * sy);
+    ctx.moveTo(gc.x, gc.y);
+    if (g.objX != null) {
+      const o = map(g.objX, g.objY);
+      ctx.lineTo(o.x, o.y);
+    }
     ctx.stroke();
 
     ctx.setLineDash([6, 7]);
     ctx.strokeStyle = "rgba(255,255,255,0.72)";
     ctx.lineWidth = 1.8;
     ctx.beginPath();
-    ctx.moveTo(g.x * sx, g.y * sy);
-    if (g.cueX != null) ctx.lineTo(g.cueX * sx, g.cueY * sy);
+    ctx.moveTo(gc.x, gc.y);
+    if (g.cueX != null) {
+      const c = map(g.cueX, g.cueY);
+      ctx.lineTo(c.x, c.y);
+    }
     ctx.stroke();
     ctx.setLineDash([]);
   }
@@ -363,17 +433,18 @@ export function paintCueAimOverlay(ctx, opt) {
   const tipGap = BALL_R + 5;
   const cos = Math.cos(aimAngle);
   const sin = Math.sin(aimAngle);
-  const tipX = cueX * sx - cos * tipGap * sx;
-  const tipY = cueY * sy - sin * tipGap * sy;
-  const buttX = cueX * sx - cos * pull * sx;
-  const buttY = cueY * sy - sin * pull * sy;
-  const midX = cueX * sx - cos * pull * 0.38 * sx;
-  const midY = cueY * sy - sin * pull * 0.38 * sy;
+  const cueC = map(cueX, cueY);
+  const tipX = cueC.x - cos * tipGap * t.sx;
+  const tipY = cueC.y - sin * tipGap * t.sy;
+  const buttX = cueC.x - cos * pull * t.sx;
+  const buttY = cueC.y - sin * pull * t.sy;
+  const midX = cueC.x - cos * pull * 0.38 * t.sx;
+  const midY = cueC.y - sin * pull * 0.38 * t.sy;
 
   const shOffX = sin * 6;
   const shOffY = -cos * 6;
   ctx.strokeStyle = "rgba(0,0,0,0.42)";
-  ctx.lineWidth = Math.max(9, 12 * sx);
+  ctx.lineWidth = Math.max(9, 12 * t.sx);
   ctx.lineCap = "round";
   ctx.beginPath();
   ctx.moveTo(tipX + shOffX, tipY + shOffY);
@@ -389,7 +460,7 @@ export function paintCueAimOverlay(ctx, opt) {
   cueGrad.addColorStop(0.72, "#2a1810");
   cueGrad.addColorStop(1, "#120a06");
   ctx.strokeStyle = cueGrad;
-  ctx.lineWidth = Math.max(6.5, 8.5 * sx);
+  ctx.lineWidth = Math.max(6.5, 8.5 * t.sx);
   ctx.lineCap = "round";
   ctx.beginPath();
   ctx.moveTo(tipX, tipY);
@@ -399,13 +470,13 @@ export function paintCueAimOverlay(ctx, opt) {
   const ringX = tipX + (buttX - tipX) * 0.28;
   const ringY = tipY + (buttY - tipY) * 0.28;
   ctx.strokeStyle = "rgba(220,220,230,0.75)";
-  ctx.lineWidth = Math.max(2.2, 2.8 * sx);
+  ctx.lineWidth = Math.max(2.2, 2.8 * t.sx);
   ctx.beginPath();
-  ctx.arc(ringX, ringY, Math.max(4, 5.5 * sx), 0, Math.PI * 2);
+  ctx.arc(ringX, ringY, Math.max(4, 5.5 * t.sx), 0, Math.PI * 2);
   ctx.stroke();
 
   ctx.strokeStyle = "rgba(255,255,255,0.5)";
-  ctx.lineWidth = Math.max(2, 2.5 * sx);
+  ctx.lineWidth = Math.max(2, 2.5 * t.sx);
   ctx.beginPath();
   ctx.moveTo(tipX, tipY);
   ctx.lineTo(midX, midY);
@@ -413,7 +484,7 @@ export function paintCueAimOverlay(ctx, opt) {
 
   ctx.fillStyle = "#fafafa";
   ctx.beginPath();
-  ctx.arc(tipX, tipY, Math.max(2.8, 4 * sx), 0, Math.PI * 2);
+  ctx.arc(tipX, tipY, Math.max(2.8, 4 * t.sx), 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = "rgba(180,180,180,0.6)";
   ctx.lineWidth = 0.8;
@@ -495,11 +566,12 @@ function drawOneBall(ctx, x, y, r, b, colors) {
  */
 export function paintBalls(ctx, opt) {
   const { w, h, TABLE_W, TABLE_H, BALL_R, balls, colors } = opt;
-  const sx = w / TABLE_W;
-  const sy = h / TABLE_H;
+  const t = tableCanvasTransform(w, h, TABLE_W, TABLE_H);
+  const rPx = BALL_R * ((t.sx + t.sy) / 2);
 
   for (const b of balls) {
     if (b.pocketed) continue;
-    drawOneBall(ctx, b.x * sx, b.y * sy, BALL_R * sx, b, colors);
+    const p = tableCoordToCanvas(b.x, b.y, t);
+    drawOneBall(ctx, p.x, p.y, rPx, b, colors);
   }
 }

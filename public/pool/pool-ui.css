@@ -1205,14 +1205,14 @@ html.pool-force-landscape body {
   display: flex;
   justify-content: center;
   align-items: stretch;
-  gap: 20px;
-  padding: 4px 0 8px;
+  gap: 18px;
+  padding: 8px 0 12px;
 }
 
 .pool-table-card {
-  flex: 0 1 min(720px, 65%);
-  max-width: min(720px, 100%);
-  padding: 16px !important;
+  flex: 1 1 82%;
+  max-width: min(1000px, 90vw);
+  padding: 6px !important;
   min-width: 0;
 }
 
@@ -1222,16 +1222,12 @@ html.pool-force-landscape body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 14px;
-  border-radius: 16px;
-  background:
-    linear-gradient(160deg, #6b4224 0%, #4a2c14 28%, #2a160c 55%, #120a06 100%);
-  border: 3px solid rgba(212, 175, 110, 0.5);
-  box-shadow:
-    0 22px 56px rgba(0, 0, 0, 0.6),
-    0 0 48px rgba(40, 80, 200, 0.15),
-    inset 0 2px 0 rgba(255, 220, 160, 0.35),
-    inset 0 -12px 28px rgba(0, 0, 0, 0.5);
+  padding: 0;
+  border-radius: 14px;
+  background: transparent;
+  border: none;
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
 }
 
 .pool-canvas-stack {
@@ -1253,15 +1249,13 @@ html.pool-force-landscape body {
 .pool-arena .pool-canvas {
   width: 100%;
   height: auto;
-  max-height: min(44vh, 420px);
-  border-radius: 10px;
+  max-height: min(58vh, 540px);
+  border-radius: 12px;
   display: block;
   touch-action: none;
   cursor: crosshair;
   contain: layout paint;
-  box-shadow:
-    inset 0 0 48px rgba(0, 0, 0, 0.4),
-    0 4px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: none;
 }
 
 .pool-power-card {

@@ -15,7 +15,7 @@ import {
   anyMoving,
   stepPhysics,
 } from "./pool-physics.js";
-import { paintTable, paintBalls, warmTablePaint, paintCueAimOverlay } from "./pool-render.js";
+import { paintTable, paintBalls, warmTablePaint, paintCueAimOverlay, loadTableBackground, canvasCoordToTable, tableCanvasTransform } from "./pool-render.js";
 import {
   createMatch,
   beginShot,
@@ -121,11 +121,11 @@ export function createPoolModule(deps = {}) {
   function fitCanvasResolution(canvas, aimCanvas) {
     const frame = canvas.closest(".pool-hero-table") || canvas.closest(".pool-canvas-stack");
     if (!frame) return;
-    const cssW = frame.clientWidth - 8;
+    const cssW = frame.clientWidth || canvas.clientWidth;
     if (cssW < 80) return;
     const coarse = window.matchMedia("(pointer: coarse)").matches;
-    const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 1.15 : 1.5);
-    const w = Math.round(Math.min(960, cssW * dpr));
+    const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 1.2 : 1.65);
+    const w = Math.round(Math.min(1200, cssW * dpr));
     const h = Math.round(w / 2);
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
@@ -247,6 +247,7 @@ export function createPoolModule(deps = {}) {
 
   function warmPlayCanvas() {
     const felt = tableTheme().felt;
+    void loadTableBackground().then(() => invalidateStaticFrame());
     warmTablePaint({
       w: 1200,
       h: 600,
@@ -535,10 +536,10 @@ export function createPoolModule(deps = {}) {
 
   function canvasToTable(canvas, clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    return {
-      x: ((clientX - rect.left) / rect.width) * TABLE_W,
-      y: ((clientY - rect.top) / rect.height) * TABLE_H,
-    };
+    const px = ((clientX - rect.left) / rect.width) * canvas.width;
+    const py = ((clientY - rect.top) / rect.height) * canvas.height;
+    const t = tableCanvasTransform(canvas.width, canvas.height, TABLE_W, TABLE_H);
+    return canvasCoordToTable(px, py, t);
   }
 
   function syncPowerHud(root) {
