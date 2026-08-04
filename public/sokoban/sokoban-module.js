@@ -19,7 +19,7 @@ import {
   totalLevels,
 } from "./sokoban-levels.js";
 import { hintMove, replayMoves, solveLevel } from "./sokoban-solver.js";
-import { boardCanvasHtml, renderBoardToCanvas } from "./sokoban-render.js";
+import { boardCanvasHtml, metalFrameHtml, renderBoardToCanvas } from "./sokoban-render.js";
 
 const STORAGE_PROGRESS = "sokoban-progress-v1";
 const STORAGE_PROFILE = "sokoban-profile-v1";
@@ -27,12 +27,16 @@ const TIME_ATTACK_MS = 3 * 60 * 1000;
 
 const NAV = [
   { id: "home", label: "Trang chủ", ico: "🏠", act: "sokoban-nav", sub: "home" },
+  { id: "quick", label: "Quick Play", ico: "⚡", act: "sokoban-start-random" },
   { id: "classic", label: "Level Pack", ico: "📚", act: "sokoban-nav", sub: "classic" },
-  { id: "daily", label: "Daily Challenge", ico: "📅", act: "sokoban-start-daily" },
+  { id: "daily", label: "Daily", ico: "📅", act: "sokoban-start-daily" },
   { id: "time", label: "Time Attack", ico: "⏱", act: "sokoban-start-time" },
-  { id: "random", label: "Random Map", ico: "🎲", act: "sokoban-start-random" },
+  { id: "random", label: "Random", ico: "🎲", act: "sokoban-start-random" },
   { id: "custom", label: "Custom Map", ico: "✏️", act: "sokoban-nav", sub: "custom" },
   { id: "replay", label: "Replay", ico: "🎬", act: "sokoban-nav", sub: "replay" },
+  { id: "rank", label: "Ranking", ico: "🏆", act: "sokoban-nav", sub: "rank" },
+  { id: "achieve", label: "Achievement", ico: "🎖", act: "sokoban-nav", sub: "achieve" },
+  { id: "settings", label: "Settings", ico: "⚙", act: "sokoban-nav", sub: "settings" },
 ];
 
 export function createSokobanModule(deps = {}) {
@@ -215,7 +219,113 @@ export function createSokobanModule(deps = {}) {
   }
 
   function renderBoard() {
-    return boardCanvasHtml();
+    return metalFrameHtml(boardCanvasHtml());
+  }
+
+  function renderSidebar() {
+    const nav = NAV.map((n) => {
+      const isOn =
+        session?.game &&
+        (n.act === "sokoban-start-daily" && session.mode === "daily" ||
+          n.act === "sokoban-start-time" && session.mode === "time_attack" ||
+          n.act === "sokoban-start-random" && session.mode === "random" && homeTab !== "classic");
+      const homeOn =
+        !session?.game &&
+        ((n.sub && homeTab === n.sub) ||
+          (!n.sub && n.id === "home" && homeTab === "home" && !["classic", "custom", "replay", "rank", "achieve", "settings"].includes(homeTab)));
+      const act = n.sub ? `${n.act}:${n.sub}` : n.act;
+      return `<button type="button" class="sk-nav-btn${isOn || homeOn ? " is-on" : ""}" data-act="${act}"><span class="sk-nav-ico">${n.ico}</span><span>${n.label}</span></button>`;
+    }).join("");
+    return `<div class="sk-logo">
+        <span class="sk-logo-crate">📦</span>
+        <div><strong>SOKOBAN</strong><small>Push · Think · Solve</small></div>
+      </div>
+      <nav class="sk-nav-list">${nav}</nav>
+      ${renderProfileFoot()}`;
+  }
+
+  function renderTopBar(playCtx) {
+    const prof = loadProfile();
+    const coins = 12450 + prof.solved * 50;
+    const gems = 320 + prof.solved * 2;
+    const modes = ["classic", "daily", "time", "random"]
+      .map((m) => {
+        const labels = { classic: "Classic", daily: "Daily", time: "Time Attack", random: "Random" };
+        const on = playCtx ? playCtx.topMode === m : topMode === m;
+        return `<button type="button" class="sk-tab${on ? " is-on" : ""}" data-act="sokoban-top-mode" data-mode="${m}">${labels[m]}</button>`;
+      })
+      .join("");
+    const levelLine = playCtx
+      ? `<span class="sk-level-pack">${escapeHtml(playCtx.modeLabel)}</span>
+         <span class="sk-level-name">${escapeHtml(playCtx.lv.name || `Level ${playCtx.lv.num}`)}</span>
+         <span class="sk-diff">${escapeHtml(PACK_LABELS[playCtx.lv.pack] || playCtx.lv.pack)}</span>`
+      : `<span class="sk-level-pack">Level Pack</span><span class="sk-diff">Warehouse</span>`;
+    return `<header class="sk-topbar">
+      <div class="sk-top-left">${levelLine}</div>
+      <div class="sk-top-tabs">${modes}</div>
+      <div class="sk-top-right">
+        <span class="sk-pill sk-coin-pill">🪙 ${coins.toLocaleString()}</span>
+        <span class="sk-pill sk-gem-pill">💎 ${gems}</span>
+        <button type="button" class="sk-icon-btn" title="Thông báo">🔔</button>
+        <button type="button" class="sk-icon-btn" title="Cài đặt" data-act="sokoban-nav:settings">⚙</button>
+        <button type="button" class="sk-hub-btn" data-act="${playCtx ? "sokoban-home" : "board-portal"}">${playCtx ? "Menu" : "Hub"}</button>
+      </div>
+    </header>`;
+  }
+
+  function renderRightPanel(playCtx) {
+    const prof = loadProfile();
+    const name = escapeHtml(playerName?.() || "Người chơi");
+    const th = playCtx?.th;
+    return `<div class="sk-rpanel-card">
+      <div class="sk-rpanel-head"><span class="sk-rpanel-ico">🎯</span><h4>Mục tiêu</h4></div>
+      <ul class="sk-objective-list">
+        <li>✓ Đẩy hết thùng vào đích</li>
+        <li>✓ Ít bước nhất có thể</li>
+        <li>✓ Hoàn thành nhanh</li>
+      </ul>
+      ${th ? `<p class="sk-muted-sm">★★★ &lt; ${th.star3} moves</p>` : ""}
+    </div>
+    <div class="sk-rpanel-card">
+      <div class="sk-rpanel-head"><span class="sk-rpanel-ico">🏆</span><h4>Ranking</h4></div>
+      <ol class="sk-rank-list">
+        <li><span class="sk-rank-av">🥇</span><span>Player_A</span><em>2410</em></li>
+        <li><span class="sk-rank-av">🥈</span><span>Player_B</span><em>2280</em></li>
+        <li class="is-me"><span class="sk-rank-av">🥉</span><span>${name}</span><em>${prof.solved * 120 + 880}</em></li>
+      </ol>
+    </div>
+    <div class="sk-rpanel-card">
+      <div class="sk-rpanel-head"><span class="sk-rpanel-ico">🎖</span><h4>Achievement</h4></div>
+      <div class="sk-achieve-block">
+        <span>100 Levels</span>
+        <div class="sk-prog"><i style="--w:${Math.min(100, prof.solved)}%"></i></div>
+        <em>${Math.min(100, prof.solved)}/100</em>
+      </div>
+      <div class="sk-achieve-block">
+        <span>No Undo</span>
+        <div class="sk-prog"><i style="--w:${Math.min(100, prof.noUndoClears * 10)}%"></i></div>
+        <em>${prof.noUndoClears}/10</em>
+      </div>
+      <div class="sk-achieve-block">
+        <span>Quick solve</span>
+        <div class="sk-prog"><i style="--w:${Math.min(100, prof.solved * 3)}%"></i></div>
+        <em>${Math.min(50, prof.solved)}/50</em>
+      </div>
+    </div>`;
+  }
+
+  function buildGameFrame(centerHtml, topPlayCtx, winOverlay = "") {
+    return `<div class="sokoban-shell">
+      <div class="sk-game-grid">
+        <aside class="sk-sidebar sk-glass-panel">${renderSidebar()}</aside>
+        <section class="sk-center-col">
+          ${renderTopBar(topPlayCtx)}
+          <div class="sk-center-body">${centerHtml}</div>
+        </section>
+        <aside class="sk-right-col">${renderRightPanel(topPlayCtx)}</aside>
+      </div>
+      ${winOverlay}
+    </div>`;
   }
 
   function renderLevelPicker() {
@@ -237,14 +347,18 @@ export function createSokobanModule(deps = {}) {
 
   function renderHomeMain() {
     if (homeTab === "classic") {
-      return `<div class="sokoban-card sk-glass"><h4>Classic · Level Pack</h4><div class="sokoban-pack-grid">${renderLevelPicker()}</div></div>`;
+      return `<div class="sk-hub-card sk-glass-panel"><h3>Level Pack · Warehouse</h3><div class="sokoban-pack-grid">${renderLevelPicker()}</div></div>`;
     }
     if (homeTab === "custom") {
-      return `<div class="sokoban-card sokoban-custom"><h4>Custom Map</h4>
-        <p style="font-size:0.8rem;color:var(--sk-muted)"># tường · @ người · $ thùng · . đích</p>
-        <textarea data-sk-custom-map placeholder="#####&#10;#.@.#&#10;# $ #&#10;#####">${escapeHtml(customMapText)}</textarea>
-        <p style="margin-top:8px"><button type="button" class="sokoban-level-btn" data-act="sokoban-custom-play">Chơi map này</button></p>
+      return `<div class="sk-hub-card sk-glass-panel"><h3>Custom Map</h3>
+        <p class="sk-muted-sm"># tường · @ người · $ thùng · . đích</p>
+        <textarea class="sk-custom-ta" data-sk-custom-map placeholder="#####">${escapeHtml(customMapText)}</textarea>
+        <button type="button" class="sk-game-btn sk-game-btn-gold" data-act="sokoban-custom-play">▶ Chơi map</button>
       </div>`;
+    }
+    if (homeTab === "rank" || homeTab === "achieve" || homeTab === "settings") {
+      const titles = { rank: "Ranking", achieve: "Achievement", settings: "Settings" };
+      return `<div class="sk-hub-card sk-glass-panel"><h3>${titles[homeTab]}</h3><p class="sk-muted-sm">Đang mở rộng — xem panel bên phải.</p></div>`;
     }
     if (homeTab === "replay") {
       const cleared = ALL_LEVELS.filter((l) => getLevelRecord(l)?.cleared);
@@ -310,43 +424,8 @@ export function createSokobanModule(deps = {}) {
   }
 
   function renderHome() {
-    const modes = ["classic", "daily", "time", "random"]
-      .map((m) => {
-        const labels = { classic: "Classic", daily: "Daily", time: "Time Attack", random: "Random" };
-        return `<button type="button" class="${topMode === m ? "is-on" : ""}" data-act="sokoban-top-mode" data-mode="${m}">${labels[m]}</button>`;
-      })
-      .join("");
-
-    const nav = NAV.map((n) => {
-      const isOn =
-        (n.sub && homeTab === n.sub) ||
-        (!n.sub && n.id === "home" && homeTab === "home" && !["classic", "custom", "replay"].includes(homeTab));
-      const act = n.sub ? `${n.act}:${n.sub}` : n.act;
-      return `<button type="button" class="${isOn ? "is-on" : ""}" data-act="${act}"><span class="sk-nav-ico">${n.ico || ""}</span>${n.label}</button>`;
-    }).join("");
-
-    return `<div class="sokoban-shell">
-      <div class="sokoban-layout">
-        <div class="sokoban-brand">
-          <span class="sokoban-brand-ico">📦</span>
-          <div><strong>SOKOBAN</strong><small>Push · Think · Solve</small></div>
-        </div>
-        <header class="sokoban-topbar">
-          <div class="sokoban-mode-tabs">${modes}</div>
-          <div class="sk-top-meta">
-            <span class="sk-coin">🪙 ${12000 + loadProfile().solved * 50}</span>
-            <button type="button" class="sk-btn-ghost" data-act="board-portal">← Hub</button>
-          </div>
-        </header>
-        <nav class="sokoban-nav sk-glass">${nav}${renderProfileFoot()}</nav>
-        <main class="sokoban-main">${renderHomeMain()}</main>
-        <aside class="sokoban-aside">${renderAsideHome()}</aside>
-        <footer class="sokoban-controls sk-glass">
-          <span class="sokoban-hint-desktop">WASD / Mũi tên · Z Undo · R Restart · H Hint · A Auto</span>
-          <span class="sokoban-hint-touch">Vuốt trên bàn · Undo · Restart</span>
-        </footer>
-      </div>
-    </div>`;
+    const center = `<div class="sk-hub-center">${renderHomeMain()}</div>`;
+    return buildGameFrame(center, null);
   }
 
   function renderPlay() {
@@ -359,7 +438,7 @@ export function createSokobanModule(deps = {}) {
     const rec = getLevelRecord(lv);
     let modeLabel = "Classic";
     if (session.mode === "daily") modeLabel = "Daily Challenge";
-    if (session.mode === "time_attack") modeLabel = `Time Attack · ${session.timeAttackScore} map`;
+    if (session.mode === "time_attack") modeLabel = "Time Attack";
     if (session.mode === "random") modeLabel = "Random Map";
     if (session.mode === "custom") modeLabel = "Custom Map";
     if (session.mode === "replay") modeLabel = "Replay";
@@ -369,66 +448,54 @@ export function createSokobanModule(deps = {}) {
       timeLeft = formatTime(Math.max(0, session.timeAttackDeadline - Date.now()));
     }
 
+    const starDisplay = g.status === "won" ? renderStars(stars) : `≤${th.star3}/${th.star2}/${th.star1}`;
+    const playCtx = { modeLabel, lv, th, topMode: session.mode === "daily" ? "daily" : session.mode === "time_attack" ? "time" : session.mode === "random" ? "random" : "classic" };
+
     let winOverlay = "";
     if (session.win && g.status === "won") {
       winOverlay = `<div class="sokoban-win" data-act="sokoban-dismiss-win">
-        <div class="sokoban-win-card">
+        <div class="sokoban-win-card sk-glass-panel">
           <h3>Completed!</h3>
-          <p style="font-size:1.6rem;color:var(--sk-gold)">${renderStars(session.win.stars)}</p>
+          <p class="sk-win-stars">${renderStars(session.win.stars)}</p>
           <p>Moves <strong>${g.moves}</strong> · Pushes <strong>${g.pushes}</strong></p>
           <p>Time <strong>${formatTime(session.win.elapsed)}</strong></p>
-          ${session.win.isNewMoves ? "<p style='color:var(--sk-gold)'>New record moves!</p>" : ""}
-          ${session.mode === "classic" ? `<button type="button" data-act="sokoban-next">Màn tiếp</button>` : ""}
-          <button type="button" data-act="sokoban-home">Về menu</button>
+          ${session.win.isNewMoves ? "<p class='sk-gold-txt'>New record!</p>" : ""}
+          <button type="button" class="sk-game-btn sk-game-btn-gold" data-act="sokoban-next">Màn tiếp</button>
+          <button type="button" class="sk-game-btn" data-act="sokoban-home">Menu</button>
         </div>
       </div>`;
     }
 
-    return `<div class="sokoban-shell sokoban-play-shell">
-      <div class="sokoban-layout sokoban-play-layout">
-        <div class="sokoban-brand">
-          <span class="sokoban-brand-ico">📦</span>
-          <div><strong>${escapeHtml(modeLabel)}</strong><small>${escapeHtml(lv.name || `Level ${lv.num}`)} · ${PACK_LABELS[lv.pack] || lv.pack}</small></div>
-        </div>
-        <header class="sokoban-topbar sk-glass">
-          <div class="sk-play-title">${escapeHtml(lv.name || `Level ${lv.num}`)} <em>· ${PACK_LABELS[lv.pack] || lv.pack}</em></div>
-          <button type="button" class="sk-btn-ghost" data-act="sokoban-home">Menu</button>
-        </header>
-        <main class="sokoban-main sokoban-play-wrap">
-          <div class="sokoban-hud-row sk-glass">
-            <div class="sk-stat-pill"><span>Moves</span><strong data-sk-moves>${g.moves}</strong></div>
-            <div class="sk-stat-pill"><span>Pushes</span><strong data-sk-pushes>${g.pushes}</strong></div>
-            <div class="sk-stat-pill"><span>Time</span><strong data-sk-time>${timeLeft || formatTime(elapsed)}</strong></div>
-            <div class="sk-stat-pill sk-stat-stars"><span>★</span><strong>${g.status === "won" ? renderStars(stars) : `≤${th.star3}/${th.star2}/${th.star1}`}</strong></div>
-          </div>
-          <div class="sokoban-board-scroller" data-sk-touch>${renderBoard()}</div>
-          ${rec?.bestMoves ? `<p class="sk-best-line">👑 Best ${rec.bestMoves} moves${rec.bestTimeMs ? ` · ${formatTime(rec.bestTimeMs)}` : ""}</p>` : ""}
-        </main>
-        <aside class="sokoban-aside">
-          <div class="sokoban-card sk-glass"><h4>Mục tiêu</h4><p class="sk-muted-sm">Đẩy hết thùng vào ô vàng (X).</p></div>
-          <div class="sokoban-card sk-glass"><h4>Chấm sao</h4>
-            <p class="sk-star-line">★★★ &lt; <strong>${th.star3}</strong> moves</p>
-            <p class="sk-star-line">★★ &lt; <strong>${th.star2}</strong></p>
-            <p class="sk-star-line">★ &lt; <strong>${th.star1}</strong></p>
-          </div>
-        </aside>
-        <footer class="sokoban-controls sk-glass">
-          <div class="sk-ctrl-group">
-            <button type="button" class="sk-tool-btn" data-act="sokoban-undo">Undo <kbd>Z</kbd></button>
-            <button type="button" class="sk-tool-btn" data-act="sokoban-restart">Restart <kbd>R</kbd></button>
-            <button type="button" class="sk-tool-btn" data-act="sokoban-hint">Hint <kbd>H</kbd></button>
-            <button type="button" class="sk-tool-btn" data-act="sokoban-solve">Auto <kbd>A</kbd></button>
-          </div>
-          ${session.mode === "replay" ? `<div class="sk-ctrl-group">
-            <button type="button" class="sk-tool-btn" data-act="sokoban-replay-play">Play</button>
-            <button type="button" class="sk-tool-btn" data-act="sokoban-replay-step" data-d="-1">◀</button>
-            <button type="button" class="sk-tool-btn" data-act="sokoban-replay-step" data-d="1">▶</button>
-            <button type="button" class="sk-tool-btn" data-act="sokoban-replay-speed">x${replaySpeed}</button>
-          </div>` : `<button type="button" class="sk-primary sk-cta-next" data-act="sokoban-next">Màn tiếp</button>`}
-        </footer>
+    const replayBtns =
+      session.mode === "replay"
+        ? `<button type="button" class="sk-game-btn" data-act="sokoban-replay-play">▶ Play</button>
+           <button type="button" class="sk-game-btn" data-act="sokoban-replay-step" data-d="-1">◀</button>
+           <button type="button" class="sk-game-btn" data-act="sokoban-replay-step" data-d="1">▶</button>`
+        : "";
+
+    const center = `<div class="sk-play-center">
+      <div class="sk-stat-grid">
+        <div class="sk-stat-card"><span class="sk-stat-lbl">★ Rating</span><strong class="sk-stars-lg">${starDisplay}</strong></div>
+        <div class="sk-stat-card"><span class="sk-stat-lbl">Moves</span><strong data-sk-moves>${g.moves}</strong></div>
+        <div class="sk-stat-card"><span class="sk-stat-lbl">Pushes</span><strong data-sk-pushes>${g.pushes}</strong></div>
+        <div class="sk-stat-card"><span class="sk-stat-lbl">Time</span><strong data-sk-time>${timeLeft || formatTime(elapsed)}</strong></div>
+        <div class="sk-stat-card sk-stat-best"><span class="sk-stat-lbl">👑 Best</span><strong>${rec?.bestMoves ?? "—"}</strong></div>
+        <div class="sk-stat-card sk-stat-best"><span class="sk-stat-lbl">👑 Best Time</span><strong>${rec?.bestTimeMs ? formatTime(rec.bestTimeMs) : "—"}</strong></div>
       </div>
-      ${winOverlay}
+      <div class="sk-board-stage">${renderBoard()}</div>
+      <div class="sk-action-bar">
+        <button type="button" class="sk-game-btn" data-act="sokoban-undo"><span class="sk-btn-ico">↩</span>Undo</button>
+        <button type="button" class="sk-game-btn" data-act="sokoban-restart"><span class="sk-btn-ico">⟲</span>Restart</button>
+        <button type="button" class="sk-game-btn" data-act="sokoban-hint"><span class="sk-btn-ico">💡</span>Hint</button>
+        <button type="button" class="sk-game-btn" data-act="sokoban-solve"><span class="sk-btn-ico">🤖</span>Auto</button>
+        ${replayBtns}
+        <button type="button" class="sk-game-btn sk-game-btn-gold sk-game-btn-next" data-act="sokoban-next"><span class="sk-btn-ico">▶</span>Next Level</button>
+      </div>
+      <p class="sk-key-hint sokoban-hint-desktop">WASD / Mũi tên · Z R H A</p>
+      <p class="sk-key-hint sokoban-hint-touch">Vuốt trên bàn để di chuyển</p>
     </div>`;
+
+    return buildGameFrame(center, playCtx, winOverlay);
   }
 
   function patchBoardIn(root) {
@@ -577,6 +644,18 @@ export function createSokobanModule(deps = {}) {
     }
     if (act === "sokoban-nav:replay") {
       homeTab = "replay";
+      return "sokoban-home";
+    }
+    if (act === "sokoban-nav:rank") {
+      homeTab = "rank";
+      return "sokoban-home";
+    }
+    if (act === "sokoban-nav:achieve") {
+      homeTab = "achieve";
+      return "sokoban-home";
+    }
+    if (act === "sokoban-nav:settings") {
+      homeTab = "settings";
       return "sokoban-home";
     }
     if (act === "sokoban-top-mode") {
