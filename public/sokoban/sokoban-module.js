@@ -53,6 +53,21 @@ export function createSokobanModule(deps = {}) {
   let replaySpeed = 1;
   let hintDir = null;
   let customMapText = "";
+  /** @type {{ key: ((e: KeyboardEvent) => void) | null, abort: AbortController | null }} */
+  let playInput = { key: null, abort: null };
+  let moveLockUntil = 0;
+  const MOVE_COOLDOWN_MS = 130;
+
+  function detachPlayInput() {
+    if (playInput.key) {
+      window.removeEventListener("keydown", playInput.key);
+      playInput.key = null;
+    }
+    if (playInput.abort) {
+      playInput.abort.abort();
+      playInput.abort = null;
+    }
+  }
 
   function loadProgress() {
     try {
@@ -127,8 +142,10 @@ export function createSokobanModule(deps = {}) {
 
   function clearMatch() {
     stopTimers();
+    detachPlayInput();
     session = null;
     hintDir = null;
+    moveLockUntil = 0;
   }
 
   function getMatch() {
@@ -187,16 +204,19 @@ export function createSokobanModule(deps = {}) {
     }
   }
 
-  function doMove(dir) {
+  function doMove(dir, opt = {}) {
     if (!session?.game || session.game.status !== "playing") return false;
-    if (session.mode === "replay") return false;
+    if (session.mode === "replay" && !opt.ignoreCooldown) return false;
     if (session.timeAttackDeadline && Date.now() >= session.timeAttackDeadline) {
       toast?.("Hết giờ Time Attack!");
       session.game.status = "timeout";
       return false;
     }
+    const now = Date.now();
+    if (!opt.ignoreCooldown && now < moveLockUntil) return false;
     const { ok, game } = tryMove(session.game, dir);
     if (!ok) return false;
+    if (!opt.ignoreCooldown) moveLockUntil = now + MOVE_COOLDOWN_MS;
     session.game = game;
     session.playerFacing = dir;
     session.walkFrame = (session.walkFrame ?? 0) ^ 1;
@@ -522,63 +542,81 @@ export function createSokobanModule(deps = {}) {
 
   function mountPlay(root) {
     if (!root || !session) return;
+    detachPlayInput();
     syncBoardCanvas(root);
     const board = root.querySelector("[data-sk-touch]");
-    if (!board || board._skBound) return;
-    board._skBound = true;
+    if (!board) return;
+
+    const shellRoot = root.querySelector(".sokoban-shell")?.parentElement || root;
 
     const onKey = (e) => {
       if (!session?.game || session.game.status !== "playing") return;
+      if (e.repeat) return;
       const map = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", w: "up", s: "down", a: "left", d: "right" };
       const k = map[e.key];
       if (k) {
         e.preventDefault();
-        if (doMove(k)) patchBoardIn(root) || deps.onUpdate?.();
+        if (doMove(k)) patchBoardIn(shellRoot) || deps.onUpdate?.();
         return;
       }
       if (e.key === "z" || e.key === "Z") {
         e.preventDefault();
         session.game = undoMove(session.game);
         session.undoUsed = true;
-        patchBoardIn(root) || deps.onUpdate?.();
+        patchBoardIn(shellRoot) || deps.onUpdate?.();
       }
       if (e.key === "r" || e.key === "R") {
         e.preventDefault();
         session.game = restartGame(session.game);
         session.win = null;
-        patchBoardIn(root) || deps.onUpdate?.();
+        moveLockUntil = 0;
+        patchBoardIn(shellRoot) || deps.onUpdate?.();
       }
       if (e.key === "h" || e.key === "H") {
         e.preventDefault();
         hintDir = hintMove(session.game);
-        patchBoardIn(root) || deps.onUpdate?.();
+        patchBoardIn(shellRoot) || deps.onUpdate?.();
       }
     };
+    playInput.key = onKey;
     window.addEventListener("keydown", onKey);
-    board._skKeyOff = () => window.removeEventListener("keydown", onKey);
 
+    const ac = new AbortController();
+    playInput.abort = ac;
     let x0 = 0;
     let y0 = 0;
+    let ptrId = null;
     board.addEventListener(
       "pointerdown",
       (e) => {
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        ptrId = e.pointerId;
         x0 = e.clientX;
         y0 = e.clientY;
       },
-      { passive: true }
+      { passive: true, signal: ac.signal }
     );
     board.addEventListener(
       "pointerup",
       (e) => {
+        if (ptrId != null && e.pointerId !== ptrId) return;
+        ptrId = null;
         const dx = e.clientX - x0;
         const dy = e.clientY - y0;
-        if (Math.hypot(dx, dy) < 18) return;
+        if (Math.hypot(dx, dy) < 22) return;
         let dir = null;
         if (Math.abs(dx) > Math.abs(dy)) dir = dx > 0 ? "right" : "left";
         else dir = dy > 0 ? "down" : "up";
-        if (dir && doMove(dir)) patchBoardIn(root) || deps.onUpdate?.();
+        if (dir && doMove(dir)) patchBoardIn(shellRoot) || deps.onUpdate?.();
       },
-      { passive: true }
+      { passive: true, signal: ac.signal }
+    );
+    board.addEventListener(
+      "pointercancel",
+      () => {
+        ptrId = null;
+      },
+      { passive: true, signal: ac.signal }
     );
 
     if (!clockTimer) {
@@ -610,7 +648,7 @@ export function createSokobanModule(deps = {}) {
         if (clockTimer) clockTimer = setInterval(() => deps.onUpdate?.(), 500);
         return;
       }
-      doMove(path[i]);
+      doMove(path[i], { ignoreCooldown: true });
       i++;
       deps.onUpdate?.();
     }, 120 / replaySpeed);
@@ -754,7 +792,7 @@ export function createSokobanModule(deps = {}) {
             replayPlaying = false;
             return;
           }
-          doMove(session.solution[replayIdx]);
+          doMove(session.solution[replayIdx], { ignoreCooldown: true });
           replayIdx++;
           session.game = replayMoves(session.game, session.solution.slice(0, replayIdx));
           deps.onUpdate?.();

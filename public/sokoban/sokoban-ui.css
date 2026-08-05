@@ -6,8 +6,11 @@
   flex: 1;
   min-height: 0;
   width: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4.5rem);
 }
 
 .caro-shell-dash > .sokoban-fullbleed {
@@ -877,17 +880,34 @@
 }
 
 @media (max-width: 900px) {
-  .sk-game-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
-    overflow-y: auto;
+  .sokoban-shell {
+    min-height: min-content;
+    height: auto;
   }
+
+  .sk-game-grid {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: none;
+    min-height: min-content;
+    height: auto;
+    overflow: visible;
+  }
+
+  .sk-center-col {
+    order: 1;
+    flex: none;
+    padding: 10px 12px 14px;
+  }
+
   .sk-sidebar {
+    order: 2;
     flex-direction: row;
     flex-wrap: wrap;
     border-right: none;
     border-bottom: 1px solid var(--sk-border);
     max-height: none;
+    padding: 12px;
   }
   .sk-nav-list {
     flex-direction: row;
@@ -902,8 +922,35 @@
     width: 100%;
   }
   .sk-right-col {
+    order: 3;
     border-left: none;
     border-top: 1px solid var(--sk-border);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.5rem);
+  }
+
+  .sk-nav-btn {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+
+  .sk-topbar {
+    padding: 10px 12px;
+  }
+
+  .sk-top-tabs {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .sk-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sk-action-bar {
+    position: sticky;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+    z-index: 5;
+    margin-bottom: 0.5rem;
   }
   .sk-board-well {
     width: 92%;
