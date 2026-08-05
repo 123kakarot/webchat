@@ -578,6 +578,22 @@
     inset 0 1px 0 rgba(255, 255, 220, 0.35);
 }
 
+.sokoban-campaign-grid {
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.sokoban-level-btn.is-locked {
+  opacity: 0.45;
+  pointer-events: none;
+  filter: grayscale(0.6);
+}
+
+.sk-game-btn-gold:disabled {
+  opacity: 0.5;
+}
+
 .sk-game-btn-gold:hover {
   box-shadow:
     0 10px 36px rgba(255, 176, 32, 0.55),

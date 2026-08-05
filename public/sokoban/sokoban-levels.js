@@ -232,14 +232,41 @@ export function validateLevelRows(rows) {
   return { ok: true, goals, boxes };
 }
 
-export function getDailyLevel(date = new Date()) {
-  const y = date.getFullYear();
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  let seed = y * 10000 + m * 100 + d;
-  seed = (seed * 1103515245 + 12345) >>> 0;
-  const idx = seed % ALL_LEVELS.length;
-  return { ...ALL_LEVELS[idx], dailyKey: `${y}-${m}-${d}` };
+export const CAMPAIGN_MAX = 100;
+
+/** Màn 1→100: map khó dần (14 map gốc + lặp có scale par). */
+export function getCampaignLevel(n) {
+  const num = Math.max(1, Math.min(CAMPAIGN_MAX, Math.floor(n)));
+  const baseIdx =
+    num <= ALL_LEVELS.length
+      ? num - 1
+      : Math.min(ALL_LEVELS.length - 1, Math.floor(((num - 1) / CAMPAIGN_MAX) * ALL_LEVELS.length));
+  const variantIdx = (num - 1) % ALL_LEVELS.length;
+  const base = num <= ALL_LEVELS.length ? ALL_LEVELS[baseIdx] : ALL_LEVELS[variantIdx];
+  const lap = Math.floor((num - 1) / ALL_LEVELS.length);
+  const scale = 1 + lap * 0.06;
+  const par = Math.ceil(base.parMoves * scale);
+  const t = starThresholdsFromBase(base, scale);
+  return {
+    ...base,
+    id: `campaign-${num}`,
+    pack: "campaign",
+    num,
+    name: `Warehouse ${num}/${CAMPAIGN_MAX}`,
+    parMoves: par,
+    star3: t.star3,
+    star2: t.star2,
+    star1: t.star1,
+  };
+}
+
+function starThresholdsFromBase(base, scale) {
+  const par = Math.ceil(base.parMoves * scale);
+  return {
+    star3: Math.ceil((base.star3 ?? par * 0.75) * scale),
+    star2: Math.ceil((base.star2 ?? par) * scale),
+    star1: Math.ceil((base.star1 ?? par * 1.35) * scale),
+  };
 }
 
 export function getRandomLevel() {

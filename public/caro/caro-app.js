@@ -249,7 +249,9 @@ export function mountCaroApp(ctx) {
     beep,
     onUpdate: () => {
       if (view === "sokoban-play") {
-        if (!sokoban.patchBoardIn(root)) render();
+        const m = sokoban.getMatch?.();
+        if (m?.game?.status === "won" || m?.win) render();
+        else if (!sokoban.patchBoardIn(root)) render();
       } else render();
     },
   });
@@ -2078,6 +2080,7 @@ export function mountCaroApp(ctx) {
       if (view === "sokoban-play") {
         try {
           sokoban.mountPlay(root);
+          sokoban.mountVictoryFx?.(root);
         } catch (err) {
           console.error("sokoban mountPlay", err);
         }

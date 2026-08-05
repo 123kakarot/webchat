@@ -9,9 +9,10 @@ import {
 } from "./sokoban-engine.js";
 import {
   ALL_LEVELS,
+  CAMPAIGN_MAX,
+  getCampaignLevel,
   PACK_LABELS,
   PACK_ORDER,
-  getDailyLevel,
   getLevel,
   getRandomLevel,
   levelsInPack,
@@ -29,9 +30,8 @@ const TIME_ATTACK_MS = 3 * 60 * 1000;
 
 const NAV = [
   { id: "home", label: "Trang chủ", ico: "🏠", act: "sokoban-nav", sub: "home" },
-  { id: "quick", label: "Quick Play", ico: "⚡", act: "sokoban-start-random" },
-  { id: "classic", label: "Level Pack", ico: "📚", act: "sokoban-nav", sub: "classic" },
-  { id: "daily", label: "Daily", ico: "📅", act: "sokoban-start-daily" },
+  { id: "quick", label: "Quick Play", ico: "⚡", act: "sokoban-continue" },
+  { id: "classic", label: "Campaign", ico: "📚", act: "sokoban-nav", sub: "classic" },
   { id: "time", label: "Time Attack", ico: "⏱", act: "sokoban-start-time" },
   { id: "random", label: "Random", ico: "🎲", act: "sokoban-start-random" },
   { id: "custom", label: "Custom Map", ico: "✏️", act: "sokoban-nav", sub: "custom" },
@@ -47,7 +47,7 @@ export function createSokobanModule(deps = {}) {
   /** @type {any} */
   let session = null;
   let homeTab = "home";
-  let topMode = "classic";
+  let topMode = "campaign";
   let clockTimer = null;
   let solveTimer = null;
   let replayIdx = 0;
@@ -102,6 +102,15 @@ export function createSokobanModule(deps = {}) {
 
   function saveProfile(pro) {
     localStorage.setItem(STORAGE_PROFILE, JSON.stringify(pro));
+  }
+
+  function getCampaignUnlocked() {
+    const p = loadProgress();
+    let unlocked = 1;
+    for (let i = 1; i <= CAMPAIGN_MAX; i++) {
+      if (p[`campaign-${i}`]?.cleared) unlocked = i + 1;
+    }
+    return Math.min(CAMPAIGN_MAX, unlocked);
   }
 
   function levelKey(level) {
@@ -262,9 +271,9 @@ export function createSokobanModule(deps = {}) {
     const nav = NAV.map((n) => {
       const isOn =
         session?.game &&
-        (n.act === "sokoban-start-daily" && session.mode === "daily" ||
-          n.act === "sokoban-start-time" && session.mode === "time_attack" ||
-          n.act === "sokoban-start-random" && session.mode === "random" && homeTab !== "classic");
+        (n.act === "sokoban-start-time" && session.mode === "time_attack" ||
+          n.act === "sokoban-start-random" && session.mode === "random" ||
+          n.act === "sokoban-continue" && session.mode === "campaign");
       const homeOn =
         !session?.game &&
         ((n.sub && homeTab === n.sub) ||
@@ -284,10 +293,12 @@ export function createSokobanModule(deps = {}) {
     const prof = loadProfile();
     const coins = 12450 + prof.solved * 50;
     const gems = 320 + prof.solved * 2;
-    const modes = ["classic", "daily", "time", "random"]
+    const modes = ["campaign", "time", "random"]
       .map((m) => {
-        const labels = { classic: "Classic", daily: "Daily", time: "Time Attack", random: "Random" };
-        const on = playCtx ? playCtx.topMode === m : topMode === m;
+        const labels = { campaign: "Campaign", time: "Time Attack", random: "Random" };
+        const on = playCtx
+          ? playCtx.topMode === m || (m === "campaign" && playCtx.topMode === "classic")
+          : topMode === m || topMode === "classic";
         return `<button type="button" class="sk-tab${on ? " is-on" : ""}" data-act="sokoban-top-mode" data-mode="${m}">${labels[m]}</button>`;
       })
       .join("");
@@ -295,7 +306,7 @@ export function createSokobanModule(deps = {}) {
       ? `<span class="sk-level-pack">${escapeHtml(playCtx.modeLabel)}</span>
          <span class="sk-level-name">${escapeHtml(playCtx.lv.name || `Level ${playCtx.lv.num}`)}</span>
          <span class="sk-diff">${escapeHtml(PACK_LABELS[playCtx.lv.pack] || playCtx.lv.pack)}</span>`
-      : `<span class="sk-level-pack">Level Pack</span><span class="sk-diff">Warehouse</span>`;
+      : `<span class="sk-level-pack">Campaign</span><span class="sk-diff">Warehouse</span>`;
     return `<header class="sk-topbar">
       <div class="sk-top-left">${levelLine}</div>
       <div class="sk-top-tabs">${modes}</div>
@@ -364,6 +375,22 @@ export function createSokobanModule(deps = {}) {
     </div>`;
   }
 
+  function renderCampaignPicker() {
+    const unlocked = getCampaignUnlocked();
+    const btns = [];
+    for (let i = 1; i <= CAMPAIGN_MAX; i++) {
+      const rec = getLevelRecord(getCampaignLevel(i));
+      const locked = i > unlocked;
+      btns.push(`<button type="button" class="sokoban-level-btn${locked ? " is-locked" : ""}" data-act="sokoban-play-campaign" data-num="${i}" ${locked ? "disabled" : ""}>
+        <span class="sk-lv-num">${i}</span>
+        <span class="sk-stars">${locked ? "🔒" : renderStars(rec?.stars || 0)}</span>
+      </button>`);
+    }
+    return `<div class="sk-hub-card sk-glass-panel"><h3>Warehouse · Level 1–${CAMPAIGN_MAX}</h3>
+      <p class="sk-muted-sm">Đang mở: <strong>${unlocked}</strong>/${CAMPAIGN_MAX} · Khó dần theo level</p>
+      <div class="sokoban-level-list sokoban-campaign-grid">${btns.join("")}</div></div>`;
+  }
+
   function renderLevelPicker() {
     return PACK_ORDER.map((pack) => {
       const levels = levelsInPack(pack);
@@ -383,7 +410,7 @@ export function createSokobanModule(deps = {}) {
 
   function renderHomeMain() {
     if (homeTab === "classic") {
-      return `<div class="sk-hub-card sk-glass-panel"><h3>Level Pack · Warehouse</h3><div class="sokoban-pack-grid">${renderLevelPicker()}</div></div>`;
+      return renderCampaignPicker();
     }
     if (homeTab === "custom") {
       return `<div class="sk-hub-card sk-glass-panel"><h3>Custom Map</h3>
@@ -412,15 +439,14 @@ export function createSokobanModule(deps = {}) {
       <h4>Sokoban · Đẩy thùng</h4>
       <p style="font-size:0.88rem;line-height:1.5;color:var(--sk-muted)">Đẩy hết thùng vào đích với ít bước nhất. Không kéo thùng — chỉ đẩy từng cái một.</p>
       <ul style="font-size:0.82rem;color:var(--sk-muted);padding-left:1.2em">
-        <li><strong>Classic</strong> — ${totalLevels()} màn Easy → Expert</li>
-        <li><strong>Daily</strong> — 1 màn / ngày</li>
+        <li><strong>Campaign</strong> — ${CAMPAIGN_MAX} màn Warehouse, khó dần</li>
         <li><strong>Time Attack</strong> — 3 phút, giải càng nhiều càng tốt</li>
       </ul>
-      <p class="sokoban-stat">Đã clear: <strong>${prof.solved}</strong> · TB moves: <strong>${prof.games ? Math.round(prof.totalMoves / prof.games) : 0}</strong></p>
+      <p class="sokoban-stat">Campaign: <strong>${getCampaignUnlocked() - 1}</strong>/${CAMPAIGN_MAX} · TB moves: <strong>${prof.games ? Math.round(prof.totalMoves / prof.games) : 0}</strong></p>
     </div>
     <div class="sokoban-card"><h4>Bắt đầu nhanh</h4>
       <div class="sokoban-level-list">
-        <button type="button" class="sokoban-level-btn" data-act="sokoban-start-daily">Daily hôm nay</button>
+        <button type="button" class="sk-game-btn sk-game-btn-gold" data-act="sokoban-continue">▶ Tiếp tục Level ${getCampaignUnlocked()}</button>
         <button type="button" class="sokoban-level-btn" data-act="sokoban-start-random">Random</button>
         <button type="button" class="sokoban-level-btn" data-act="sokoban-start-time">Time Attack</button>
       </div>
@@ -472,12 +498,12 @@ export function createSokobanModule(deps = {}) {
     const stars = g.status === "won" ? starsForMoves(g.moves, lv) : 0;
     const th = starThresholds(lv);
     const rec = getLevelRecord(lv);
-    let modeLabel = "Classic";
-    if (session.mode === "daily") modeLabel = "Daily Challenge";
+    let modeLabel = "Campaign";
     if (session.mode === "time_attack") modeLabel = "Time Attack";
     if (session.mode === "random") modeLabel = "Random Map";
     if (session.mode === "custom") modeLabel = "Custom Map";
     if (session.mode === "replay") modeLabel = "Replay";
+    if (session.mode === "campaign") modeLabel = `Warehouse Level ${lv.num}/${CAMPAIGN_MAX}`;
 
     let timeLeft = "";
     if (session.timeAttackDeadline) {
@@ -485,7 +511,19 @@ export function createSokobanModule(deps = {}) {
     }
 
     const starDisplay = g.status === "won" ? renderStars(stars) : `≤${th.star3}/${th.star2}/${th.star1}`;
-    const playCtx = { modeLabel, lv, th, topMode: session.mode === "daily" ? "daily" : session.mode === "time_attack" ? "time" : session.mode === "random" ? "random" : "classic" };
+    const playCtx = {
+      modeLabel,
+      lv,
+      th,
+      topMode:
+        session.mode === "campaign"
+          ? "campaign"
+          : session.mode === "time_attack"
+            ? "time"
+            : session.mode === "random"
+              ? "random"
+              : "campaign",
+    };
 
     let winOverlay = "";
     if (g.status === "won" && session.win) {
@@ -530,7 +568,7 @@ export function createSokobanModule(deps = {}) {
         <button type="button" class="sk-game-btn" data-act="sokoban-hint"><span class="sk-btn-ico">💡</span>Hint</button>
         <button type="button" class="sk-game-btn" data-act="sokoban-solve"><span class="sk-btn-ico">🤖</span>Auto</button>
         ${replayBtns}
-        <button type="button" class="sk-game-btn sk-game-btn-gold sk-game-btn-next" data-act="sokoban-next"><span class="sk-btn-ico">▶</span>Next Level</button>
+        ${g.status === "won" ? "" : `<button type="button" class="sk-game-btn sk-game-btn-gold sk-game-btn-next" data-act="sokoban-next"><span class="sk-btn-ico">▶</span>Next Level</button>`}
       </div>
       <p class="sk-key-hint sokoban-hint-desktop">WASD / Mũi tên · Z R H A</p>
       <p class="sk-key-hint sokoban-hint-touch">Vuốt trên bàn để di chuyển</p>
@@ -541,6 +579,7 @@ export function createSokobanModule(deps = {}) {
 
   function patchBoardIn(root) {
     if (!session?.game || !root) return false;
+    if (session.game.status === "won" || session.win) return false;
     const g = session.game;
     syncBoardCanvas(root);
     const mv = root.querySelector("[data-sk-moves]");
@@ -735,12 +774,25 @@ export function createSokobanModule(deps = {}) {
       return "sokoban-home";
     }
     if (act === "sokoban-top-mode") {
-      topMode = el?.dataset?.mode || "classic";
-      if (topMode === "daily") return handleAction("sokoban-start-daily");
+      topMode = el?.dataset?.mode || "campaign";
       if (topMode === "time") return handleAction("sokoban-start-time");
       if (topMode === "random") return handleAction("sokoban-start-random");
       homeTab = "classic";
       return "sokoban-home";
+    }
+    if (act === "sokoban-continue") {
+      startSession(getCampaignLevel(getCampaignUnlocked()), "campaign");
+      return "sokoban-play";
+    }
+    if (act === "sokoban-play-campaign") {
+      const num = Number(el?.dataset?.num);
+      if (!num || num < 1 || num > CAMPAIGN_MAX) return null;
+      if (num > getCampaignUnlocked()) {
+        toast?.("Màn chưa mở — clear màn trước trước");
+        return null;
+      }
+      startSession(getCampaignLevel(num), "campaign");
+      return "sokoban-play";
     }
     if (act === "sokoban-play") {
       const pack = el?.dataset?.pack;
@@ -751,7 +803,7 @@ export function createSokobanModule(deps = {}) {
       return "sokoban-play";
     }
     if (act === "sokoban-start-daily") {
-      startSession(getDailyLevel(), "daily");
+      startSession(getCampaignLevel(getCampaignUnlocked()), "campaign");
       return "sokoban-play";
     }
     if (act === "sokoban-start-random") {
@@ -806,15 +858,26 @@ export function createSokobanModule(deps = {}) {
       return null;
     }
     if (act === "sokoban-next" && session?.game) {
-      if (session.mode === "classic") {
-        const next = getLevel(session.game.level.pack, session.game.level.num + 1);
-        if (next) {
-          startSession(next, "classic");
-          return "sokoban-play";
-        }
-        toast?.("Hết màn pack này!");
+      if (session.game.status !== "won" && !session.win) {
+        toast?.("Clear hết thùng vào đích trước!");
+        return null;
       }
       session.win = null;
+      const cur = session.game.level.num;
+      if (session.mode === "campaign" && cur < CAMPAIGN_MAX) {
+        startSession(getCampaignLevel(cur + 1), "campaign");
+        return "sokoban-play";
+      }
+      if (session.mode === "campaign" && cur >= CAMPAIGN_MAX) {
+        toast?.("Chúc mừng — hoàn thành 100 màn!");
+        return "sokoban-home";
+      }
+      if (session.mode === "random" || session.mode === "time_attack") {
+        const next = session.mode === "time_attack" ? getRandomLevel() : getRandomLevel();
+        startSession(next, session.mode, session.mode === "time_attack" ? { timeAttackScore: session.timeAttackScore || 0 } : {});
+        return "sokoban-play";
+      }
+      toast?.("Hết màn!");
       return "sokoban-home";
     }
     if (act === "sokoban-replay-play" && session?.solution) {
@@ -856,6 +919,7 @@ export function createSokobanModule(deps = {}) {
     renderPlay,
     handleAction,
     mountPlay,
+    mountVictoryFx,
     clearMatch,
     getMatch,
     patchBoardIn,
