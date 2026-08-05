@@ -829,9 +829,68 @@
   z-index: 40;
   display: grid;
   place-items: center;
-  background: rgba(4, 8, 20, 0.82);
-  backdrop-filter: blur(8px);
+  background: rgba(4, 8, 20, 0.78);
+  backdrop-filter: blur(10px);
   padding: 16px;
+  animation: sk-win-fade-in 0.35s ease-out;
+}
+
+@keyframes sk-win-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sk-victory-fx {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sk-victory-card {
+  position: relative;
+  z-index: 1;
+  animation: sk-victory-pop 0.45s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes sk-victory-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.82) translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.sk-victory-badge {
+  margin: 0 0 6px;
+  font-size: 0.82rem;
+  letter-spacing: 0.28em;
+  color: var(--sk-gold);
+  text-shadow: 0 0 24px rgba(255, 201, 64, 0.65);
+  font-weight: 800;
+}
+
+.sk-victory-stats {
+  margin: 6px 0;
+  font-size: 0.95rem;
+  color: var(--sk-muted);
+}
+
+.sk-victory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 16px;
 }
 
 .sokoban-win-card {

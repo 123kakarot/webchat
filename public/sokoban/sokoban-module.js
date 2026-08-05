@@ -20,6 +20,7 @@ import {
 } from "./sokoban-levels.js";
 import { hintMove, replayMoves, solveLevel } from "./sokoban-solver.js";
 import { boardCanvasHtml, metalFrameHtml, renderBoardToCanvas } from "./sokoban-render.js";
+import { startVictoryFireworks } from "./sokoban-victory-fx.js";
 
 const STORAGE_PROGRESS = "sokoban-progress-v1";
 const STORAGE_PROFILE = "sokoban-profile-v1";
@@ -160,7 +161,8 @@ export function createSokobanModule(deps = {}) {
   }
 
   function onWin() {
-    if (!session?.game) return;
+    if (!session?.game || session.game.status !== "won") return;
+    if (session.win) return;
     const g = session.game;
     const stars = starsForMoves(g.moves, g.level);
     const rec = getLevelRecord(g.level);
@@ -190,6 +192,8 @@ export function createSokobanModule(deps = {}) {
 
     session.win = { stars, isNewMoves, isNewTime, elapsed };
     beep?.(880, 80, "sine", 0.04);
+    beep?.(660, 120, "sine", 0.05);
+    setTimeout(() => beep?.(990, 100, "sine", 0.04), 140);
 
     if (session.mode === "time_attack") {
       session.timeAttackScore += 1;
@@ -197,10 +201,11 @@ export function createSokobanModule(deps = {}) {
       setTimeout(() => {
         if (!session || session.mode !== "time_attack") return;
         if (Date.now() >= session.timeAttackDeadline) return;
+        session.win = null;
         const next = getRandomLevel();
         startSession(next, "time_attack", { timeAttackScore: session.timeAttackScore });
         deps.onUpdate?.();
-      }, 900);
+      }, 3200);
     }
   }
 
@@ -221,7 +226,11 @@ export function createSokobanModule(deps = {}) {
     session.playerFacing = dir;
     session.walkFrame = (session.walkFrame ?? 0) ^ 1;
     hintDir = null;
-    if (game.status === "won") onWin();
+    if (game.status === "won") {
+      onWin();
+      deps.onUpdate?.();
+      return true;
+    }
     beep?.(320, 12, "square", 0.008);
     return true;
   }
@@ -478,16 +487,21 @@ export function createSokobanModule(deps = {}) {
     const playCtx = { modeLabel, lv, th, topMode: session.mode === "daily" ? "daily" : session.mode === "time_attack" ? "time" : session.mode === "random" ? "random" : "classic" };
 
     let winOverlay = "";
-    if (session.win && g.status === "won") {
-      winOverlay = `<div class="sokoban-win" data-act="sokoban-dismiss-win">
-        <div class="sokoban-win-card sk-glass-panel">
-          <h3>Completed!</h3>
+    if (g.status === "won" && session.win) {
+      winOverlay = `<div class="sokoban-win" data-act="sokoban-dismiss-win" role="dialog" aria-labelledby="sk-victory-title">
+        <canvas class="sk-victory-fx" data-sk-fireworks aria-hidden="true"></canvas>
+        <div class="sokoban-win-card sk-glass-panel sk-victory-card">
+          <p class="sk-victory-badge">★ VICTORY ★</p>
+          <h3 id="sk-victory-title">Hoàn thành!</h3>
           <p class="sk-win-stars">${renderStars(session.win.stars)}</p>
-          <p>Moves <strong>${g.moves}</strong> · Pushes <strong>${g.pushes}</strong></p>
-          <p>Time <strong>${formatTime(session.win.elapsed)}</strong></p>
-          ${session.win.isNewMoves ? "<p class='sk-gold-txt'>New record!</p>" : ""}
-          <button type="button" class="sk-game-btn sk-game-btn-gold" data-act="sokoban-next">Màn tiếp</button>
-          <button type="button" class="sk-game-btn" data-act="sokoban-home">Menu</button>
+          <p class="sk-victory-stats">Moves <strong>${g.moves}</strong> · Pushes <strong>${g.pushes}</strong></p>
+          <p class="sk-victory-stats">Time <strong>${formatTime(session.win.elapsed)}</strong></p>
+          ${session.win.isNewMoves ? "<p class='sk-gold-txt'>🏆 Kỷ lục moves mới!</p>" : ""}
+          ${session.win.isNewTime ? "<p class='sk-gold-txt'>⏱ Kỷ lục thời gian!</p>" : ""}
+          <div class="sk-victory-actions">
+            <button type="button" class="sk-game-btn sk-game-btn-gold" data-act="sokoban-next">▶ Màn tiếp</button>
+            <button type="button" class="sk-game-btn" data-act="sokoban-home">Menu</button>
+          </div>
         </div>
       </div>`;
     }
@@ -556,7 +570,10 @@ export function createSokobanModule(deps = {}) {
       const k = map[e.key];
       if (k) {
         e.preventDefault();
-        if (doMove(k)) patchBoardIn(shellRoot) || deps.onUpdate?.();
+        if (doMove(k)) {
+          if (session?.game?.status === "won") deps.onUpdate?.();
+          else patchBoardIn(shellRoot) || deps.onUpdate?.();
+        }
         return;
       }
       if (e.key === "z" || e.key === "Z") {
@@ -607,7 +624,10 @@ export function createSokobanModule(deps = {}) {
         let dir = null;
         if (Math.abs(dx) > Math.abs(dy)) dir = dx > 0 ? "right" : "left";
         else dir = dy > 0 ? "down" : "up";
-        if (dir && doMove(dir)) patchBoardIn(shellRoot) || deps.onUpdate?.();
+        if (dir && doMove(dir)) {
+          if (session?.game?.status === "won") deps.onUpdate?.();
+          else patchBoardIn(shellRoot) || deps.onUpdate?.();
+        }
       },
       { passive: true, signal: ac.signal }
     );
@@ -622,6 +642,7 @@ export function createSokobanModule(deps = {}) {
     if (!clockTimer) {
       clockTimer = setInterval(() => {
         if (!session?.game) return;
+        if (session.game.status === "won") return;
         if (session.timeAttackDeadline && Date.now() >= session.timeAttackDeadline) {
           session.game.status = "timeout";
           toast?.("Hết giờ Time Attack!");
@@ -632,6 +653,16 @@ export function createSokobanModule(deps = {}) {
         patchBoardIn(root);
       }, 500);
     }
+
+    mountVictoryFx(root);
+  }
+
+  function mountVictoryFx(root) {
+    if (!session?.win || session?.game?.status !== "won") return;
+    const canvas = root.querySelector("[data-sk-fireworks]");
+    if (!canvas || canvas.dataset.skFxOn) return;
+    canvas.dataset.skFxOn = "1";
+    startVictoryFireworks(canvas);
   }
 
   function runAutoSolve() {
