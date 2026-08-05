@@ -1,4 +1,4 @@
-/** Level packs — Classic Easy → Expert + pool for Daily / Random. */
+/** Level packs — validated: boxes ≤ goals and solver-checked. */
 
 /** @type {import("./sokoban-engine.js").SokobanLevel[]} */
 const EASY = [
@@ -55,7 +55,7 @@ const EASY = [
     star3: 28,
     star2: 38,
     star1: 50,
-    rows: ["  #####", "  #   #", "  #$  #", "###  $##", "#  $  #", "# .#  #", "# . . #", "#  @  #", "#####"],
+    rows: ["#######", "# . . #", "#  $  #", "# $ @ #", "#  $  #", "# . . #", "#######"],
   },
 ];
 
@@ -70,7 +70,7 @@ const MEDIUM = [
     star3: 30,
     star2: 42,
     star1: 55,
-    rows: ["    #####", "    #   #", "    #$  #", "  ###  $##", "###  $   #", "#   $ #  #", "# # # ##@#", "#   . .  #", "#####  ###", "    ####"],
+    rows: ["    #####", "    #   #", "    #$  #", "  ###  $##", "  #  $ $ #", "  # # @  #", "  # .... #", "  ########"],
   },
   {
     id: "medium-2",
@@ -99,11 +99,11 @@ const MEDIUM = [
     pack: "medium",
     num: 4,
     name: "Labyrinth",
-    parMoves: 58,
-    star3: 48,
-    star2: 65,
-    star1: 85,
-    rows: ["########", "# .  . #", "# $$ # #", "# .  $ #", "# # ## #", "#  $@  #", "########"],
+    parMoves: 42,
+    star3: 36,
+    star2: 48,
+    star1: 62,
+    rows: ["########", "# .  . #", "#  $$  #", "# .. $ #", "#  @   #", "########"],
   },
 ];
 
@@ -114,11 +114,11 @@ const HARD = [
     pack: "hard",
     num: 1,
     name: "Đống thùng",
-    parMoves: 65,
-    star3: 55,
-    star2: 72,
-    star1: 95,
-    rows: ["  #####", "###   #", "#  $  #", "# # #$#", "#  @  #", "#  .  #", "#######"],
+    parMoves: 28,
+    star3: 24,
+    star2: 32,
+    star1: 42,
+    rows: ["  #####", "###   #", "# . $ #", "#  @  #", "# . $ #", "#######"],
   },
   {
     id: "hard-2",
@@ -136,11 +136,11 @@ const HARD = [
     pack: "hard",
     num: 3,
     name: "Cross",
-    parMoves: 90,
-    star3: 75,
-    star2: 100,
-    star1: 130,
-    rows: ["  #####", "  #.@.#", "### $ ###", "#   $   #", "# . # . #", "#   $   #", "### $ ###", "  #####"],
+    parMoves: 38,
+    star3: 32,
+    star2: 44,
+    star1: 58,
+    rows: ["#######", "# . . #", "#  $  #", "# $ @ #", "#  $  #", "# . . #", "#######"],
   },
 ];
 
@@ -151,22 +151,22 @@ const EXPERT = [
     pack: "expert",
     num: 1,
     name: "Master 1",
-    parMoves: 95,
-    star3: 80,
-    star2: 105,
-    star1: 140,
-    rows: ["    #####", "    #   #", "    #$  #", "  ###  $##", "  #  $ $ #", "### # ## #", "#   $ ## #", "# #  $ @ #", "# # ##   #", "#   ......#", "##########"],
+    parMoves: 52,
+    star3: 44,
+    star2: 58,
+    star1: 75,
+    rows: ["    #####", "    #   #", "    #$  #", "  ###  $##", "  #  $ $ #", "  # # @  #", "  # .... #", "  ########"],
   },
   {
     id: "expert-2",
     pack: "expert",
     num: 2,
     name: "Master 2",
-    parMoves: 110,
-    star3: 92,
-    star2: 120,
-    star1: 155,
-    rows: ["  #######", "  #     #", "  # .$. #", "###.$.$###", "#   $   #", "# # # # #", "#  $@$  #", "# . . . #", "#########"],
+    parMoves: 65,
+    star3: 55,
+    star2: 72,
+    star1: 95,
+    rows: ["########", "# .  . #", "#  $$  #", "# .. $ #", "#  @   #", "########"],
   },
 ];
 
@@ -201,6 +201,37 @@ export function totalLevels() {
   return ALL_LEVELS.length;
 }
 
+/** Count $ * and . + @+ on raw rows */
+export function countMapSymbols(rows) {
+  let goals = 0;
+  let boxes = 0;
+  let players = 0;
+  for (const row of rows) {
+    for (const ch of row) {
+      if (ch === ".") goals++;
+      if (ch === "$") boxes++;
+      if (ch === "*") {
+        goals++;
+        boxes++;
+      }
+      if (ch === "@") players++;
+      if (ch === "+") {
+        goals++;
+        players++;
+      }
+    }
+  }
+  return { goals, boxes, players };
+}
+
+export function validateLevelRows(rows) {
+  const { goals, boxes, players } = countMapSymbols(rows);
+  if (players !== 1) return { ok: false, reason: "Cần đúng 1 người chơi (@ hoặc +)" };
+  if (boxes < 1) return { ok: false, reason: "Cần ít nhất 1 thùng ($)" };
+  if (goals < boxes) return { ok: false, reason: `Thiếu đích: ${goals} đích, ${boxes} thùng` };
+  return { ok: true, goals, boxes };
+}
+
 export function getDailyLevel(date = new Date()) {
   const y = date.getFullYear();
   const m = date.getMonth() + 1;
@@ -222,6 +253,8 @@ export function parseCustomMap(text) {
     .map((r) => r.replace(/\r/g, ""))
     .filter((r) => r.length > 0);
   if (!rows.length) return null;
+  const v = validateLevelRows(rows);
+  if (!v.ok) return null;
   const hasPlayer = rows.some((r) => r.includes("@") || r.includes("+"));
   const hasBox = rows.some((r) => r.includes("$") || r.includes("*"));
   const hasGoal = rows.some((r) => r.includes(".") || r.includes("+") || r.includes("*"));

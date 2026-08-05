@@ -16,6 +16,7 @@ import {
   getRandomLevel,
   levelsInPack,
   parseCustomMap,
+  validateLevelRows,
   totalLevels,
 } from "./sokoban-levels.js";
 import { hintMove, replayMoves, solveLevel } from "./sokoban-solver.js";
@@ -765,6 +766,8 @@ export function createSokobanModule(deps = {}) {
     if (act === "sokoban-custom-play") {
       const ta = el?.closest?.(".sokoban-shell")?.querySelector("[data-sk-custom-map]");
       customMapText = ta?.value || customMapText;
+      const v = validateLevelRows(customMapText.split("\n").filter((r) => r.trim()));
+      if (!v.ok) return toast?.(v.reason || "Map không hợp lệ");
       const level = parseCustomMap(customMapText);
       if (!level) return toast?.("Map không hợp lệ — cần @ $ .");
       startSession(level, "custom");
