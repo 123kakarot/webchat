@@ -437,12 +437,12 @@ export function createSokobanModule(deps = {}) {
   function buildGameFrame(centerHtml, topPlayCtx, winOverlay = "", rightHtml = null) {
     const right =
       rightHtml ??
-      (homeTab === "classic" && !playCtx ? renderLevelPickPanel(pickCampaignLevel) : renderRightPanel(playCtx));
+      (homeTab === "classic" && !topPlayCtx ? renderLevelPickPanel(pickCampaignLevel) : renderRightPanel(topPlayCtx));
     return `<div class="sokoban-shell">
       <div class="sk-game-grid">
         <aside class="sk-sidebar sk-glass-panel">${renderSidebar()}</aside>
         <section class="sk-center-col">
-          ${renderTopBar(renderPlayTopCtxForHome(playCtx))}
+          ${renderTopBar(renderPlayTopCtxForHome(topPlayCtx))}
           <div class="sk-center-body">${centerHtml}</div>
         </section>
         <aside class="sk-right-col">${right}</aside>
