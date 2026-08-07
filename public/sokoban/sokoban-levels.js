@@ -234,6 +234,18 @@ export function validateLevelRows(rows) {
 
 export const CAMPAIGN_MAX = 100;
 
+export const CAMPAIGN_TIERS = [
+  { id: "easy", label: "Easy", start: 1, end: 25 },
+  { id: "medium", label: "Medium", start: 26, end: 50 },
+  { id: "hard", label: "Hard", start: 51, end: 75 },
+  { id: "expert", label: "Expert", start: 76, end: 100 },
+];
+
+export function getCampaignTier(n) {
+  const num = Math.max(1, Math.min(CAMPAIGN_MAX, Math.floor(n)));
+  return CAMPAIGN_TIERS.find((t) => num >= t.start && num <= t.end) || CAMPAIGN_TIERS[0];
+}
+
 /** Màn 1→100: map khó dần (14 map gốc + lặp có scale par). */
 export function getCampaignLevel(n) {
   const num = Math.max(1, Math.min(CAMPAIGN_MAX, Math.floor(n)));

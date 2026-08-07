@@ -584,6 +584,212 @@
   padding-right: 4px;
 }
 
+/* —— Level Pack hub (100 levels) —— */
+.sk-level-pack-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 12px;
+}
+
+.sk-level-pack-head h2 {
+  margin: 0 0 6px;
+  font-size: 1.35rem;
+  color: var(--sk-gold);
+}
+
+.sk-tier-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sk-tier-tab {
+  border: 1px solid rgba(80, 150, 255, 0.35);
+  background: rgba(8, 19, 46, 0.75);
+  color: var(--sk-muted);
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sk-tier-tab.is-on {
+  border-color: rgba(90, 57, 255, 0.7);
+  background: linear-gradient(180deg, rgba(90, 57, 255, 0.45), rgba(29, 79, 255, 0.25));
+  color: var(--sk-text);
+  box-shadow: 0 0 24px rgba(29, 79, 255, 0.3);
+}
+
+.sk-pack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sk-pack-section {
+  display: none;
+  border-radius: 20px;
+  border: 1px solid var(--sk-border);
+  background: linear-gradient(165deg, rgba(16, 27, 69, 0.92), rgba(8, 19, 46, 0.88));
+  padding: 16px 18px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.sk-pack-section.is-visible {
+  display: block;
+}
+
+.sk-pack-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.sk-pack-head h5 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--sk-text);
+}
+
+.sk-level-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 10px;
+  max-height: min(48vh, 380px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.sk-level-card {
+  appearance: none;
+  border: 1px solid rgba(80, 150, 255, 0.35);
+  background: linear-gradient(180deg, rgba(29, 79, 255, 0.18), rgba(8, 19, 46, 0.92));
+  border-radius: 14px;
+  padding: 12px 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.sk-level-card-num {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--sk-text);
+}
+
+.sk-level-card-stars {
+  font-size: 0.62rem;
+  color: var(--sk-gold);
+  letter-spacing: 1px;
+}
+
+.sk-level-card.is-selected {
+  border-color: rgba(255, 201, 64, 0.75);
+  box-shadow: 0 0 24px rgba(255, 201, 64, 0.25);
+  transform: scale(1.04);
+}
+
+.sk-level-card:hover:not(.is-locked):not(:disabled) {
+  transform: scale(1.06);
+  box-shadow: 0 0 20px var(--sk-glow);
+}
+
+.sk-level-card.is-locked {
+  opacity: 0.42;
+  pointer-events: none;
+  filter: grayscale(0.5);
+}
+
+.sk-map-preview {
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(80, 150, 255, 0.25);
+  display: flex;
+  justify-content: center;
+}
+
+.sk-map-preview-grid {
+  display: inline-grid;
+  gap: 1px;
+  grid-auto-flow: row;
+  grid-template-columns: repeat(var(--sk-mp-cols, 8), 8px);
+}
+
+.sk-map-preview-grid span {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+}
+
+.sk-mp-wall { background: #7a4a2e; }
+.sk-mp-floor { background: #3a4558; }
+.sk-mp-box { background: #c88848; }
+.sk-mp-goal { background: rgba(255, 201, 64, 0.55); box-shadow: 0 0 4px rgba(255, 201, 64, 0.6); }
+.sk-mp-player { background: #3a9ae8; border-radius: 50%; }
+
+.sk-pick-preview-card h4 {
+  margin: 4px 0 0;
+  font-size: 1.1rem;
+}
+
+.sk-pick-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sk-pick-tier {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sk-gold);
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 201, 64, 0.4);
+}
+
+.sk-pick-stars {
+  text-align: center;
+  color: var(--sk-gold);
+  letter-spacing: 2px;
+  margin: 8px 0 0;
+}
+
+.sk-pick-stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(80, 150, 255, 0.12);
+  font-size: 0.88rem;
+  color: var(--sk-muted);
+}
+
+.sk-pick-stat-row em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--sk-text);
+}
+
+.sk-pick-play-btn {
+  width: 100%;
+  margin-top: auto;
+  font-size: 1.05rem;
+  padding: 16px;
+}
+
 .sokoban-level-btn.is-locked {
   opacity: 0.45;
   pointer-events: none;

@@ -10,7 +10,9 @@ import {
 import {
   ALL_LEVELS,
   CAMPAIGN_MAX,
+  CAMPAIGN_TIERS,
   getCampaignLevel,
+  getCampaignTier,
   PACK_LABELS,
   PACK_ORDER,
   getLevel,
@@ -31,7 +33,7 @@ const TIME_ATTACK_MS = 3 * 60 * 1000;
 const NAV = [
   { id: "home", label: "Trang chủ", ico: "🏠", act: "sokoban-nav", sub: "home" },
   { id: "quick", label: "Quick Play", ico: "⚡", act: "sokoban-continue" },
-  { id: "classic", label: "Campaign", ico: "📚", act: "sokoban-nav", sub: "classic" },
+  { id: "classic", label: "Level Pack", ico: "📚", act: "sokoban-nav", sub: "classic" },
   { id: "time", label: "Time Attack", ico: "⏱", act: "sokoban-start-time" },
   { id: "random", label: "Random", ico: "🎲", act: "sokoban-start-random" },
   { id: "custom", label: "Custom Map", ico: "✏️", act: "sokoban-nav", sub: "custom" },
@@ -55,6 +57,8 @@ export function createSokobanModule(deps = {}) {
   let replaySpeed = 1;
   let hintDir = null;
   let customMapText = "";
+  let pickCampaignLevel = 1;
+  let pickCampaignTier = "easy";
   /** @type {{ key: ((e: KeyboardEvent) => void) | null, abort: AbortController | null }} */
   let playInput = { key: null, abort: null };
   let moveLockUntil = 0;
@@ -295,7 +299,7 @@ export function createSokobanModule(deps = {}) {
     const gems = 320 + prof.solved * 2;
     const modes = ["campaign", "time", "random"]
       .map((m) => {
-        const labels = { campaign: "Campaign", time: "Time Attack", random: "Random" };
+        const labels = { campaign: "Level Pack", time: "Time Attack", random: "Random" };
         const on = playCtx
           ? playCtx.topMode === m || (m === "campaign" && playCtx.topMode === "classic")
           : topMode === m || topMode === "classic";
@@ -305,8 +309,8 @@ export function createSokobanModule(deps = {}) {
     const levelLine = playCtx
       ? `<span class="sk-level-pack">${escapeHtml(playCtx.modeLabel)}</span>
          <span class="sk-level-name">${escapeHtml(playCtx.lv.name || `Level ${playCtx.lv.num}`)}</span>
-         <span class="sk-diff">${escapeHtml(PACK_LABELS[playCtx.lv.pack] || playCtx.lv.pack)}</span>`
-      : `<span class="sk-level-pack">Campaign</span><span class="sk-diff">Warehouse</span>`;
+         <span class="sk-diff">${escapeHtml(playCtx.lv.pack === "campaign" ? getCampaignTier(playCtx.lv.num).label : PACK_LABELS[playCtx.lv.pack] || playCtx.lv.pack)}</span>`
+      : `<span class="sk-level-pack">Level Pack</span><span class="sk-level-name">Level ${pickCampaignLevel}/${CAMPAIGN_MAX}</span><span class="sk-diff">${getCampaignTier(pickCampaignLevel).label}</span>`;
     return `<header class="sk-topbar">
       <div class="sk-top-left">${levelLine}</div>
       <div class="sk-top-tabs">${modes}</div>
@@ -318,6 +322,75 @@ export function createSokobanModule(deps = {}) {
         <button type="button" class="sk-hub-btn" data-act="${playCtx ? "sokoban-home" : "board-portal"}">${playCtx ? "Menu" : "Hub"}</button>
       </div>
     </header>`;
+  }
+
+  function getCampaignStats() {
+    const p = loadProgress();
+    let cleared = 0;
+    let stars = 0;
+    for (let i = 1; i <= CAMPAIGN_MAX; i++) {
+      const r = p[`campaign-${i}`];
+      if (r?.cleared) cleared++;
+      stars += r?.stars || 0;
+    }
+    return {
+      cleared,
+      stars,
+      maxStars: CAMPAIGN_MAX * 3,
+      pct: Math.round((cleared / CAMPAIGN_MAX) * 100),
+    };
+  }
+
+  function renderMapPreview(rows) {
+    const clean = rows.map((r) => r.replace(/\r/g, ""));
+    const maxW = Math.max(...clean.map((r) => r.length), 1);
+    let cells = "";
+    for (const row of clean) {
+      for (let c = 0; c < maxW; c++) {
+        const ch = row[c] || " ";
+        let cls = "sk-mp-floor";
+        if (ch === "#") cls = "sk-mp-wall";
+        else if (ch === "$" || ch === "*") cls = "sk-mp-box";
+        else if (ch === "." || ch === "+") cls = "sk-mp-goal";
+        else if (ch === "@") cls = "sk-mp-player";
+        cells += `<span class="${cls}"></span>`;
+      }
+    }
+    return `<div class="sk-map-preview" aria-hidden="true"><div class="sk-map-preview-grid" style="grid-template-columns: repeat(${maxW}, 8px)">${cells}</div></div>`;
+  }
+
+  function renderLevelPickPanel(num) {
+    const lv = getCampaignLevel(num);
+    const tier = getCampaignTier(num);
+    const rec = getLevelRecord(lv);
+    const unlocked = getCampaignUnlocked();
+    const locked = num > unlocked;
+    const stats = getCampaignStats();
+    const th = starThresholds(lv);
+    return `<div class="sk-rpanel-card sk-pick-preview-card">
+      <div class="sk-pick-preview-head">
+        <span class="sk-pick-tier">${tier.label}</span>
+        <h4>Level ${num}</h4>
+      </div>
+      ${renderMapPreview(lv.rows)}
+      <p class="sk-muted-sm">${escapeHtml(lv.name || `Warehouse ${num}`)}</p>
+      <p class="sk-pick-stars">${locked ? "🔒 Chưa mở" : renderStars(rec?.stars || 0)}</p>
+    </div>
+    <div class="sk-rpanel-card">
+      <div class="sk-rpanel-head"><span class="sk-rpanel-ico">🎯</span><h4>Mục tiêu</h4></div>
+      <ul class="sk-objective-list">
+        <li>Đẩy hết thùng vào ô đích (X vàng)</li>
+        <li>★★★ ≤ ${th.star3} moves</li>
+      </ul>
+    </div>
+    <div class="sk-rpanel-card">
+      <div class="sk-rpanel-head"><span class="sk-rpanel-ico">📊</span><h4>Thống kê</h4></div>
+      <div class="sk-pick-stat-row"><span>Đã chơi</span><em>${stats.cleared}/${CAMPAIGN_MAX}</em></div>
+      <div class="sk-pick-stat-row"><span>Sao</span><em>${stats.stars}/${stats.maxStars}</em></div>
+      <div class="sk-pick-stat-row"><span>Hoàn thành</span><em>${stats.pct}%</em></div>
+      ${rec?.bestMoves ? `<div class="sk-pick-stat-row"><span>Best</span><em>${rec.bestMoves} moves</em></div>` : ""}
+    </div>
+    <button type="button" class="sk-game-btn sk-game-btn-gold sk-pick-play-btn" data-act="sokoban-play-picked" ${locked ? "disabled" : ""}>▶ Chơi ngay</button>`;
   }
 
   function renderRightPanel(playCtx) {
@@ -361,34 +434,72 @@ export function createSokobanModule(deps = {}) {
     </div>`;
   }
 
-  function buildGameFrame(centerHtml, topPlayCtx, winOverlay = "") {
+  function buildGameFrame(centerHtml, topPlayCtx, winOverlay = "", rightHtml = null) {
+    const right =
+      rightHtml ??
+      (homeTab === "classic" && !playCtx ? renderLevelPickPanel(pickCampaignLevel) : renderRightPanel(playCtx));
     return `<div class="sokoban-shell">
       <div class="sk-game-grid">
         <aside class="sk-sidebar sk-glass-panel">${renderSidebar()}</aside>
         <section class="sk-center-col">
-          ${renderTopBar(topPlayCtx)}
+          ${renderTopBar(renderPlayTopCtxForHome(playCtx))}
           <div class="sk-center-body">${centerHtml}</div>
         </section>
-        <aside class="sk-right-col">${renderRightPanel(topPlayCtx)}</aside>
+        <aside class="sk-right-col">${right}</aside>
       </div>
       ${winOverlay}
     </div>`;
   }
 
+  function renderPlayTopCtxForHome(playCtx) {
+    if (playCtx) return playCtx;
+    if (homeTab === "classic") {
+      return { modeLabel: "Level Pack", lv: getCampaignLevel(pickCampaignLevel), homePick: true };
+    }
+    return null;
+  }
+
   function renderCampaignPicker() {
     const unlocked = getCampaignUnlocked();
-    const btns = [];
-    for (let i = 1; i <= CAMPAIGN_MAX; i++) {
-      const rec = getLevelRecord(getCampaignLevel(i));
-      const locked = i > unlocked;
-      btns.push(`<button type="button" class="sokoban-level-btn${locked ? " is-locked" : ""}" data-act="sokoban-play-campaign" data-num="${i}" ${locked ? "disabled" : ""}>
-        <span class="sk-lv-num">${i}</span>
-        <span class="sk-stars">${locked ? "🔒" : renderStars(rec?.stars || 0)}</span>
-      </button>`);
-    }
-    return `<div class="sk-hub-card sk-glass-panel"><h3>Warehouse · Level 1–${CAMPAIGN_MAX}</h3>
-      <p class="sk-muted-sm">Đang mở: <strong>${unlocked}</strong>/${CAMPAIGN_MAX} · Khó dần theo level</p>
-      <div class="sokoban-level-list sokoban-campaign-grid">${btns.join("")}</div></div>`;
+    const tierTabs = CAMPAIGN_TIERS.map((t) => {
+      const on = pickCampaignTier === t.id;
+      return `<button type="button" class="sk-tier-tab${on ? " is-on" : ""}" data-act="sokoban-pick-tier" data-tier="${t.id}">${t.label}</button>`;
+    }).join("");
+
+    const packs = CAMPAIGN_TIERS.map((tier) => {
+      const packLocked = tier.start > unlocked;
+      let doneInTier = 0;
+      for (let i = tier.start; i <= tier.end; i++) {
+        if (getLevelRecord(getCampaignLevel(i))?.cleared) doneInTier++;
+      }
+      const cards = [];
+      for (let i = tier.start; i <= tier.end; i++) {
+        const rec = getLevelRecord(getCampaignLevel(i));
+        const locked = i > unlocked;
+        const selected = i === pickCampaignLevel;
+        cards.push(`<button type="button" class="sk-level-card${selected ? " is-selected" : ""}${locked ? " is-locked" : ""}" data-act="sokoban-pick-campaign" data-num="${i}" ${locked ? "disabled" : ""}>
+          <span class="sk-level-card-num">${i}</span>
+          <span class="sk-level-card-stars">${locked ? "🔒" : renderStars(rec?.stars || 0)}</span>
+        </button>`);
+      }
+      const visible = pickCampaignTier === tier.id;
+      return `<section class="sk-pack-section${packLocked ? " is-pack-locked" : ""}${visible ? " is-visible" : ""}" data-tier="${tier.id}">
+        <header class="sk-pack-head">
+          <h5>${tier.label} Pack</h5>
+          <span class="sk-muted-sm">${tier.end - tier.start + 1} Levels · ${doneInTier}/${tier.end - tier.start + 1}</span>
+        </header>
+        <div class="sk-level-card-grid">${cards.join("")}</div>
+      </section>`;
+    }).join("");
+
+    return `<div class="sk-level-pack-hub">
+      <header class="sk-level-pack-head">
+        <h2>Level Pack</h2>
+        <p class="sk-muted-sm">Chinh phục ${CAMPAIGN_MAX} màn Warehouse · khó dần theo level</p>
+      </header>
+      <div class="sk-tier-tabs">${tierTabs}</div>
+      <div class="sk-pack-list">${packs}</div>
+    </div>`;
   }
 
   function renderLevelPicker() {
@@ -751,6 +862,8 @@ export function createSokobanModule(deps = {}) {
     }
     if (act === "sokoban-nav:classic") {
       homeTab = "classic";
+      pickCampaignLevel = getCampaignUnlocked();
+      pickCampaignTier = getCampaignTier(pickCampaignLevel).id;
       return "sokoban-home";
     }
     if (act === "sokoban-nav:custom") {
@@ -781,7 +894,36 @@ export function createSokobanModule(deps = {}) {
       return "sokoban-home";
     }
     if (act === "sokoban-continue") {
-      startSession(getCampaignLevel(getCampaignUnlocked()), "campaign");
+      pickCampaignLevel = getCampaignUnlocked();
+      pickCampaignTier = getCampaignTier(pickCampaignLevel).id;
+      startSession(getCampaignLevel(pickCampaignLevel), "campaign");
+      return "sokoban-play";
+    }
+    if (act === "sokoban-pick-campaign") {
+      const num = Number(el?.dataset?.num);
+      if (!num) return null;
+      pickCampaignLevel = num;
+      pickCampaignTier = getCampaignTier(num).id;
+      deps.onUpdate?.();
+      return null;
+    }
+    if (act === "sokoban-pick-tier") {
+      const tierId = el?.dataset?.tier || "easy";
+      pickCampaignTier = tierId;
+      const t = CAMPAIGN_TIERS.find((x) => x.id === tierId);
+      if (t) {
+        if (pickCampaignLevel < t.start || pickCampaignLevel > t.end) pickCampaignLevel = t.start;
+      }
+      deps.onUpdate?.();
+      return null;
+    }
+    if (act === "sokoban-play-picked") {
+      const num = pickCampaignLevel;
+      if (num > getCampaignUnlocked()) {
+        toast?.("Màn chưa mở — clear màn trước trước");
+        return null;
+      }
+      startSession(getCampaignLevel(num), "campaign");
       return "sokoban-play";
     }
     if (act === "sokoban-play-campaign") {
