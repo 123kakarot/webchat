@@ -1,4 +1,4 @@
-const CACHE = "webchat-shell-v4-chat-cat";
+const CACHE = "webchat-shell-v5-cat-cafe-bright";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
