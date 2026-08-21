@@ -2877,21 +2877,12 @@
         white-space: nowrap;
       }
 
-      header {
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid var(--border);
-        background: var(--surface);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-
-      header .title {
+      .chat-room-header .title {
         font-weight: 600;
         font-size: 0.95rem;
       }
 
-      header .you {
+      .chat-room-header .you {
         color: var(--muted);
         font-size: 0.8rem;
       }
@@ -6214,6 +6205,9 @@
         align-items: center;
         text-align: center;
         gap: 0.45rem;
+        background: transparent;
+        border: none;
+        padding: 0;
         animation: hub-fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
       }
 
@@ -7773,14 +7767,18 @@
       }
 
       function loadUiTheme() {
-        let mode = "light";
+        let mode = "dark";
         try {
-          mode = localStorage.getItem(STORAGE_THEME) || "light";
+          mode = localStorage.getItem(STORAGE_THEME) || "dark";
         } catch {
           /* ignore */
         }
-        const inChat = document.getElementById("app-shell")?.classList.contains("active");
-        applyUiTheme(inChat ? "light" : mode);
+        const shell = document.getElementById("app-shell");
+        const inChat = shell?.classList.contains("active");
+        const hubVisible = hubEl && !hubEl.hidden;
+        if (inChat) applyUiTheme("light");
+        else if (hubVisible) applyUiTheme("dark");
+        else applyUiTheme(mode);
       }
 
       loadUiTheme();
@@ -8013,6 +8011,7 @@
         gate.style.display = "none";
         hideRoomGate();
         appShell.classList.remove("active", "show-chat", "contacts-mode", "notifications-mode");
+        applyUiTheme("dark");
         if (hubEl) {
           hubEl.hidden = false;
           hubEl.classList.remove("is-exiting");
