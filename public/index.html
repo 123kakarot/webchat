@@ -7775,7 +7775,8 @@
         }
         const shell = document.getElementById("app-shell");
         const inChat = shell?.classList.contains("active");
-        const hubVisible = hubEl && !hubEl.hidden;
+        const hub = document.getElementById("hub");
+        const hubVisible = hub && !hub.hidden;
         if (inChat) applyUiTheme("light");
         else if (hubVisible) applyUiTheme("dark");
         else applyUiTheme(mode);
