@@ -1,14 +1,14 @@
 {
-  "name": "Webchat",
-  "short_name": "Webchat",
+  "name": "MeowChat",
+  "short_name": "MeowChat",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
-  "description": "Chat nhóm và riêng tư",
+  "background_color": "#fff8f0",
+  "theme_color": "#ff9f68",
+  "description": "Quán cà phèo — chat nhóm và riêng tư",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect fill='%233b82f6' width='128' height='128' rx='24'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-size='64' font-family='sans-serif'%3EW%3C/text%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect fill='%23ff9f68' width='128' height='128' rx='28'/%3E%3Ctext x='50%25' y='58%25' dominant-baseline='middle' text-anchor='middle' font-size='72'%3E🐱%3C/text%3E%3C/svg%3E",
       "sizes": "128x128",
       "type": "image/svg+xml"
     }

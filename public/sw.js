@@ -1,4 +1,4 @@
-const CACHE = "webchat-shell-v1";
+const CACHE = "webchat-shell-v2-meowchat";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
