@@ -78,37 +78,39 @@
         --highlight: rgba(99, 102, 241, 0.1);
       }
 
-      /* Cat Café — chỉ trong phòng chat */
+      /* Cat Café — chỉ trong phòng chat (mặc định sáng) */
       .app-shell {
-        --bg: #fff8f0;
-        --bg-elevated: #fff0e6;
+        --bg: #fffbf7;
+        --bg-elevated: #fff8f0;
         --surface: #ffffff;
-        --surface2: #fff5ee;
-        --border: rgba(255, 159, 104, 0.2);
+        --surface2: #fff5f0;
+        --border: rgba(255, 159, 104, 0.26);
         --text: #3d2c29;
         --muted: #9a7b72;
         --accent: #ff9f68;
         --accent-hover: #ff8552;
         --accent-violet: #ffb4c8;
         --accent-gradient: linear-gradient(135deg, #ff9f68 0%, #ffb4c8 100%);
-        --accent-glow: rgba(255, 159, 104, 0.32);
-        --nav-active-bg: linear-gradient(135deg, rgba(255, 159, 104, 0.2) 0%, rgba(255, 180, 200, 0.1) 100%);
+        --accent-glow: rgba(255, 159, 104, 0.36);
+        --nav-active-bg: linear-gradient(135deg, rgba(255, 159, 104, 0.24) 0%, rgba(255, 180, 200, 0.14) 100%);
         --nav-active-text: #e86b35;
-        --bubble-other: #fff0e8;
+        --bubble-other: #ffffff;
         --bubble-self: #ff9f68;
         --bubble-self-gradient: linear-gradient(135deg, #ff9f68 0%, #ffb4c8 100%);
         --system: #9a7b72;
         --toolbar-icon: #b8897a;
         --mention: #e86b35;
-        --glass: rgba(255, 255, 255, 0.92);
+        --glass: rgba(255, 255, 255, 0.96);
         --input-bg: #ffffff;
-        --shadow-soft: 0 12px 32px rgba(255, 159, 104, 0.1);
-        --highlight: rgba(255, 159, 104, 0.12);
+        --shadow-soft: 0 12px 32px rgba(255, 159, 104, 0.12);
+        --highlight: rgba(255, 159, 104, 0.14);
         --cat-peach: #ff9f68;
         --cat-pink: #ffb4c8;
         --cat-cream: #fff8f0;
+        color: var(--text);
       }
 
+      /* Cà phèo đêm — chỉ khi user bật toggle tối trong chat */
       html[data-theme="dark"] .app-shell {
         --bg: #2d2438;
         --bg-elevated: #362d45;
@@ -140,7 +142,23 @@
         --highlight: rgba(255, 159, 104, 0.16);
       }
 
-      html[data-theme="light"] .app-shell .nav-rail {
+      html:has(.app-shell.active) body {
+        background: #fff8f0;
+        background-image:
+          radial-gradient(ellipse 90% 55% at 50% -8%, rgba(255, 180, 200, 0.14), transparent 58%),
+          radial-gradient(ellipse 70% 45% at 92% 88%, rgba(255, 159, 104, 0.1), transparent 52%);
+        color: #3d2c29;
+      }
+
+      html[data-theme="dark"]:has(.app-shell.active) body {
+        background: #2d2438;
+        background-image:
+          radial-gradient(ellipse 90% 55% at 50% -8%, rgba(255, 180, 200, 0.08), transparent 58%),
+          radial-gradient(ellipse 70% 45% at 92% 88%, rgba(255, 159, 104, 0.06), transparent 52%);
+        color: #fff5ee;
+      }
+
+      .app-shell .nav-rail {
         background: linear-gradient(180deg, #fff8f0 0%, #ffe8d6 48%, #fff0e6 100%);
       }
 
@@ -148,7 +166,7 @@
         background: linear-gradient(180deg, #3a3048 0%, #2d2438 48%, #261e32 100%);
       }
 
-      html[data-theme="light"] .app-shell .nav-item.active {
+      .app-shell .nav-item.active {
         background: var(--nav-active-bg);
         color: var(--nav-active-text);
       }
@@ -1286,7 +1304,10 @@
         max-width: none;
         margin: 0;
         height: 100dvh;
-        background: var(--bg-elevated);
+        background: var(--bg);
+        background-image:
+          radial-gradient(ellipse 85% 50% at 12% 0%, rgba(255, 180, 200, 0.16), transparent 55%),
+          radial-gradient(ellipse 70% 45% at 88% 100%, rgba(255, 159, 104, 0.12), transparent 50%);
       }
 
       .app-shell.active {
@@ -5900,7 +5921,7 @@
         position: absolute;
         pointer-events: none;
         z-index: 0;
-        opacity: 0.07;
+        opacity: 0.15;
         font-size: 1.75rem;
         line-height: 1;
       }
@@ -5917,7 +5938,7 @@
         bottom: 18%;
         left: 6%;
         font-size: 2.5rem;
-        opacity: 0.05;
+        opacity: 0.12;
         animation: cat-paw-float 28s ease-in-out infinite reverse;
       }
 
@@ -5930,15 +5951,41 @@
         background-color: var(--chat-bg, var(--bg));
         background-image:
           var(--chat-bg-image, none),
-          radial-gradient(ellipse 80% 50% at 20% 10%, rgba(255, 180, 200, 0.12) 0%, transparent 55%),
+          linear-gradient(
+            115deg,
+            rgba(255, 251, 247, 0) 0%,
+            rgba(255, 180, 200, 0.1) 38%,
+            rgba(255, 159, 104, 0.08) 62%,
+            rgba(255, 251, 247, 0) 100%
+          ),
+          radial-gradient(ellipse 80% 50% at 20% 10%, rgba(255, 180, 200, 0.28) 0%, transparent 55%),
+          radial-gradient(ellipse 60% 40% at 85% 90%, rgba(255, 159, 104, 0.2) 0%, transparent 50%);
+        background-size: 220% 220%, 100% 100%, 100% 100%, 100% 100%;
+        animation: cat-bg-shimmer 22s ease-in-out infinite;
+      }
+
+      html[data-theme="dark"] .app-shell #messages {
+        background-image:
+          var(--chat-bg-image, none),
+          linear-gradient(
+            115deg,
+            rgba(45, 36, 56, 0) 0%,
+            rgba(255, 180, 200, 0.06) 38%,
+            rgba(255, 159, 104, 0.05) 62%,
+            rgba(45, 36, 56, 0) 100%
+          ),
+          radial-gradient(ellipse 80% 50% at 20% 10%, rgba(255, 180, 200, 0.14) 0%, transparent 55%),
           radial-gradient(ellipse 60% 40% at 85% 90%, rgba(255, 159, 104, 0.1) 0%, transparent 50%);
       }
 
-      html[data-theme="light"] .app-shell #messages {
-        background-image:
-          var(--chat-bg-image, none),
-          radial-gradient(ellipse 80% 50% at 20% 10%, rgba(255, 180, 200, 0.22) 0%, transparent 55%),
-          radial-gradient(ellipse 60% 40% at 85% 90%, rgba(255, 159, 104, 0.15) 0%, transparent 50%);
+      @keyframes cat-bg-shimmer {
+        0%,
+        100% {
+          background-position: 0% 50%, 0 0, 0 0, 0 0;
+        }
+        50% {
+          background-position: 100% 50%, 0 0, 0 0, 0 0;
+        }
       }
 
       @keyframes cat-paw-float {
@@ -5961,6 +6008,49 @@
       .app-shell .sidebar-compose-btn {
         background: var(--accent-gradient) !important;
         box-shadow: 0 4px 14px var(--accent-glow);
+      }
+
+      .app-shell .sidebar {
+        background: rgba(255, 255, 255, 0.97);
+        backdrop-filter: blur(14px);
+      }
+
+      .app-shell .composer-wrap {
+        background: rgba(255, 255, 255, 0.97);
+        backdrop-filter: blur(12px);
+        border-top-color: rgba(255, 159, 104, 0.22);
+      }
+
+      .app-shell .sidebar-search-wrap input,
+      .app-shell .sidebar-search-row input {
+        background: #ffffff;
+        border-color: rgba(255, 159, 104, 0.22);
+      }
+
+      .app-shell .sidebar-search-wrap input:focus {
+        outline: 2px solid rgba(255, 159, 104, 0.38);
+        border-color: rgba(255, 159, 104, 0.42);
+      }
+
+      .app-shell .msg-row:not(.self) .msg-bubble {
+        background: #ffffff;
+        border: 1px solid rgba(255, 159, 104, 0.18);
+        box-shadow: 0 2px 10px rgba(255, 159, 104, 0.08);
+      }
+
+      .app-shell .msg-row.self .msg-bubble {
+        box-shadow: 0 4px 16px rgba(255, 159, 104, 0.32);
+      }
+
+      html[data-theme="dark"] .app-shell .sidebar,
+      html[data-theme="dark"] .app-shell .composer-wrap {
+        background: var(--glass);
+      }
+
+      html[data-theme="dark"] .app-shell .sidebar-search-wrap input,
+      html[data-theme="dark"] .app-shell .sidebar-search-row input {
+        background: var(--input-bg);
+        border-color: var(--border);
       }
 
       /* —— Cinematic hub —— */
@@ -9285,6 +9375,7 @@
         } catch (_) {}
         gate.style.display = "none";
         hideRoomGate();
+        applyUiTheme("light");
         appShell.classList.add("active");
         showChatsPanel();
         document.title = "Webchat";
