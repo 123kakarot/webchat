@@ -9,9 +9,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700&family=Orbitron:wght@500;600;700&family=Quicksand:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700&family=Orbitron:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="/paradise.css?v=2" />
     <link rel="stylesheet" href="/caro/caro-ui.css?v=124" />
     <link rel="stylesheet" href="/xiangqi/xiangqi-ui.css?v=124" />
     <link rel="stylesheet" href="/pool/pool-ui.css?v=138" />
@@ -6839,6 +6840,37 @@
     </section>
 
     <div class="app-shell" id="app-shell">
+      <div class="paradise-bg" aria-hidden="true"></div>
+      <header class="paradise-topbar">
+        <div class="pp-glass paradise-topbar-left">
+          <button type="button" class="pp-logo-btn" id="pp-back-hub" title="Về menu chính">
+            <span class="pp-logo-img" aria-hidden="true"></span>
+            <span class="pp-logo-text">MèoChó Paradise</span>
+          </button>
+          <nav class="pp-top-nav" aria-label="Khu vực">
+            <button type="button" class="pp-nav-pill" id="pp-nav-park" title="Công viên">
+              <span aria-hidden="true">🌳</span> Công viên
+            </button>
+            <button type="button" class="pp-nav-pill active" id="pp-nav-chat" title="Chat">
+              <span aria-hidden="true">💬</span> Chat
+            </button>
+            <button type="button" class="pp-nav-pill" id="pp-nav-shop" title="Sắp có" disabled>
+              <span aria-hidden="true">🏪</span> Cửa hàng
+            </button>
+          </nav>
+        </div>
+        <div class="paradise-topbar-right">
+          <div class="pp-glass pp-room-card" id="pp-room-card" hidden>
+            <div class="pp-room-avatar" id="pp-room-avatar"><span id="pp-room-avatar-letter">?</span></div>
+            <div>
+              <div class="pp-room-name"><span class="pp-online-dot"></span><span id="pp-room-title">Phòng chat</span></div>
+              <div class="pp-room-meta" id="pp-room-meta">0 thành viên</div>
+            </div>
+          </div>
+          <button type="button" class="pp-glass pp-profile-btn" id="pp-open-profile" title="Hồ sơ"></button>
+        </div>
+      </header>
+      <div class="paradise-body">
       <nav class="nav-rail" aria-label="Menu">
         <button type="button" class="nav-brand" id="nav-back-hub" title="Về menu chính">
           <span class="nav-brand-icon" aria-hidden="true">🐕</span>
@@ -7155,6 +7187,11 @@
         </div>
       </aside>
     </main>
+      </div><!-- .paradise-body -->
+      <div class="pp-glass pp-toast" id="pp-welcome-toast">
+        <span class="pp-toast-heart" aria-hidden="true">♥</span>
+        <span>Chào mừng đến với Pet Paradise! Kéo thả màn hình để khám phá.</span>
+      </div>
 
       <nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Menu chính">
         <button type="button" class="mob-tab active" id="mob-nav-chats">
@@ -9418,7 +9455,8 @@
         appShell.classList.add("active");
         applyMeoChoChatBackground();
         showChatsPanel();
-        document.title = "MèoChó";
+        document.title = "MèoChó Paradise";
+        syncParadiseUi();
         syncThemeColorMeta();
       }
 
@@ -10302,16 +10340,31 @@
       }
 
       function applyMeoChoChatBackground() {
-        const shell = document.getElementById("app-shell");
-        if (!shell?.classList.contains("active")) return;
+        const bg = document.querySelector(".app-shell .paradise-bg");
+        if (!bg) return;
         const p = loadProfile();
-        shell.style.setProperty("--chat-bg", "#fff9f2");
-        shell.style.setProperty(
-          "--chat-bg-image",
-          p.bgImage ? `url("${p.bgImage}")` : 'url("/assets/meochat-park-bg.png")'
-        );
-        shell.style.setProperty("--chat-bg-size", p.bgImage ? "cover" : "280% auto");
-        shell.style.setProperty("--chat-bg-position", p.bgImage ? "center" : "38% 42%");
+        if (p.bgImage) {
+          bg.style.backgroundImage = `url("${p.bgImage}")`;
+        } else {
+          bg.style.backgroundImage = "";
+        }
+      }
+
+      function syncParadiseUi() {
+        const card = document.getElementById("pp-room-card");
+        const inRoom = appShell?.classList.contains("show-chat");
+        if (card) card.hidden = !inRoom;
+        const ppTitle = document.getElementById("pp-room-title");
+        const summaryEl = document.getElementById("room-meta-summary");
+        const ppMeta = document.getElementById("pp-room-meta");
+        if (ppTitle && roomTitleEl) ppTitle.textContent = roomTitleEl.textContent || "Phòng chat";
+        if (ppMeta && summaryEl) ppMeta.textContent = summaryEl.textContent || "0 thành viên";
+        const headLetter = document.getElementById("room-head-avatar-letter");
+        const ppLetter = document.getElementById("pp-room-avatar-letter");
+        if (headLetter && ppLetter) ppLetter.textContent = headLetter.textContent || "?";
+        const ppProfile = document.getElementById("pp-open-profile");
+        const navAv = document.getElementById("nav-user-avatar-wrap");
+        if (ppProfile && navAv) ppProfile.innerHTML = navAv.innerHTML;
       }
 
       function applyProfileTheme() {
@@ -10350,6 +10403,7 @@
           dataUrl: p.avatarDataUrl,
           letter,
         });
+        syncParadiseUi();
       }
 
       function promptJoinCode() {
@@ -11768,9 +11822,8 @@
           summaryEl.textContent = "0 thành viên";
         }
         syncRoomLeaderActionsUi();
+        syncParadiseUi();
       }
-
-      function isMobileChatHeader() {
         return window.matchMedia("(max-width: 768px)").matches;
       }
 
@@ -13079,6 +13132,16 @@
 
       document.getElementById("change-name-btn").addEventListener("click", () => openSettingsModal("account"));
       document.getElementById("nav-back-hub")?.addEventListener("click", () => showHub());
+      document.getElementById("pp-back-hub")?.addEventListener("click", () => showHub());
+      document.getElementById("pp-nav-park")?.addEventListener("click", () => showHub());
+      document.getElementById("pp-nav-chat")?.addEventListener("click", () => showChatsPanel());
+      document.getElementById("pp-open-profile")?.addEventListener("click", () => {
+        document.getElementById("nav-open-profile")?.click();
+      });
+      window.setTimeout(() => {
+        const toast = document.getElementById("pp-welcome-toast");
+        if (toast) toast.style.opacity = "0";
+      }, 12000);
 
       function appendSystem(payload) {
         const text = typeof payload === "string" ? payload : payload?.text;
