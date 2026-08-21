@@ -471,6 +471,14 @@
   display: flex !important;
 }
 
+html:has(.app-shell.active) body {
+  background: #fff9f0;
+  overflow: hidden;
+}
+
+.app-shell .pp-toast {
+  transition: opacity 0.6s ease;
+}
 
 /* Mobile: hide topbar extras, show back */
 @media (max-width: 768px) {
