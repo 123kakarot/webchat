@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700&family=Orbitron:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700&family=Orbitron:wght@500;600;700&family=Quicksand:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/caro/caro-ui.css?v=124" />
@@ -78,52 +78,55 @@
         --highlight: rgba(99, 102, 241, 0.1);
       }
 
-      /* Cat Café — chỉ trong phòng chat (mặc định sáng) */
+      /* MèoChó — kawaii Cat Café (chỉ phòng chat) */
       .app-shell {
-        --bg: #fffbf7;
-        --bg-elevated: #fff8f0;
+        --bg: #fff9f2;
+        --bg-elevated: #fff5eb;
         --surface: #ffffff;
-        --surface2: #fff5f0;
-        --border: rgba(255, 159, 104, 0.26);
-        --text: #3d2c29;
-        --muted: #9a7b72;
-        --accent: #ff9f68;
-        --accent-hover: #ff8552;
+        --surface2: #fff0e6;
+        --border: rgba(255, 176, 136, 0.28);
+        --text: #4a3728;
+        --muted: #a08070;
+        --accent: #ffb088;
+        --accent-hover: #ff9a68;
         --accent-violet: #ffb4c8;
-        --accent-gradient: linear-gradient(135deg, #ff9f68 0%, #ffb4c8 100%);
-        --accent-glow: rgba(255, 159, 104, 0.36);
-        --nav-active-bg: linear-gradient(135deg, rgba(255, 159, 104, 0.24) 0%, rgba(255, 180, 200, 0.14) 100%);
-        --nav-active-text: #e86b35;
+        --accent-gradient: linear-gradient(135deg, #ffb088 0%, #ff9f68 100%);
+        --accent-glow: rgba(255, 176, 136, 0.38);
+        --nav-active-bg: linear-gradient(135deg, rgba(255, 176, 136, 0.35) 0%, rgba(255, 159, 104, 0.22) 100%);
+        --nav-active-text: #d4622a;
         --bubble-other: #ffffff;
-        --bubble-self: #ff9f68;
-        --bubble-self-gradient: linear-gradient(135deg, #ff9f68 0%, #ffb4c8 100%);
-        --system: #9a7b72;
-        --toolbar-icon: #b8897a;
-        --mention: #e86b35;
-        --glass: rgba(255, 255, 255, 0.96);
+        --bubble-self: #ffe5c8;
+        --bubble-self-gradient: linear-gradient(135deg, #ffe8c8 0%, #ffd5b4 100%);
+        --system: #a08070;
+        --toolbar-icon: #c4957a;
+        --mention: #d4622a;
+        --glass: rgba(255, 255, 255, 0.98);
         --input-bg: #ffffff;
-        --shadow-soft: 0 12px 32px rgba(255, 159, 104, 0.12);
-        --highlight: rgba(255, 159, 104, 0.14);
-        --cat-peach: #ff9f68;
+        --shadow-soft: 0 8px 28px rgba(255, 159, 104, 0.14);
+        --highlight: rgba(255, 176, 136, 0.18);
+        --cat-peach: #ffb088;
         --cat-pink: #ffb4c8;
-        --cat-cream: #fff8f0;
+        --cat-cream: #fff9f2;
+        --meocho-park: url("/assets/meochat-park-bg.png");
+        font-family: "Quicksand", "Be Vietnam Pro", system-ui, sans-serif;
         color: var(--text);
         color-scheme: light;
-        background: linear-gradient(165deg, #fffbf7 0%, #ffe8d6 40%, #fff5ee 100%);
+        background: #fff9f2;
       }
 
       html:has(.app-shell.active) body {
-        background: #fffbf7;
-        background-image:
-          radial-gradient(ellipse 90% 55% at 12% 0%, rgba(255, 180, 200, 0.32) 0%, transparent 52%),
-          radial-gradient(ellipse 70% 45% at 88% 100%, rgba(255, 159, 104, 0.2) 0%, transparent 48%);
-        color: #3d2c29;
+        background: #fff9f2;
+        color: #4a3728;
       }
 
       .app-shell .nav-rail {
-        background: linear-gradient(180deg, #fffbf7 0%, #ffe8d6 45%, #fff0e6 100%);
-        border-right-color: rgba(255, 159, 104, 0.18);
-        box-shadow: 2px 0 16px rgba(255, 159, 104, 0.08);
+        background: #fff9f2;
+        border-right-color: rgba(255, 176, 136, 0.2);
+        box-shadow: 2px 0 20px rgba(255, 176, 136, 0.1);
+      }
+
+      .app-shell #nav-notifications {
+        display: none;
       }
 
       .app-shell .nav-item.active {
@@ -164,7 +167,7 @@
       .app-shell header.chat-room-header {
         background: rgba(255, 255, 255, 0.96);
         backdrop-filter: blur(12px);
-        border-bottom-color: rgba(255, 159, 104, 0.14);
+        border-bottom-color: rgba(255, 176, 136, 0.16);
       }
 
       html[data-theme="light"] .gate {
@@ -5906,36 +5909,16 @@
         }
       }
 
-      /* —— Cat Café — chỉ phòng chat —— */
+      /* —— MèoChó kawaii — chỉ phòng chat —— */
       .app-shell .chat-main {
         position: relative;
         overflow: hidden;
+        background: transparent;
       }
 
       .app-shell .chat-main::before,
       .app-shell .chat-main::after {
-        position: absolute;
-        pointer-events: none;
-        z-index: 0;
-        opacity: 0.15;
-        font-size: 1.75rem;
-        line-height: 1;
-      }
-
-      .app-shell .chat-main::before {
-        content: "🐾";
-        top: 12%;
-        right: 8%;
-        animation: cat-paw-float 22s ease-in-out infinite;
-      }
-
-      .app-shell .chat-main::after {
-        content: "🐱";
-        bottom: 18%;
-        left: 6%;
-        font-size: 2.5rem;
-        opacity: 0.12;
-        animation: cat-paw-float 28s ease-in-out infinite reverse;
+        display: none;
       }
 
       .app-shell .chat-main > * {
@@ -5944,57 +5927,12 @@
       }
 
       .app-shell #messages {
-        background-color: var(--chat-bg, var(--bg));
-        background-image:
-          var(--chat-bg-image, none),
-          linear-gradient(
-            115deg,
-            rgba(255, 251, 247, 0) 0%,
-            rgba(255, 180, 200, 0.1) 38%,
-            rgba(255, 159, 104, 0.08) 62%,
-            rgba(255, 251, 247, 0) 100%
-          ),
-          radial-gradient(ellipse 80% 50% at 20% 10%, rgba(255, 180, 200, 0.28) 0%, transparent 55%),
-          radial-gradient(ellipse 60% 40% at 85% 90%, rgba(255, 159, 104, 0.2) 0%, transparent 50%);
-        background-size: 220% 220%, 100% 100%, 100% 100%, 100% 100%;
-        animation: cat-bg-shimmer 22s ease-in-out infinite;
-      }
-
-      html[data-theme="dark"] .app-shell #messages {
-        background-image:
-          var(--chat-bg-image, none),
-          linear-gradient(
-            115deg,
-            rgba(255, 251, 247, 0) 0%,
-            rgba(255, 180, 200, 0.1) 38%,
-            rgba(255, 159, 104, 0.08) 62%,
-            rgba(255, 251, 247, 0) 100%
-          ),
-          radial-gradient(ellipse 80% 50% at 20% 10%, rgba(255, 180, 200, 0.28) 0%, transparent 55%),
-          radial-gradient(ellipse 60% 40% at 85% 90%, rgba(255, 159, 104, 0.2) 0%, transparent 50%);
-      }
-
-      @keyframes cat-bg-shimmer {
-        0%,
-        100% {
-          background-position: 0% 50%, 0 0, 0 0, 0 0;
-        }
-        50% {
-          background-position: 100% 50%, 0 0, 0 0, 0 0;
-        }
-      }
-
-      @keyframes cat-paw-float {
-        0%,
-        100% {
-          transform: translate(0, 0) rotate(0deg);
-        }
-        33% {
-          transform: translate(-12px, 18px) rotate(-8deg);
-        }
-        66% {
-          transform: translate(10px, -14px) rotate(6deg);
-        }
+        background-color: var(--chat-bg, #fff9f2);
+        background-image: var(--chat-bg-image, var(--meocho-park));
+        background-size: var(--chat-bg-size, 280% auto);
+        background-position: var(--chat-bg-position, 38% 42%);
+        background-repeat: no-repeat;
+        background-attachment: local;
       }
 
       .app-shell .typing-dots i {
@@ -6004,45 +5942,161 @@
       .app-shell .sidebar-compose-btn {
         background: var(--accent-gradient) !important;
         box-shadow: 0 4px 14px var(--accent-glow);
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
       }
 
       .app-shell .sidebar {
-        background: rgba(255, 255, 255, 0.97);
-        backdrop-filter: blur(14px);
+        background: #fff9f2;
+        border-right-color: rgba(255, 176, 136, 0.18);
+      }
+
+      .app-shell .sidebar-page-title {
+        font-weight: 700;
+        color: #4a3728;
+      }
+
+      .app-shell .sidebar-tabs button {
+        background: rgba(255, 176, 136, 0.12);
+        color: #a08070;
+        font-weight: 600;
+        border-radius: 999px;
+      }
+
+      .app-shell .sidebar-tabs button.active {
+        color: #fff;
+        background: var(--accent-gradient);
+        box-shadow: 0 4px 12px rgba(255, 159, 104, 0.28);
       }
 
       .app-shell .composer-wrap {
-        background: rgba(255, 255, 255, 0.97);
-        backdrop-filter: blur(12px);
-        border-top-color: rgba(255, 159, 104, 0.22);
+        position: relative;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(255, 176, 136, 0.22);
+        padding-top: 1.5rem;
+      }
+
+      .app-shell .composer-wrap::before {
+        content: "🐕";
+        position: absolute;
+        top: 0.15rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 1.65rem;
+        line-height: 1;
+        pointer-events: none;
+        z-index: 3;
+        filter: drop-shadow(0 2px 4px rgba(255, 176, 136, 0.35));
+      }
+
+      .app-shell .input-wrap {
+        background: #ffffff;
+        border-radius: 24px;
+        box-shadow: 0 2px 12px rgba(255, 176, 136, 0.12), inset 0 0 0 1px rgba(255, 176, 136, 0.18);
+      }
+
+      .app-shell .send-btn {
+        background: var(--accent-gradient);
+        border-radius: 50%;
+        box-shadow: 0 4px 14px var(--accent-glow);
       }
 
       .app-shell .sidebar-search-wrap input,
       .app-shell .sidebar-search-row input {
         background: #ffffff;
-        border-color: rgba(255, 159, 104, 0.22);
-      }
-
-      .app-shell .sidebar-search-wrap input:focus {
-        outline: 2px solid rgba(255, 159, 104, 0.38);
-        border-color: rgba(255, 159, 104, 0.42);
+        border-color: rgba(255, 176, 136, 0.25);
+        border-radius: 999px;
       }
 
       .app-shell .msg-row:not(.self) .msg-bubble {
         background: #ffffff;
-        border: 1px solid rgba(255, 159, 104, 0.18);
-        box-shadow: 0 2px 10px rgba(255, 159, 104, 0.08);
+        border: 1px solid rgba(255, 176, 136, 0.2);
+        box-shadow: 0 2px 10px rgba(255, 176, 136, 0.1);
+        border-radius: 20px;
+        color: #4a3728;
       }
 
       .app-shell .msg-row.self .msg-bubble {
-        box-shadow: 0 4px 16px rgba(255, 159, 104, 0.32);
+        background: var(--bubble-self-gradient);
+        color: #4a3728;
+        border-radius: 20px;
+        box-shadow: 0 4px 14px rgba(255, 176, 136, 0.22);
+      }
+
+      .app-shell .room-info-panel,
+      .app-shell .chat-side-panel {
+        background: #fff9f2;
+        border-left-color: rgba(255, 176, 136, 0.18);
+      }
+
+      .app-shell .room-info-scroll {
+        position: relative;
+        padding-bottom: 7rem;
+      }
+
+      .app-shell .room-info-scroll::after {
+        content: "🐱💤";
+        position: absolute;
+        bottom: 0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 3.5rem;
+        line-height: 1;
+        opacity: 0.85;
+        pointer-events: none;
+      }
+
+      .app-shell .nav-brand-icon {
+        font-size: 1.5rem;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ffe8c8, #ffb088);
+      }
+
+      .app-shell .nav-brand-name {
+        font-weight: 700;
+        font-size: 0.62rem;
+        letter-spacing: 0.04em;
+        color: #4a3728;
+      }
+
+      .app-shell .nav-item {
+        border-radius: 16px;
+      }
+
+      .app-shell .nav-item-icon {
+        font-size: 1.25rem;
+      }
+
+      .app-shell .head-text-btn {
+        background: rgba(255, 176, 136, 0.18);
+        border: 1px solid rgba(255, 176, 136, 0.35);
+        color: #d4622a;
+        border-radius: 12px;
+        font-weight: 600;
+      }
+
+      .app-shell .chat-room-header {
+        background: rgba(255, 255, 255, 0.96) !important;
+        border-bottom: 1px solid rgba(255, 176, 136, 0.16) !important;
       }
 
       .app-shell .tool-btn:hover,
       .app-shell .tool-btn.active {
-        background: rgba(255, 159, 104, 0.16);
-        color: var(--accent);
-        transform: scale(1.06);
+        background: rgba(255, 176, 136, 0.18);
+        color: var(--accent-hover);
+        transform: scale(1.08);
+      }
+
+      .app-shell .nav-rail-deco {
+        margin-top: auto;
+        padding: 0.35rem 0 0.5rem;
+        text-align: center;
+        font-size: 1.35rem;
+        line-height: 1.2;
+        opacity: 0.9;
+        pointer-events: none;
       }
 
       /* —— Cinematic hub —— */
@@ -6787,8 +6841,8 @@
     <div class="app-shell" id="app-shell">
       <nav class="nav-rail" aria-label="Menu">
         <button type="button" class="nav-brand" id="nav-back-hub" title="Về menu chính">
-          <span class="nav-brand-icon" aria-hidden="true">🐱</span>
-          <span class="nav-brand-name">MeowChat</span>
+          <span class="nav-brand-icon" aria-hidden="true">🐕</span>
+          <span class="nav-brand-name">MèoChó</span>
         </button>
         <div class="nav-menu">
           <button type="button" class="nav-item active" id="nav-chats" title="Tin nhắn">
@@ -6796,27 +6850,28 @@
             <span class="nav-item-label">Tin nhắn</span>
             <span class="nav-badge" id="nav-chats-badge" hidden>0</span>
           </button>
-          <button type="button" class="nav-item" id="nav-groups" title="Nhóm mèo">
-            <span class="nav-item-icon" aria-hidden="true">🐈‍⬛</span>
-            <span class="nav-item-label">Nhóm</span>
+          <button type="button" class="nav-item" id="nav-contacts" title="Bạn bè">
+            <span class="nav-item-icon" aria-hidden="true">👫</span>
+            <span class="nav-item-label">Bạn bè</span>
           </button>
-          <button type="button" class="nav-item" id="nav-contacts" title="Danh bạ">
-            <span class="nav-item-icon" aria-hidden="true">📇</span>
-            <span class="nav-item-label">Danh bạ</span>
+          <button type="button" class="nav-item" id="nav-groups" title="Thú cưng">
+            <span class="nav-item-icon" aria-hidden="true">🐾</span>
+            <span class="nav-item-label">Thú cưng</span>
           </button>
-          <button type="button" class="nav-item" id="nav-notifications" title="Thông báo mèo">
+          <button type="button" class="nav-item" id="nav-notifications" title="Thông báo">
             <span class="nav-item-icon" aria-hidden="true">🔔</span>
             <span class="nav-item-label">Thông báo</span>
             <span class="nav-badge" id="nav-notify-badge" hidden>0</span>
           </button>
           <button type="button" class="nav-item" id="nav-settings" title="Cài đặt" aria-label="Cài đặt">
-            <span class="nav-item-icon" aria-hidden="true">😺</span>
+            <span class="nav-item-icon" aria-hidden="true">⚙️</span>
             <span class="nav-item-label">Cài đặt</span>
           </button>
         </div>
         <div class="nav-section-label" id="nav-favorites-label" hidden>YÊU THÍCH</div>
         <div class="nav-favorites" id="nav-favorites" hidden></div>
         <div class="spacer"></div>
+        <div class="nav-rail-deco" aria-hidden="true">🐕<br />🐱</div>
         <button type="button" class="nav-user-card" id="nav-open-profile" title="Hồ sơ">
           <span class="nav-avatar" id="nav-user-avatar-wrap"><span id="nav-avatar-text">?</span></span>
           <span class="nav-user-name" id="nav-user-name">—</span>
@@ -9361,8 +9416,9 @@
         hideRoomGate();
         applyUiTheme("light");
         appShell.classList.add("active");
+        applyMeoChoChatBackground();
         showChatsPanel();
-        document.title = "MeowChat";
+        document.title = "MèoChó";
         syncThemeColorMeta();
       }
 
@@ -10245,7 +10301,24 @@
         }
       }
 
+      function applyMeoChoChatBackground() {
+        const shell = document.getElementById("app-shell");
+        if (!shell?.classList.contains("active")) return;
+        const p = loadProfile();
+        shell.style.setProperty("--chat-bg", "#fff9f2");
+        shell.style.setProperty(
+          "--chat-bg-image",
+          p.bgImage ? `url("${p.bgImage}")` : 'url("/assets/meochat-park-bg.png")'
+        );
+        shell.style.setProperty("--chat-bg-size", p.bgImage ? "cover" : "280% auto");
+        shell.style.setProperty("--chat-bg-position", p.bgImage ? "center" : "38% 42%");
+      }
+
       function applyProfileTheme() {
+        if (document.getElementById("app-shell")?.classList.contains("active")) {
+          applyMeoChoChatBackground();
+          return;
+        }
         const p = loadProfile();
         if (p.bgColor) {
           document.documentElement.style.setProperty("--chat-bg", p.bgColor);
@@ -12121,7 +12194,11 @@
       document.getElementById("bg-color-custom").addEventListener("input", (e) => {
         const color = e.target.value;
         profileDraft = { ...(profileDraft || loadProfile()), bgColor: color };
-        document.documentElement.style.setProperty("--chat-bg", color);
+        if (document.getElementById("app-shell")?.classList.contains("active")) {
+          applyMeoChoChatBackground();
+        } else {
+          document.documentElement.style.setProperty("--chat-bg", color);
+        }
         document.querySelectorAll("#bg-colors button").forEach((x) => x.classList.remove("selected"));
       });
 
