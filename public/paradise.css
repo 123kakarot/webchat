@@ -349,15 +349,30 @@
   font-size: 0.75rem;
 }
 
-.app-shell #messages {
-  background: transparent !important;
-  background-image: none !important;
-}
-
 .app-shell .messages-stage {
   flex: 1;
   min-height: 0;
   position: relative;
+  overflow: hidden;
+  background: var(--pp-bg-image) center / cover no-repeat;
+}
+
+.app-shell .messages-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  background: rgba(255, 249, 240, 0.42);
+  pointer-events: none;
+}
+
+.app-shell #messages {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  background-image: none !important;
 }
 
 .app-shell .msg-row:not(.self) .msg-bubble {
@@ -460,9 +475,58 @@
   margin-top: 0.25rem;
 }
 
-/* In-room: center chat, hide room list on desktop */
+/* In-room: 3 cột — danh sách | chat | thông tin nhóm */
 @media (min-width: 769px) {
+  .app-shell.show-chat .paradise-topbar {
+    display: none;
+  }
+
+  .app-shell.show-chat .paradise-body {
+    padding: 0.75rem;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .app-shell.show-chat .sidebar,
+  .app-shell.show-chat .chat,
+  .app-shell.show-chat .room-info-panel.open {
+    max-height: calc(100dvh - 1.5rem);
+    margin-top: 0;
+  }
+
   .app-shell.show-chat .sidebar {
+    display: flex;
+    width: min(320px, 26vw);
+  }
+
+  .app-shell.show-chat.info-dock .chat {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .app-shell.show-chat.info-dock .chat-main {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+  }
+
+  .app-shell.info-dock .room-info-panel.open {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    display: flex !important;
+    flex-direction: column;
+    flex-shrink: 0;
+    width: min(280px, 22vw);
+    max-width: 280px;
+    box-shadow: none;
+    z-index: 5;
+  }
+
+  .app-shell.info-dock .room-info-panel.open #room-info-panel-close {
     display: none;
   }
 }
