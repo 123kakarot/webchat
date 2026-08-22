@@ -56,10 +56,9 @@
   display: none !important;
 }
 
-/* Panel kính mờ — dùng chung */
+/* Panel kính mờ — sidebar, nav, info (KHÔNG áp lên khung chat) */
 .app-shell .nav-rail,
 .app-shell .sidebar,
-.app-shell .chat-main,
 .app-shell .room-info-panel.open,
 .app-shell .contacts-main,
 .app-shell .notifications-main {
@@ -214,15 +213,19 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  border-radius: 1.1rem;
+  border-radius: 0;
   overflow: hidden;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
 }
 
 .app-shell .chat-room-header {
-  background: var(--pp-glass-strong) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5) !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: none !important;
   padding: 0.55rem 0.85rem !important;
 }
 
@@ -244,9 +247,9 @@
 }
 
 .app-shell .room-pins-bar {
-  background: rgba(255, 248, 240, 0.55);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  backdrop-filter: none;
+  border-bottom: none;
 }
 
 /* Vùng tin nhắn — trong suốt, thấy nền body phía sau */
@@ -283,13 +286,13 @@
   box-shadow: 0 3px 10px rgba(255, 176, 136, 0.18);
 }
 
-/* Composer */
+/* Composer — trong suốt, chỉ ô nhập có nền */
 .app-shell .composer-wrap {
   position: relative;
-  background: var(--pp-glass-strong);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(255, 255, 255, 0.5);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-top: none;
   padding: 1.1rem 0.75rem 0.75rem;
   isolation: isolate;
 }
@@ -320,7 +323,16 @@
   border-radius: 50%;
 }
 
-/* Info panel */
+.app-shell .typing-bar {
+  background: transparent;
+  border-top: none;
+}
+
+.app-shell .online-panel {
+  background: rgba(255, 253, 248, 0.75);
+  backdrop-filter: blur(10px);
+}
+
 .app-shell .room-info-panel.open,
 .app-shell.info-dock .room-info-panel.open {
   display: flex;
