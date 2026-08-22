@@ -103,7 +103,7 @@
         --cat-peach: #ffb088;
         --cat-pink: #ffb4c8;
         --cat-cream: #fff9f2;
-        --meocho-park: url("/assets/meochat-park-bg.png");
+        --meocho-park: url("/assets/meocho-park-bg.jpg");
         font-family: "Quicksand", "Be Vietnam Pro", system-ui, sans-serif;
         color: var(--text);
         color-scheme: light;
@@ -6546,7 +6546,7 @@
       href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700&family=Orbitron:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/paradise.css?v=3" />
+    <link rel="stylesheet" href="/paradise.css?v=4" />
   </head>
   <body>
     <div id="upgrade-overlay" class="upgrade-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -10154,11 +10154,9 @@
       }
 
       function applyMeoChoChatBackground() {
-        const bg = document.querySelector(".app-shell .paradise-bg");
         const stage = document.querySelector(".app-shell .messages-stage");
         const p = loadProfile();
         const park = p.bgImage ? `url("${p.bgImage}")` : "";
-        if (bg) bg.style.backgroundImage = park;
         if (stage) stage.style.backgroundImage = park || "";
       }
 

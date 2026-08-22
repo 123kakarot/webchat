@@ -1,16 +1,15 @@
-/* MèoChó Cat Café — scoped .app-shell only */
+/* MèoChó Cat Café — gọn, chỉ .app-shell */
 
 .app-shell {
   --pp-primary: #ff9a76;
   --pp-primary-soft: #ffdbcd;
   --pp-surface: #fffdf8;
-  --pp-panel: rgba(255, 253, 248, 0.94);
+  --pp-panel: #fffdf8;
   --pp-on-surface: #3d2e26;
   --pp-muted: #8a7268;
   --pp-border: rgba(255, 176, 136, 0.22);
-  --pp-park: url("/assets/meochat-park-bg.png");
-  --pp-pets: url("/assets/meocho-pets-sheet.jpg");
-  --pp-bg-set: url("/assets/meocho-bg-set.jpg");
+  --pp-park: url("/assets/meocho-park-bg.jpg");
+  --pp-pets: url("/assets/meocho-pets.png");
   font-family: "Plus Jakarta Sans", "Quicksand", "Be Vietnam Pro", system-ui, sans-serif;
   color: var(--pp-on-surface);
   background: var(--pp-surface) !important;
@@ -23,13 +22,12 @@
   overflow: hidden;
 }
 
-/* Nền công viên phía sau các panel */
+/* Không dùng ảnh nền toàn màn — tránh rối / ghost UI */
 .app-shell .paradise-bg {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: var(--pp-park) center / cover no-repeat;
-  opacity: 0.35;
+  background: var(--pp-surface);
   pointer-events: none;
 }
 
@@ -44,13 +42,12 @@
   gap: 0.65rem;
 }
 
-/* Ẩn topbar Paradise — dùng nav-rail như design */
 .app-shell.active .paradise-topbar,
 .app-shell .pp-toast {
   display: none !important;
 }
 
-/* —— Nav rail (cột 1) —— */
+/* —— Nav rail —— */
 .app-shell .nav-rail {
   display: flex !important;
   width: 72px;
@@ -58,10 +55,8 @@
   border-radius: 1.1rem;
   border: 1px solid var(--pp-border);
   background: var(--pp-panel);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 28px rgba(61, 46, 38, 0.06);
+  box-shadow: 0 4px 18px rgba(61, 46, 38, 0.05);
   padding: 0.55rem 0.35rem;
-  margin-top: 0;
   max-height: calc(100dvh - 1.3rem);
 }
 
@@ -70,7 +65,7 @@
   height: 42px;
   border-radius: 50%;
   background: linear-gradient(145deg, #ffe8c8, #ffb088);
-  box-shadow: 0 4px 12px rgba(255, 154, 118, 0.28);
+  box-shadow: 0 4px 12px rgba(255, 154, 118, 0.25);
 }
 
 .app-shell .nav-brand-name {
@@ -87,7 +82,6 @@
 .app-shell .nav-item.active {
   background: var(--pp-primary-soft);
   color: #c04e20;
-  box-shadow: inset 0 0 0 1px rgba(255, 154, 118, 0.35);
 }
 
 .app-shell .nav-item:hover:not(:disabled) {
@@ -96,13 +90,11 @@
 }
 
 .app-shell .nav-rail-deco {
-  font-size: 0;
-  line-height: 0;
-  width: 100%;
-  height: 3.8rem;
   margin-top: auto;
-  background: var(--pp-pets) 48% 62% / 520% auto no-repeat;
-  opacity: 0.92;
+  text-align: center;
+  font-size: 1.2rem;
+  line-height: 1.15;
+  opacity: 0.75;
   pointer-events: none;
 }
 
@@ -115,7 +107,7 @@
   display: none !important;
 }
 
-/* —— Sidebar tin nhắn (cột 2) —— */
+/* —— Sidebar —— */
 .app-shell .sidebar {
   width: min(300px, 24vw);
   flex-shrink: 0;
@@ -124,17 +116,14 @@
   border-radius: 1.1rem;
   border: 1px solid var(--pp-border);
   background: var(--pp-panel);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 28px rgba(61, 46, 38, 0.06);
-  margin-top: 0;
+  box-shadow: 0 4px 18px rgba(61, 46, 38, 0.05);
   max-height: calc(100dvh - 1.3rem);
   overflow: hidden;
 }
 
 .app-shell .sidebar-head {
   border-bottom: 1px solid var(--pp-border);
-  background: transparent;
-  padding-bottom: 0.5rem;
+  background: #fff;
 }
 
 .app-shell .sidebar-page-title {
@@ -152,75 +141,54 @@
   color: #fff !important;
   width: 2rem;
   height: 2rem;
-  font-size: 1.1rem;
-  box-shadow: 0 4px 12px rgba(255, 154, 118, 0.32);
-}
-
-.app-shell .sidebar-tabs {
-  gap: 0.35rem;
+  box-shadow: 0 4px 12px rgba(255, 154, 118, 0.28);
 }
 
 .app-shell .sidebar-tabs button {
-  background: rgba(255, 255, 255, 0.7);
+  background: #fff;
   color: var(--pp-muted);
   font-weight: 600;
   font-size: 0.72rem;
   border-radius: 999px;
-  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--pp-border);
 }
 
 .app-shell .sidebar-tabs button.active {
   background: var(--pp-primary);
   color: #fff;
-  box-shadow: 0 3px 10px rgba(255, 154, 118, 0.28);
+  border-color: transparent;
 }
 
 .app-shell .sidebar-search-wrap input {
   border-radius: 999px;
   background: #fff;
   border: 1px solid var(--pp-border);
-  font-size: 0.82rem;
 }
 
 .app-shell #room-list {
   flex: 1;
   min-height: 0;
   overflow: auto;
-}
-
-.app-shell .sidebar::after {
-  content: "";
-  flex-shrink: 0;
-  height: 4.5rem;
-  background: var(--pp-bg-set) 15% 88% / 280% auto no-repeat;
-  opacity: 0.88;
-  pointer-events: none;
+  background: var(--pp-panel);
 }
 
 .app-shell .room-item {
   border-radius: 0.85rem;
   margin: 0.15rem 0.45rem;
-  border: 1px solid transparent;
-}
-
-.app-shell .room-item:hover {
-  background: rgba(255, 219, 205, 0.35);
 }
 
 .app-shell .room-item.active {
-  background: rgba(255, 154, 118, 0.16);
-  border-color: rgba(255, 154, 118, 0.28);
+  background: rgba(255, 154, 118, 0.14);
   box-shadow: inset 3px 0 0 var(--pp-primary);
 }
 
-/* —— Chat (cột 3) —— */
+/* —— Chat —— */
 .app-shell .chat {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: row;
   background: transparent;
-  margin-top: 0;
   max-height: calc(100dvh - 1.3rem);
 }
 
@@ -231,76 +199,55 @@
   flex-direction: column;
   border-radius: 1.1rem;
   border: 1px solid var(--pp-border);
-  background: var(--pp-panel);
-  box-shadow: 0 8px 28px rgba(61, 46, 38, 0.06);
+  background: #fff;
+  box-shadow: 0 4px 18px rgba(61, 46, 38, 0.05);
   overflow: hidden;
 }
 
 .app-shell .chat-room-header {
-  background: rgba(255, 255, 255, 0.92) !important;
+  background: #fff !important;
   border-bottom: 1px solid var(--pp-border) !important;
   padding: 0.55rem 0.85rem !important;
-  min-height: 58px;
-}
-
-.app-shell .chat-room-header .title {
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--pp-on-surface);
-}
-
-.app-shell .chat-room-head-meta {
-  color: var(--pp-muted);
-  font-size: 0.7rem;
 }
 
 .app-shell .head-icon-btn {
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
+  background: #fff;
   border: 1px solid var(--pp-border);
-  font-size: 0.9rem;
 }
 
 .app-shell .head-text-btn {
-  background: rgba(255, 219, 205, 0.55);
-  border: 1px solid rgba(255, 154, 118, 0.28);
+  background: var(--pp-primary-soft);
+  border: 1px solid rgba(255, 154, 118, 0.25);
   color: #c04e20;
   border-radius: 999px;
-  font-weight: 600;
   font-size: 0.68rem;
   padding: 0.3rem 0.65rem;
 }
 
 .app-shell .room-pins-bar {
-  background: rgba(255, 236, 220, 0.92);
+  background: #fff8f0;
   border-bottom: 1px solid var(--pp-border);
-  padding: 0.35rem 0.85rem;
 }
 
-.app-shell .room-pin-chip {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: var(--pp-border);
-  color: var(--pp-on-surface);
-  font-size: 0.72rem;
-}
-
-/* Vùng tin nhắn — công viên rõ, không blur quá */
+/* Nền công viên — CHỈ vùng tin nhắn (ảnh 2) */
 .app-shell .messages-stage {
   flex: 1;
   min-height: 0;
   position: relative;
   overflow: hidden;
   background: var(--pp-park) center / cover no-repeat;
+  isolation: isolate;
 }
 
-.app-shell .messages-stage::before {
+.app-shell .messages-stage::after {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: rgba(255, 252, 247, 0.12);
+  background: rgba(255, 253, 248, 0.28);
   pointer-events: none;
 }
 
@@ -313,77 +260,66 @@
 }
 
 .app-shell .msg-row:not(.self) .msg-bubble {
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.96);
   color: var(--pp-on-surface);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: 1rem 1rem 1rem 0.3rem;
-  box-shadow: 0 2px 8px rgba(61, 46, 38, 0.07);
+  box-shadow: 0 2px 8px rgba(61, 46, 38, 0.08);
 }
 
 .app-shell .msg-row.self .msg-bubble {
-  background: linear-gradient(135deg, #ffe8c8 0%, #ffd5b4 100%);
+  background: linear-gradient(135deg, #ffe8c8, #ffd5b4);
   color: var(--pp-on-surface);
   border-radius: 1rem 1rem 0.3rem 1rem;
-  box-shadow: 0 3px 12px rgba(255, 176, 136, 0.22);
+  box-shadow: 0 3px 10px rgba(255, 176, 136, 0.2);
 }
 
-/* Composer */
+/* Composer — chó peek từ sprite (ảnh 3), blend bỏ nền đen */
 .app-shell .composer-wrap {
   position: relative;
-  background: rgba(255, 253, 248, 0.96);
+  background: #fffdf8;
   border-top: 1px solid var(--pp-border);
-  padding: 1.35rem 0.75rem 0.75rem;
+  padding: 1.1rem 0.75rem 0.75rem;
+  isolation: isolate;
 }
 
 .app-shell .composer-wrap::before {
   content: "";
   position: absolute;
-  top: -1.35rem;
+  top: -1.05rem;
   left: 50%;
   transform: translateX(-50%);
-  width: 4.5rem;
-  height: 3.2rem;
-  background: var(--pp-pets) 22% 38% / 680% auto no-repeat;
+  width: 64px;
+  height: 48px;
+  background: var(--pp-pets) -692px -548px / 1024px 682px no-repeat;
+  mix-blend-mode: screen;
   pointer-events: none;
-  z-index: 4;
-}
-
-.app-shell .toolbar {
-  margin-bottom: 0.35rem;
-  padding: 0 0.15rem;
+  z-index: 2;
 }
 
 .app-shell .toolbar-scroll {
-  gap: 0.15rem;
+  gap: 0.2rem;
 }
 
 .app-shell .tool-btn {
   width: 2rem;
   height: 2rem;
   border-radius: 10px;
-  font-size: 0.95rem;
-  opacity: 0.88;
-}
-
-.app-shell .tool-btn:hover {
-  background: rgba(255, 219, 205, 0.65);
-  transform: none;
+  font-size: 0.9rem;
 }
 
 .app-shell .input-wrap {
   background: #fff;
   border-radius: 999px;
   border: 1px solid var(--pp-border);
-  box-shadow: 0 2px 10px rgba(255, 176, 136, 0.1);
 }
 
 .app-shell .send-btn {
   background: var(--pp-primary);
   border-radius: 50%;
-  box-shadow: 0 4px 12px rgba(255, 154, 118, 0.32);
 }
 
-/* —— Info panel (cột 4) —— */
+/* Info panel */
 .app-shell .room-info-panel.open,
 .app-shell.info-dock .room-info-panel.open {
   display: flex;
@@ -394,16 +330,14 @@
   border-radius: 1.1rem;
   border: 1px solid var(--pp-border);
   background: var(--pp-panel);
-  backdrop-filter: blur(10px);
-  margin-top: 0;
   max-height: calc(100dvh - 1.3rem);
-  box-shadow: 0 8px 28px rgba(61, 46, 38, 0.06);
+  box-shadow: 0 4px 18px rgba(61, 46, 38, 0.05);
+  overflow: hidden;
 }
 
 .app-shell .room-info-panel .chat-side-panel-head h3 {
   color: var(--pp-primary);
   font-weight: 800;
-  font-size: 0.92rem;
 }
 
 .app-shell .room-info-quick {
@@ -417,16 +351,22 @@
   background: #fff;
   border: 1px solid var(--pp-border);
   font-size: 0.68rem;
-  padding: 0.45rem 0.35rem;
+}
+
+.app-shell .room-info-scroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .app-shell .room-info-scroll::after {
   content: "";
   display: block;
-  height: 5.5rem;
-  margin-top: 0.75rem;
-  background: var(--pp-pets) 78% 88% / 520% auto no-repeat;
-  opacity: 0.92;
+  height: 4.5rem;
+  margin-top: 0.5rem;
+  background: var(--pp-pets) -818px -562px / 1024px 682px no-repeat;
+  mix-blend-mode: screen;
   pointer-events: none;
 }
 
@@ -436,24 +376,14 @@
   border-radius: 1.1rem;
   background: var(--pp-panel);
   border: 1px solid var(--pp-border);
-  margin-top: 0;
 }
 
-/* Desktop: 4 cột khi trong phòng */
 @media (min-width: 769px) {
-  .app-shell.show-chat .paradise-body {
-    padding: 0.65rem;
-  }
-
   .app-shell.show-chat .sidebar,
   .app-shell.show-chat .chat,
   .app-shell.show-chat .nav-rail,
   .app-shell.show-chat .room-info-panel.open {
     max-height: calc(100dvh - 1.3rem);
-  }
-
-  .app-shell.show-chat .sidebar {
-    display: flex;
   }
 
   .app-shell.show-chat.info-dock .chat {
@@ -466,17 +396,11 @@
   .app-shell.show-chat.info-dock .chat-main {
     flex: 1;
     min-width: 0;
-    width: auto;
   }
 
   .app-shell.info-dock .room-info-panel.open {
     position: relative;
-    top: auto;
-    right: auto;
-    bottom: auto;
     display: flex !important;
-    box-shadow: none;
-    z-index: 5;
   }
 
   .app-shell.info-dock .room-info-panel.open #room-info-panel-close {
@@ -506,7 +430,8 @@ html:has(.app-shell.active) body {
     max-height: none;
   }
 
-  .app-shell .sidebar::after {
+  .app-shell .composer-wrap::before,
+  .app-shell .room-info-scroll::after {
     display: none;
   }
 }
