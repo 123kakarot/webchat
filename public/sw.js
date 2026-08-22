@@ -1,4 +1,4 @@
-const CACHE = "webchat-shell-v13-clean-bg";
+const CACHE = "webchat-shell-v14-fullbody-bg";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
