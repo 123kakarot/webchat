@@ -8,11 +8,6 @@
     <meta name="theme-color" content="#02040a" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700&family=Orbitron:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="/paradise.css?v=2" />
     <link rel="stylesheet" href="/caro/caro-ui.css?v=124" />
     <link rel="stylesheet" href="/xiangqi/xiangqi-ui.css?v=124" />
     <link rel="stylesheet" href="/pool/pool-ui.css?v=138" />
@@ -5901,194 +5896,8 @@
         }
       }
 
-      /* —— MèoChó kawaii — chỉ phòng chat —— */
-      .app-shell .chat-main {
-        position: relative;
-        overflow: hidden;
-        background: transparent;
-      }
-
-      .app-shell .chat-main::before,
-      .app-shell .chat-main::after {
-        display: none;
-      }
-
-      .app-shell .chat-main > * {
-        position: relative;
-        z-index: 1;
-      }
-
-      .app-shell #messages {
-        background-color: var(--chat-bg, #fff9f2);
-        background-image: var(--chat-bg-image, var(--meocho-park));
-        background-size: var(--chat-bg-size, 280% auto);
-        background-position: var(--chat-bg-position, 38% 42%);
-        background-repeat: no-repeat;
-        background-attachment: local;
-      }
-
       .app-shell .typing-dots i {
         background: var(--cat-peach, var(--accent));
-      }
-
-      .app-shell .sidebar-compose-btn {
-        background: var(--accent-gradient) !important;
-        box-shadow: 0 4px 14px var(--accent-glow);
-        border-radius: 50%;
-        width: 36px;
-        height: 36px;
-      }
-
-      .app-shell .sidebar {
-        background: #fff9f2;
-        border-right-color: rgba(255, 176, 136, 0.18);
-      }
-
-      .app-shell .sidebar-page-title {
-        font-weight: 700;
-        color: #4a3728;
-      }
-
-      .app-shell .sidebar-tabs button {
-        background: rgba(255, 176, 136, 0.12);
-        color: #a08070;
-        font-weight: 600;
-        border-radius: 999px;
-      }
-
-      .app-shell .sidebar-tabs button.active {
-        color: #fff;
-        background: var(--accent-gradient);
-        box-shadow: 0 4px 12px rgba(255, 159, 104, 0.28);
-      }
-
-      .app-shell .composer-wrap {
-        position: relative;
-        background: rgba(255, 255, 255, 0.92);
-        backdrop-filter: blur(10px);
-        border-top: 1px solid rgba(255, 176, 136, 0.22);
-        padding-top: 1.5rem;
-      }
-
-      .app-shell .composer-wrap::before {
-        content: "🐕";
-        position: absolute;
-        top: 0.15rem;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 1.65rem;
-        line-height: 1;
-        pointer-events: none;
-        z-index: 3;
-        filter: drop-shadow(0 2px 4px rgba(255, 176, 136, 0.35));
-      }
-
-      .app-shell .input-wrap {
-        background: #ffffff;
-        border-radius: 24px;
-        box-shadow: 0 2px 12px rgba(255, 176, 136, 0.12), inset 0 0 0 1px rgba(255, 176, 136, 0.18);
-      }
-
-      .app-shell .send-btn {
-        background: var(--accent-gradient);
-        border-radius: 50%;
-        box-shadow: 0 4px 14px var(--accent-glow);
-      }
-
-      .app-shell .sidebar-search-wrap input,
-      .app-shell .sidebar-search-row input {
-        background: #ffffff;
-        border-color: rgba(255, 176, 136, 0.25);
-        border-radius: 999px;
-      }
-
-      .app-shell .msg-row:not(.self) .msg-bubble {
-        background: #ffffff;
-        border: 1px solid rgba(255, 176, 136, 0.2);
-        box-shadow: 0 2px 10px rgba(255, 176, 136, 0.1);
-        border-radius: 20px;
-        color: #4a3728;
-      }
-
-      .app-shell .msg-row.self .msg-bubble {
-        background: var(--bubble-self-gradient);
-        color: #4a3728;
-        border-radius: 20px;
-        box-shadow: 0 4px 14px rgba(255, 176, 136, 0.22);
-      }
-
-      .app-shell .room-info-panel,
-      .app-shell .chat-side-panel {
-        background: #fff9f2;
-        border-left-color: rgba(255, 176, 136, 0.18);
-      }
-
-      .app-shell .room-info-scroll {
-        position: relative;
-        padding-bottom: 7rem;
-      }
-
-      .app-shell .room-info-scroll::after {
-        content: "🐱💤";
-        position: absolute;
-        bottom: 0.5rem;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 3.5rem;
-        line-height: 1;
-        opacity: 0.85;
-        pointer-events: none;
-      }
-
-      .app-shell .nav-brand-icon {
-        font-size: 1.5rem;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #ffe8c8, #ffb088);
-      }
-
-      .app-shell .nav-brand-name {
-        font-weight: 700;
-        font-size: 0.62rem;
-        letter-spacing: 0.04em;
-        color: #4a3728;
-      }
-
-      .app-shell .nav-item {
-        border-radius: 16px;
-      }
-
-      .app-shell .nav-item-icon {
-        font-size: 1.25rem;
-      }
-
-      .app-shell .head-text-btn {
-        background: rgba(255, 176, 136, 0.18);
-        border: 1px solid rgba(255, 176, 136, 0.35);
-        color: #d4622a;
-        border-radius: 12px;
-        font-weight: 600;
-      }
-
-      .app-shell .chat-room-header {
-        background: rgba(255, 255, 255, 0.96) !important;
-        border-bottom: 1px solid rgba(255, 176, 136, 0.16) !important;
-      }
-
-      .app-shell .tool-btn:hover,
-      .app-shell .tool-btn.active {
-        background: rgba(255, 176, 136, 0.18);
-        color: var(--accent-hover);
-        transform: scale(1.08);
-      }
-
-      .app-shell .nav-rail-deco {
-        margin-top: auto;
-        padding: 0.35rem 0 0.5rem;
-        text-align: center;
-        font-size: 1.35rem;
-        line-height: 1.2;
-        opacity: 0.9;
-        pointer-events: none;
       }
 
       /* —— Cinematic hub —— */
@@ -6733,6 +6542,11 @@
       }
 
     </style>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700&family=Orbitron:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/paradise.css?v=3" />
   </head>
   <body>
     <div id="upgrade-overlay" class="upgrade-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -10341,13 +10155,11 @@
 
       function applyMeoChoChatBackground() {
         const bg = document.querySelector(".app-shell .paradise-bg");
-        if (!bg) return;
+        const stage = document.querySelector(".app-shell .messages-stage");
         const p = loadProfile();
-        if (p.bgImage) {
-          bg.style.backgroundImage = `url("${p.bgImage}")`;
-        } else {
-          bg.style.backgroundImage = "";
-        }
+        const park = p.bgImage ? `url("${p.bgImage}")` : "";
+        if (bg) bg.style.backgroundImage = park;
+        if (stage) stage.style.backgroundImage = park || "";
       }
 
       function syncParadiseUi() {

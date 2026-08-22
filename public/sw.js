@@ -1,4 +1,4 @@
-const CACHE = "webchat-shell-v11-hub-tdz-fix";
+const CACHE = "webchat-shell-v12-meocho-design";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
