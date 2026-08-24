@@ -71,12 +71,11 @@
 
 /* —— Nav rail —— */
 .app-shell .nav-rail {
-  display: flex !important;
+  display: flex;
   width: 72px;
   flex-shrink: 0;
   border-radius: 1.1rem;
   padding: 0.55rem 0.35rem;
-  max-height: calc(100dvh - 1.3rem);
 }
 
 .app-shell .nav-brand-icon {
@@ -128,12 +127,10 @@
 
 /* —— Sidebar —— */
 .app-shell .sidebar {
-  width: min(300px, 24vw);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   border-radius: 1.1rem;
-  max-height: calc(100dvh - 1.3rem);
   overflow: hidden;
 }
 
@@ -205,7 +202,6 @@
   display: flex;
   flex-direction: row;
   background: transparent;
-  max-height: calc(100dvh - 1.3rem);
 }
 
 .app-shell .chat-main {
@@ -334,15 +330,9 @@
   backdrop-filter: blur(10px);
 }
 
-.app-shell .room-info-panel.open,
-.app-shell.info-dock .room-info-panel.open {
+.app-shell .room-info-panel.open {
   display: flex;
   flex-direction: column;
-  width: min(260px, 20vw);
-  max-width: 260px;
-  flex-shrink: 0;
-  border-radius: 1.1rem;
-  max-height: calc(100dvh - 1.3rem);
   overflow: hidden;
 }
 
@@ -380,6 +370,29 @@
 }
 
 @media (min-width: 769px) {
+  .app-shell .nav-rail {
+    display: flex !important;
+    max-height: calc(100dvh - 1.3rem);
+  }
+
+  .app-shell .sidebar {
+    width: min(300px, 24vw);
+    max-height: calc(100dvh - 1.3rem);
+  }
+
+  .app-shell .chat {
+    max-height: calc(100dvh - 1.3rem);
+  }
+
+  .app-shell .room-info-panel.open,
+  .app-shell.info-dock .room-info-panel.open {
+    width: min(280px, 22vw);
+    max-width: 280px;
+    flex-shrink: 0;
+    border-radius: 1.1rem;
+    max-height: calc(100dvh - 1.3rem);
+  }
+
   .app-shell.show-chat .sidebar,
   .app-shell.show-chat .chat,
   .app-shell.show-chat .nav-rail,
@@ -401,6 +414,9 @@
 
   .app-shell.info-dock .room-info-panel.open {
     position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
     display: flex !important;
   }
 
@@ -422,16 +438,51 @@ html:has(.app-shell.active) body {
   .app-shell .paradise-body {
     padding: 0;
     gap: 0;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
   }
 
-  .app-shell .sidebar,
-  .app-shell .chat-main,
-  .app-shell .room-info-panel.open {
-    border-radius: 0;
+  .app-shell .sidebar {
+    width: 100%;
+    max-width: none;
     max-height: none;
+    border-radius: 0;
+    flex: 1;
+  }
+
+  .app-shell .chat,
+  .app-shell .chat-main {
+    width: 100%;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  .app-shell .input-wrap {
+    margin-top: 0.35rem;
   }
 
   .app-shell .input-wrap::before {
     display: none;
+  }
+
+  .app-shell .room-info-mascot {
+    width: min(140px, 70%);
+  }
+
+  /* Overlay thông tin nhóm — chỉ hiện khi user mở */
+  .app-shell .room-info-panel.open,
+  .app-shell.info-dock .room-info-panel.open {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+    z-index: 22;
+  }
+
+  .app-shell .room-info-panel.open #room-info-panel-close {
+    display: inline-flex !important;
   }
 }

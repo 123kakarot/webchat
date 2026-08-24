@@ -1,4 +1,4 @@
-const CACHE = "webchat-shell-v18-pet-sprites";
+const CACHE = "webchat-shell-v19-mobile-layout";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
