@@ -6558,9 +6558,8 @@
         <p id="upgrade-overlay-msg">Tải lại trang để dùng phiên bản mới.</p>
         <button type="button" class="upgrade-reload-btn" id="upgrade-reload-btn">
           <span>Tải lại trang</span>
-          <span class="upgrade-kbd">Ctrl+F5</span>
         </button>
-        <p class="upgrade-hint">Trình duyệt sẽ lấy bản mới — có thể cần nhập lại tên.</p>
+        <p class="upgrade-hint">Trên điện thoại hãy bấm nút trên. Máy tính có thể dùng Ctrl+F5.</p>
       </div>
     </div>
 
@@ -7540,7 +7539,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "179";
+      const CLIENT_BUILD = "180";
       const STORAGE_BOARD_OPEN = "webchat-board-open";
       const BASE_DOC_TITLE = "WebChat Hub";
 
@@ -8320,6 +8319,33 @@
         };
       }
 
+      function isUpgradeReason(reason) {
+        return /nâng cấp|cập nhật|Ctrl\s*\+?\s*F5|tải lại trang|UPGRADE/i.test(String(reason || ""));
+      }
+
+      async function hardReloadApp() {
+        try {
+          sessionStorage.setItem("webchat-hard-reload", "1");
+        } catch {
+          /* ignore */
+        }
+        try {
+          if (navigator.serviceWorker) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map((reg) => reg.unregister()));
+          }
+          if (window.caches) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((key) => caches.delete(key)));
+          }
+        } catch {
+          /* ignore */
+        }
+        const url = new URL(location.href);
+        url.searchParams.set("_r", String(Date.now()));
+        location.replace(url.pathname + url.search + url.hash);
+      }
+
       function showUpgradeOverlay(message) {
         const el = document.getElementById("upgrade-overlay");
         const msgEl = document.getElementById("upgrade-overlay-msg");
@@ -8331,22 +8357,28 @@
         myName = "";
         sessionReady = false;
         pendingAutoJoin = null;
-        currentRoomId = null;
-        currentRoomCode = null;
-        localStorage.removeItem(STORAGE_NAME);
-        localStorage.removeItem(STORAGE_LAST_CODE);
         appShell.classList.remove("active", "show-chat");
         chat.classList.remove("active");
         gate.style.display = "";
         hideRoomGate();
         resetJoinUi();
-        showUpgradeOverlay(
+        const text =
           message ||
-            "Webchat đã cập nhật. Tải lại trang (Ctrl+F5) rồi nhập lại tên — trong nhóm không được trùng tên."
-        );
+          "Webchat đã cập nhật. Bấm Tải lại trang rồi nhập lại tên — trong nhóm không được trùng tên.";
+        try {
+          if (!sessionStorage.getItem("webchat-hard-reload")) {
+            hardReloadApp();
+            return;
+          }
+        } catch {
+          /* ignore */
+        }
+        showUpgradeOverlay(text);
       }
 
-      document.getElementById("upgrade-reload-btn").addEventListener("click", () => location.reload());
+      document.getElementById("upgrade-reload-btn").addEventListener("click", () => {
+        hardReloadApp();
+      });
 
       function applyAuthPolicyMigration() {
         if (localStorage.getItem("webchat-auth-policy") === AUTH_POLICY) return;
@@ -8561,7 +8593,7 @@
               return;
             }
             if (res?.reason) {
-              if (myName) forceUpgradeReload(res.reason);
+              if (myName && isUpgradeReason(res.reason)) forceUpgradeReload(res.reason);
               else onJoinError(res.reason);
             }
           });
@@ -8600,10 +8632,7 @@
         socket.timeout(15000).emit("join", joinPayload(myName, true), (err, res) => {
           if (err || !res?.ok) {
             sessionReady = false;
-            if (res?.reason) forceUpgradeReload(res.reason);
-            else if (myName) {
-              forceUpgradeReload("Không vào lại được phiên — tải lại trang (Ctrl+F5) rồi nhập lại tên.");
-            }
+            if (isUpgradeReason(res?.reason)) forceUpgradeReload(res.reason);
             if (typeof then === "function") then(new Error("join"));
             return;
           }
@@ -9231,7 +9260,7 @@
         try {
           const res = await fetch("/api/status", { cache: "no-store" });
           const data = await res.json();
-          if (data.minClientBuild && data.minClientBuild !== CLIENT_BUILD) {
+          if (data.minClientBuild && Number(data.minClientBuild) > Number(CLIENT_BUILD)) {
             forceUpgradeReload(
               `Server yêu cầu bản mới (v${data.minClientBuild}). Tải lại trang (Ctrl+F5).`
             );
@@ -12926,9 +12955,9 @@
       });
 
       socket.on("join_error", (reason) => {
-        if (myName) {
-          sessionReady = false;
-          forceUpgradeReload(typeof reason === "string" ? reason : "Cần tải lại trang (Ctrl+F5).");
+        sessionReady = false;
+        if (isUpgradeReason(reason)) {
+          forceUpgradeReload(typeof reason === "string" ? reason : "Cần tải lại trang để cập nhật.");
           return;
         }
         onJoinError(reason);

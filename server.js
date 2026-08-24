@@ -72,7 +72,7 @@ import {
   getUserPublicId,
 } from "./db.js";
 
-const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "179");
+const MIN_CLIENT_BUILD = String(process.env.MIN_CLIENT_BUILD || "180");
 const AUTH_POLICY = String(process.env.AUTH_POLICY || "36");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -85,9 +85,17 @@ const io = new Server(httpServer, {
   cors: { origin: "*" },
 });
 
+function isClientBuildOk(build) {
+  const raw = String(build ?? "").trim();
+  const n = Number(raw);
+  const min = Number(MIN_CLIENT_BUILD);
+  if (Number.isFinite(n) && Number.isFinite(min)) return n >= min;
+  return raw === MIN_CLIENT_BUILD;
+}
+
 io.use((socket, next) => {
   const build = String(socket.handshake.auth?.clientBuild ?? "").trim();
-  if (build !== MIN_CLIENT_BUILD) {
+  if (!isClientBuildOk(build)) {
     return next(new Error("UPGRADE_REQUIRED"));
   }
   socket.data.clientBuild = build;
@@ -514,7 +522,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (authPolicy !== AUTH_POLICY || clientBuild !== MIN_CLIENT_BUILD) {
+    if (authPolicy !== AUTH_POLICY || !isClientBuildOk(clientBuild)) {
       const reason =
         "Cần tải lại trang (Ctrl+F5) để cập nhật Webchat v41 — sau đó nhập lại tên.";
       socket.emit("join_error", reason);
