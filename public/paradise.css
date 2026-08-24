@@ -314,7 +314,7 @@
   transform: translateX(-50%);
   width: 72px;
   height: 68px;
-  background: url("/assets/meocho-peek-puppy.png") center / contain no-repeat;
+  background: url("/assets/pets/peek-puppy.png") center / contain no-repeat;
   pointer-events: none;
   z-index: 4;
 }
@@ -370,14 +370,13 @@
   overflow: auto;
 }
 
-.app-shell .room-info-scroll::after {
-  content: "";
+.app-shell .room-info-mascot {
   display: block;
-  height: 4.5rem;
-  margin-top: 0.5rem;
-  background: var(--pp-pets) -818px -562px / 1024px 682px no-repeat;
-  mix-blend-mode: screen;
+  width: min(168px, 88%);
+  height: auto;
+  margin: 1.1rem auto 0.35rem;
   pointer-events: none;
+  user-select: none;
 }
 
 @media (min-width: 769px) {
@@ -432,8 +431,7 @@ html:has(.app-shell.active) body {
     max-height: none;
   }
 
-  .app-shell .input-wrap::before,
-  .app-shell .room-info-scroll::after {
+  .app-shell .input-wrap::before {
     display: none;
   }
 }

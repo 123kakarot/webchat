@@ -1,0 +1,532 @@
+[
+  {
+    "name": "pet-01.png",
+    "minX": 218,
+    "minY": 2,
+    "maxX": 355,
+    "maxY": 168,
+    "w": 138,
+    "h": 167,
+    "count": 15221
+  },
+  {
+    "name": "pet-02.png",
+    "minX": 32,
+    "minY": 5,
+    "maxX": 196,
+    "maxY": 173,
+    "w": 165,
+    "h": 169,
+    "count": 17205
+  },
+  {
+    "name": "pet-03.png",
+    "minX": 569,
+    "minY": 6,
+    "maxX": 707,
+    "maxY": 181,
+    "w": 139,
+    "h": 176,
+    "count": 17422
+  },
+  {
+    "name": "pet-04.png",
+    "minX": 901,
+    "minY": 26,
+    "maxX": 1017,
+    "maxY": 179,
+    "w": 117,
+    "h": 154,
+    "count": 11140
+  },
+  {
+    "name": "pet-05.png",
+    "minX": 373,
+    "minY": 49,
+    "maxX": 548,
+    "maxY": 177,
+    "w": 176,
+    "h": 129,
+    "count": 13759
+  },
+  {
+    "name": "pet-06.png",
+    "minX": 722,
+    "minY": 51,
+    "maxX": 873,
+    "maxY": 180,
+    "w": 152,
+    "h": 130,
+    "count": 11832
+  },
+  {
+    "name": "pet-07.png",
+    "minX": 134,
+    "minY": 192,
+    "maxX": 240,
+    "maxY": 344,
+    "w": 107,
+    "h": 153,
+    "count": 12777
+  },
+  {
+    "name": "pet-08.png",
+    "minX": 271,
+    "minY": 198,
+    "maxX": 458,
+    "maxY": 334,
+    "w": 188,
+    "h": 137,
+    "count": 16319
+  },
+  {
+    "name": "pet-09.png",
+    "minX": 851,
+    "minY": 201,
+    "maxX": 938,
+    "maxY": 338,
+    "w": 88,
+    "h": 138,
+    "count": 9651
+  },
+  {
+    "name": "pet-10.png",
+    "minX": 10,
+    "minY": 227,
+    "maxX": 112,
+    "maxY": 338,
+    "w": 103,
+    "h": 112,
+    "count": 7940
+  },
+  {
+    "name": "pet-11.png",
+    "minX": 635,
+    "minY": 237,
+    "maxX": 833,
+    "maxY": 337,
+    "w": 199,
+    "h": 101,
+    "count": 13721
+  },
+  {
+    "name": "pet-12.png",
+    "minX": 936,
+    "minY": 241,
+    "maxX": 1015,
+    "maxY": 336,
+    "w": 80,
+    "h": 96,
+    "count": 5109
+  },
+  {
+    "name": "pet-13.png",
+    "minX": 463,
+    "minY": 245,
+    "maxX": 620,
+    "maxY": 338,
+    "w": 158,
+    "h": 94,
+    "count": 11423
+  },
+  {
+    "name": "pet-14.png",
+    "minX": 339,
+    "minY": 349,
+    "maxX": 433,
+    "maxY": 442,
+    "w": 95,
+    "h": 94,
+    "count": 6711
+  },
+  {
+    "name": "pet-15.png",
+    "minX": 544,
+    "minY": 362,
+    "maxX": 624,
+    "maxY": 440,
+    "w": 81,
+    "h": 79,
+    "count": 4933
+  },
+  {
+    "name": "pet-16.png",
+    "minX": 238,
+    "minY": 365,
+    "maxX": 324,
+    "maxY": 447,
+    "w": 87,
+    "h": 83,
+    "count": 5487
+  },
+  {
+    "name": "pet-17.png",
+    "minX": 448,
+    "minY": 365,
+    "maxX": 527,
+    "maxY": 443,
+    "w": 80,
+    "h": 79,
+    "count": 4804
+  },
+  {
+    "name": "pet-18.png",
+    "minX": 131,
+    "minY": 367,
+    "maxX": 218,
+    "maxY": 447,
+    "w": 88,
+    "h": 81,
+    "count": 5467
+  },
+  {
+    "name": "pet-19.png",
+    "minX": 640,
+    "minY": 367,
+    "maxX": 716,
+    "maxY": 441,
+    "w": 77,
+    "h": 75,
+    "count": 4424
+  },
+  {
+    "name": "pet-20.png",
+    "minX": 11,
+    "minY": 368,
+    "maxX": 125,
+    "maxY": 445,
+    "w": 115,
+    "h": 78,
+    "count": 6912
+  },
+  {
+    "name": "pet-21.png",
+    "minX": 731,
+    "minY": 368,
+    "maxX": 809,
+    "maxY": 444,
+    "w": 79,
+    "h": 77,
+    "count": 4549
+  },
+  {
+    "name": "pet-22.png",
+    "minX": 827,
+    "minY": 389,
+    "maxX": 863,
+    "maxY": 425,
+    "w": 37,
+    "h": 37,
+    "count": 1035
+  },
+  {
+    "name": "pet-23.png",
+    "minX": 871,
+    "minY": 389,
+    "maxX": 905,
+    "maxY": 422,
+    "w": 35,
+    "h": 34,
+    "count": 890
+  },
+  {
+    "name": "pet-24.png",
+    "minX": 912,
+    "minY": 389,
+    "maxX": 944,
+    "maxY": 422,
+    "w": 33,
+    "h": 34,
+    "count": 837
+  },
+  {
+    "name": "pet-25.png",
+    "minX": 951,
+    "minY": 389,
+    "maxX": 982,
+    "maxY": 422,
+    "w": 32,
+    "h": 34,
+    "count": 829
+  },
+  {
+    "name": "pet-26.png",
+    "minX": 990,
+    "minY": 396,
+    "maxX": 1015,
+    "maxY": 421,
+    "w": 26,
+    "h": 26,
+    "count": 505
+  },
+  {
+    "name": "pet-27.png",
+    "minX": 752,
+    "minY": 451,
+    "maxX": 820,
+    "maxY": 537,
+    "w": 69,
+    "h": 87,
+    "count": 4450
+  },
+  {
+    "name": "pet-28.png",
+    "minX": 520,
+    "minY": 460,
+    "maxX": 614,
+    "maxY": 535,
+    "w": 95,
+    "h": 76,
+    "count": 4686
+  },
+  {
+    "name": "pet-29.png",
+    "minX": 626,
+    "minY": 460,
+    "maxX": 724,
+    "maxY": 536,
+    "w": 99,
+    "h": 77,
+    "count": 4911
+  },
+  {
+    "name": "pet-30.png",
+    "minX": 298,
+    "minY": 502,
+    "maxX": 399,
+    "maxY": 570,
+    "w": 102,
+    "h": 69,
+    "count": 5665
+  },
+  {
+    "name": "pet-31.png",
+    "minX": 978,
+    "minY": 503,
+    "maxX": 994,
+    "maxY": 521,
+    "w": 17,
+    "h": 19,
+    "count": 272
+  },
+  {
+    "name": "pet-32.png",
+    "minX": 22,
+    "minY": 505,
+    "maxX": 147,
+    "maxY": 586,
+    "w": 126,
+    "h": 82,
+    "count": 8112
+  },
+  {
+    "name": "pet-33.png",
+    "minX": 162,
+    "minY": 507,
+    "maxX": 269,
+    "maxY": 584,
+    "w": 108,
+    "h": 78,
+    "count": 6038
+  },
+  {
+    "name": "pet-34.png",
+    "minX": 961,
+    "minY": 516,
+    "maxX": 977,
+    "maxY": 534,
+    "w": 17,
+    "h": 19,
+    "count": 255
+  },
+  {
+    "name": "pet-35.png",
+    "minX": 413,
+    "minY": 517,
+    "maxX": 490,
+    "maxY": 575,
+    "w": 78,
+    "h": 59,
+    "count": 4082
+  },
+  {
+    "name": "pet-36.png",
+    "minX": 852,
+    "minY": 523,
+    "maxX": 1002,
+    "maxY": 625,
+    "w": 151,
+    "h": 103,
+    "count": 10483
+  },
+  {
+    "name": "pet-37.png",
+    "minX": 984,
+    "minY": 532,
+    "maxX": 996,
+    "maxY": 545,
+    "w": 13,
+    "h": 14,
+    "count": 159
+  },
+  {
+    "name": "pet-38.png",
+    "minX": 495,
+    "minY": 554,
+    "maxX": 618,
+    "maxY": 628,
+    "w": 124,
+    "h": 75,
+    "count": 6686
+  },
+  {
+    "name": "pet-39.png",
+    "minX": 625,
+    "minY": 570,
+    "maxX": 690,
+    "maxY": 623,
+    "w": 66,
+    "h": 54,
+    "count": 2056
+  },
+  {
+    "name": "pet-40.png",
+    "minX": 705,
+    "minY": 571,
+    "maxX": 767,
+    "maxY": 612,
+    "w": 63,
+    "h": 42,
+    "count": 2097
+  },
+  {
+    "name": "pet-41.png",
+    "minX": 781,
+    "minY": 574,
+    "maxX": 831,
+    "maxY": 618,
+    "w": 51,
+    "h": 45,
+    "count": 1181
+  },
+  {
+    "name": "pet-42.png",
+    "minX": 374,
+    "minY": 591,
+    "maxX": 404,
+    "maxY": 644,
+    "w": 31,
+    "h": 54,
+    "count": 1067
+  },
+  {
+    "name": "pet-43.png",
+    "minX": 169,
+    "minY": 596,
+    "maxX": 277,
+    "maxY": 672,
+    "w": 109,
+    "h": 77,
+    "count": 5842
+  },
+  {
+    "name": "pet-44.png",
+    "minX": 285,
+    "minY": 599,
+    "maxX": 357,
+    "maxY": 660,
+    "w": 73,
+    "h": 62,
+    "count": 2387
+  },
+  {
+    "name": "pet-45.png",
+    "minX": 465,
+    "minY": 603,
+    "maxX": 490,
+    "maxY": 627,
+    "w": 26,
+    "h": 25,
+    "count": 424
+  },
+  {
+    "name": "pet-46.png",
+    "minX": 36,
+    "minY": 605,
+    "maxX": 86,
+    "maxY": 673,
+    "w": 51,
+    "h": 69,
+    "count": 2338
+  },
+  {
+    "name": "pet-47.png",
+    "minX": 100,
+    "minY": 607,
+    "maxX": 158,
+    "maxY": 673,
+    "w": 59,
+    "h": 67,
+    "count": 2640
+  },
+  {
+    "name": "pet-48.png",
+    "minX": 405,
+    "minY": 616,
+    "maxX": 442,
+    "maxY": 649,
+    "w": 38,
+    "h": 34,
+    "count": 722
+  },
+  {
+    "name": "pet-49.png",
+    "minX": 454,
+    "minY": 639,
+    "maxX": 482,
+    "maxY": 666,
+    "w": 29,
+    "h": 28,
+    "count": 541
+  },
+  {
+    "name": "pet-50.png",
+    "minX": 598,
+    "minY": 641,
+    "maxX": 615,
+    "maxY": 657,
+    "w": 18,
+    "h": 17,
+    "count": 194
+  },
+  {
+    "name": "pet-51.png",
+    "minX": 523,
+    "minY": 643,
+    "maxX": 543,
+    "maxY": 661,
+    "w": 21,
+    "h": 19,
+    "count": 246
+  },
+  {
+    "name": "pet-52.png",
+    "minX": 619,
+    "minY": 648,
+    "maxX": 637,
+    "maxY": 667,
+    "w": 19,
+    "h": 20,
+    "count": 243
+  },
+  {
+    "name": "pet-53.png",
+    "minX": 550,
+    "minY": 651,
+    "maxX": 568,
+    "maxY": 669,
+    "w": 19,
+    "h": 19,
+    "count": 234
+  }
+]

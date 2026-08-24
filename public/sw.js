@@ -1,4 +1,4 @@
-const CACHE = "webchat-shell-v17-peek-puppy";
+const CACHE = "webchat-shell-v18-pet-sprites";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
