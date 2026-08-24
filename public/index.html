@@ -6546,7 +6546,7 @@
       href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700&family=Orbitron:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/paradise.css?v=10" />
+    <link rel="stylesheet" href="/paradise.css?v=12" />
   </head>
   <body>
     <div id="upgrade-overlay" class="upgrade-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -6648,6 +6648,14 @@
 
     <div class="app-shell" id="app-shell">
       <div class="paradise-bg" aria-hidden="true"></div>
+      <div class="pp-petals" aria-hidden="true">
+        <span class="pp-petal" style="--x:8%;--d:0s;--s:14s"></span>
+        <span class="pp-petal" style="--x:22%;--d:3s;--s:18s"></span>
+        <span class="pp-petal" style="--x:41%;--d:1.2s;--s:16s"></span>
+        <span class="pp-petal" style="--x:63%;--d:5s;--s:20s"></span>
+        <span class="pp-petal" style="--x:78%;--d:2.4s;--s:15s"></span>
+        <span class="pp-petal" style="--x:91%;--d:6s;--s:19s"></span>
+      </div>
       <header class="paradise-topbar">
         <div class="pp-glass paradise-topbar-left">
           <button type="button" class="pp-logo-btn" id="pp-back-hub" title="Về menu chính">
@@ -6680,7 +6688,9 @@
       <div class="paradise-body">
       <nav class="nav-rail" aria-label="Menu">
         <button type="button" class="nav-brand" id="nav-back-hub" title="Về menu chính">
-          <span class="nav-brand-icon" aria-hidden="true">🐕</span>
+          <span class="nav-brand-icon" aria-hidden="true">
+            <img src="/assets/pets/pet-16.png" alt="" />
+          </span>
           <span class="nav-brand-name">MèoChó</span>
         </button>
         <div class="nav-menu">
@@ -6710,7 +6720,9 @@
         <div class="nav-section-label" id="nav-favorites-label" hidden>YÊU THÍCH</div>
         <div class="nav-favorites" id="nav-favorites" hidden></div>
         <div class="spacer"></div>
-        <div class="nav-rail-deco" aria-hidden="true">🐕<br />🐱</div>
+        <div class="nav-rail-deco" aria-hidden="true">
+          <img class="nav-deco-duo" src="/assets/pets/pet-11.png" alt="" />
+        </div>
         <button type="button" class="nav-user-card" id="nav-open-profile" title="Hồ sơ">
           <span class="nav-avatar" id="nav-user-avatar-wrap"><span id="nav-avatar-text">?</span></span>
           <span class="nav-user-name" id="nav-user-name">—</span>
@@ -6837,6 +6849,7 @@
       <div class="room-pins-bar" id="room-pins-bar" hidden></div>
       <div class="online-panel" id="online-panel" hidden></div>
       <div class="messages-stage" id="messages-stage">
+        <img class="chat-scene-pet" src="/assets/pets/pet-01.png" alt="" aria-hidden="true" />
         <div id="messages" role="log"></div>
         <div class="scroll-bottom-wrap" id="scroll-bottom-wrap" hidden>
           <button type="button" class="scroll-bottom-fab" id="btn-scroll-bottom" title="Xuống tin mới nhất" aria-label="Xuống tin mới nhất">
@@ -6863,7 +6876,9 @@
           <button type="button" class="tool-btn tool-emoji-btn" id="btn-contact" title="Danh thiếp">💌</button>
           <button type="button" class="tool-btn tool-emoji-btn" id="btn-screenshot" title="Chụp màn hình">📸</button>
           <button type="button" class="tool-btn tool-emoji-btn" id="btn-format" title="Định dạng chữ">✏️</button>
-          <button type="button" class="tool-btn tool-emoji-btn" id="btn-emoji-bar" title="Emoji mèo">😺</button>
+          <button type="button" class="tool-btn tool-emoji-btn" id="btn-emoji-bar" title="Emoji cún">
+            <img class="tool-pet-icon" src="/assets/pets/pet-18.png" alt="" />
+          </button>
           <button type="button" class="tool-btn tool-emoji-btn" id="btn-quick" title="Tin nhắn nhanh">💬</button>
           <button type="button" class="tool-btn tool-emoji-btn" id="btn-wallet" title="Thông tin chuyển khoản">💳</button>
           </div>
@@ -6909,6 +6924,7 @@
 
         <form class="composer" id="send-form" action="javascript:void(0)" method="post">
           <div class="input-wrap">
+            <img class="composer-peek" src="/assets/pets/peek-puppy.png" alt="" aria-hidden="true" />
             <textarea
               id="message-input"
               rows="1"
@@ -6974,8 +6990,8 @@
             <div id="room-info-members-mini"></div>
             <button type="button" class="room-info-link" id="room-info-all-members">Xem tất cả thành viên</button>
           </details>
-          <img class="room-info-mascot" src="/assets/pets/sleeping-cat.png" alt="" aria-hidden="true" />
         </div>
+        <img class="room-info-mascot" src="/assets/pets/sleeping-cat.png" alt="" aria-hidden="true" />
       </aside>
 
       <aside class="room-members-panel" id="room-members-panel" aria-label="Thành viên nhóm">
@@ -7539,7 +7555,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "180";
+      const CLIENT_BUILD = "181";
       const STORAGE_BOARD_OPEN = "webchat-board-open";
       const BASE_DOC_TITLE = "WebChat Hub";
 
@@ -10920,7 +10936,12 @@
             img.alt = "";
             avEl.appendChild(img);
           } else {
-            avEl.textContent = letter;
+            const img = document.createElement("img");
+            img.src = "/assets/pets/pet-11.png";
+            img.alt = "";
+            img.className = "room-info-avatar-fallback";
+            avEl.appendChild(img);
+            avEl.title = letter;
           }
         }
         const members = roomRoster?.members || [];
