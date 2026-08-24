@@ -293,29 +293,30 @@
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border-top: none;
-  padding: 1.1rem 0.75rem 0.75rem;
+  padding: 0.35rem 0.75rem 0.75rem;
   isolation: isolate;
 }
 
-.app-shell .composer-wrap::before {
-  content: "";
-  position: absolute;
-  top: -1.05rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 64px;
-  height: 48px;
-  background: var(--pp-pets) -692px -548px / 1024px 682px no-repeat;
-  mix-blend-mode: screen;
-  pointer-events: none;
-  z-index: 2;
-}
-
 .app-shell .input-wrap {
+  position: relative;
   background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(8px);
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.85);
+  margin-top: 1.35rem;
+}
+
+.app-shell .input-wrap::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - 10px);
+  transform: translateX(-50%);
+  width: 72px;
+  height: 68px;
+  background: url("/assets/meocho-peek-puppy.png") center / contain no-repeat;
+  pointer-events: none;
+  z-index: 4;
 }
 
 .app-shell .send-btn {
@@ -431,7 +432,7 @@ html:has(.app-shell.active) body {
     max-height: none;
   }
 
-  .app-shell .composer-wrap::before,
+  .app-shell .input-wrap::before,
   .app-shell .room-info-scroll::after {
     display: none;
   }
