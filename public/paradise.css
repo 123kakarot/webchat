@@ -9,7 +9,7 @@
   --pp-glass: rgba(255, 250, 242, 0.72);
   --pp-glass-strong: rgba(255, 255, 255, 0.84);
   --pp-gold: #ffe8a1;
-  --pp-park: url("/assets/pawly-park.jpg");
+  --pp-park: url("/assets/meocho-park-bg.jpg");
   font-family: "Quicksand", "Plus Jakarta Sans", "Be Vietnam Pro", system-ui, sans-serif;
   color: var(--pp-on-surface);
   background: transparent !important;
@@ -28,8 +28,8 @@
   inset: -20px;
   z-index: 0;
   background: var(--pp-park) center / cover no-repeat;
-  filter: blur(2.2px);
-  transform: scale(1.04);
+  filter: blur(1.6px);
+  transform: scale(1.03);
   pointer-events: none;
   overflow: hidden;
 }
@@ -46,7 +46,7 @@
   );
 }
 
-.app-shell .pp-petals {
+.app-shell .pp-leaves {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -54,17 +54,66 @@
   overflow: hidden;
 }
 
-.app-shell .pp-petal {
+.app-shell .pp-gust {
   position: absolute;
-  top: -12%;
-  left: var(--x, 50%);
-  width: 9px;
+  inset: 0;
+  animation: pp-gust 22s cubic-bezier(0.42, 0, 0.18, 1) infinite;
+  will-change: transform;
+}
+
+.app-shell .pp-wind {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.app-shell .pp-wind::before {
+  content: "";
+  position: absolute;
+  top: 38%;
+  left: -55%;
+  width: 48%;
+  height: 46%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 248, 236, 0.08) 28%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(255, 236, 214, 0.1) 72%,
+    transparent
+  );
+  filter: blur(18px);
+  animation: pp-wind 22s cubic-bezier(0.42, 0, 0.18, 1) infinite;
+}
+
+.app-shell .pp-leaf {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 13px;
+  height: 17px;
+  background: linear-gradient(145deg, #ffc078 0%, #e87838 70%, #c45c28 100%);
+  border-radius: 80% 0 72% 8px;
+  box-shadow: inset -2px -2px 0 rgba(255, 226, 186, 0.35);
+  animation: pp-fall 22s cubic-bezier(0.28, 0.08, 0.22, 1) infinite;
+  will-change: transform, opacity;
+  transform-origin: 50% 60%;
+  backface-visibility: hidden;
+}
+
+.app-shell .pp-leaf.b {
+  width: 11px;
+  height: 14px;
+  background: linear-gradient(145deg, #ffd4a0, #f0a050 62%, #d46a30);
+  border-radius: 70% 8% 80% 0;
+}
+
+.app-shell .pp-leaf.c {
+  width: 10px;
   height: 13px;
-  background: radial-gradient(circle at 30% 30%, #ffd4e2, #f5a9c0);
+  background: radial-gradient(circle at 32% 28%, #ffdce6, #f0a0b0 58%, #e87888);
   border-radius: 80% 0 80% 0;
-  opacity: 0.55;
-  animation: meocho-petal var(--s, 16s) linear infinite;
-  animation-delay: var(--d, 0s);
+  box-shadow: none;
 }
 
 .app-shell .paradise-body {
@@ -549,16 +598,77 @@
   }
 }
 
-@keyframes meocho-petal {
+@keyframes pp-fall {
   0% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
+    transform: translate3d(var(--sx), -14vh, 0) rotate(var(--r0, 0deg));
     opacity: 0;
   }
-  8% {
+  5% {
+    opacity: 0.92;
+  }
+  12% {
+    transform: translate3d(calc(var(--sx) + 4.5vw), 14vh, 0)
+      rotate(calc(var(--r0, 0deg) + 50deg));
+  }
+  22% {
+    transform: translate3d(calc(var(--sx) - 3.5vw), 32vh, 0)
+      rotate(calc(var(--r0, 0deg) - 32deg));
+  }
+  32% {
+    transform: translate3d(calc(var(--sx) + 2.2vw), 58vh, 0)
+      rotate(calc(var(--r0, 0deg) + 44deg));
+  }
+  39% {
+    transform: translate3d(var(--lx), calc(var(--ly) - 1.6vh), 0)
+      rotate(calc(var(--rl, 0deg) - 6deg));
+  }
+  42%,
+  100% {
+    transform: translate3d(var(--lx), var(--ly), 0) rotate(var(--rl, 0deg));
+    opacity: 0.9;
+  }
+}
+
+@keyframes pp-gust {
+  0%,
+  52% {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+  56% {
+    transform: translate3d(2.5vw, -0.6vh, 0);
+  }
+  74% {
+    transform: translate3d(118vw, -11vh, 0);
+    opacity: 1;
+  }
+  82% {
+    transform: translate3d(128vw, -13vh, 0);
+    opacity: 0;
+  }
+  83%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes pp-wind {
+  0%,
+  52% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  56% {
     opacity: 0.55;
   }
+  74% {
+    transform: translate3d(210%, -6%, 0);
+    opacity: 0.28;
+  }
+  80%,
   100% {
-    transform: translate3d(-40px, 110vh, 0) rotate(240deg);
+    transform: translate3d(230%, -8%, 0);
     opacity: 0;
   }
 }
@@ -567,8 +677,14 @@
   .app-shell .composer-peek,
   .app-shell .nav-deco-duo,
   .app-shell .room-info-mascot,
-  .app-shell .pp-petal {
+  .app-shell .pp-leaf,
+  .app-shell .pp-gust,
+  .app-shell .pp-wind::before {
     animation: none;
+  }
+
+  .app-shell .pp-leaves {
+    display: none;
   }
 }
 
@@ -666,8 +782,7 @@ html:has(.app-shell.active) body {
   }
 
   .app-shell .composer-peek,
-  .app-shell .pp-petals,
-  .app-shell .pp-petal {
+  .app-shell .pp-leaves {
     display: none;
   }
 

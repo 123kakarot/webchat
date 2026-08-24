@@ -103,7 +103,7 @@
         --cat-peach: #ffb088;
         --cat-pink: #ffb4c8;
         --cat-cream: #fff9f2;
-        --meocho-park: url("/assets/pawly-park.jpg");
+        --meocho-park: url("/assets/meocho-park-bg.jpg");
         font-family: "Quicksand", "Be Vietnam Pro", system-ui, sans-serif;
         color: var(--text);
         color-scheme: light;
@@ -6573,7 +6573,7 @@
       href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700&family=Orbitron:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/paradise.css?v=14" />
+    <link rel="stylesheet" href="/paradise.css?v=15" />
   </head>
   <body>
     <div id="upgrade-overlay" class="upgrade-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -6675,13 +6675,30 @@
 
     <div class="app-shell" id="app-shell">
       <div class="paradise-bg" aria-hidden="true"></div>
-      <div class="pp-petals" aria-hidden="true">
-        <span class="pp-petal" style="--x:8%;--d:0s;--s:14s"></span>
-        <span class="pp-petal" style="--x:22%;--d:3s;--s:18s"></span>
-        <span class="pp-petal" style="--x:41%;--d:1.2s;--s:16s"></span>
-        <span class="pp-petal" style="--x:63%;--d:5s;--s:20s"></span>
-        <span class="pp-petal" style="--x:78%;--d:2.4s;--s:15s"></span>
-        <span class="pp-petal" style="--x:91%;--d:6s;--s:19s"></span>
+      <div class="pp-leaves" aria-hidden="true">
+        <div class="pp-wind"></div>
+        <div class="pp-gust">
+          <i class="pp-leaf a" style="--sx:8vw;--lx:12vw;--ly:86vh;--r0:-24deg;--rl:18deg"></i>
+          <i class="pp-leaf b" style="--sx:18vw;--lx:22vw;--ly:88vh;--r0:12deg;--rl:-8deg"></i>
+          <i class="pp-leaf c" style="--sx:28vw;--lx:31vw;--ly:85vh;--r0:40deg;--rl:22deg"></i>
+          <i class="pp-leaf a" style="--sx:38vw;--lx:41vw;--ly:89vh;--r0:-10deg;--rl:6deg"></i>
+          <i class="pp-leaf b" style="--sx:48vw;--lx:52vw;--ly:87vh;--r0:28deg;--rl:-16deg"></i>
+          <i class="pp-leaf c" style="--sx:58vw;--lx:61vw;--ly:86vh;--r0:-32deg;--rl:12deg"></i>
+          <i class="pp-leaf a" style="--sx:68vw;--lx:70vw;--ly:88vh;--r0:16deg;--rl:-4deg"></i>
+          <i class="pp-leaf b" style="--sx:78vw;--lx:81vw;--ly:85vh;--r0:36deg;--rl:20deg"></i>
+          <i class="pp-leaf c" style="--sx:88vw;--lx:90vw;--ly:89vh;--r0:-18deg;--rl:8deg"></i>
+          <i class="pp-leaf a" style="--sx:14vw;--lx:18vw;--ly:84vh;--r0:8deg;--rl:-22deg"></i>
+          <i class="pp-leaf b" style="--sx:34vw;--lx:36vw;--ly:90vh;--r0:-40deg;--rl:14deg"></i>
+          <i class="pp-leaf c" style="--sx:54vw;--lx:57vw;--ly:84vh;--r0:22deg;--rl:-10deg"></i>
+          <i class="pp-leaf a" style="--sx:74vw;--lx:76vw;--ly:87vh;--r0:-6deg;--rl:26deg"></i>
+          <i class="pp-leaf b" style="--sx:6vw;--lx:9vw;--ly:91vh;--r0:30deg;--rl:-14deg"></i>
+          <i class="pp-leaf c" style="--sx:44vw;--lx:47vw;--ly:86vh;--r0:-22deg;--rl:4deg"></i>
+          <i class="pp-leaf a" style="--sx:64vw;--lx:66vw;--ly:90vh;--r0:14deg;--rl:-18deg"></i>
+          <i class="pp-leaf b" style="--sx:84vw;--lx:86vw;--ly:84vh;--r0:-28deg;--rl:16deg"></i>
+          <i class="pp-leaf c" style="--sx:24vw;--lx:27vw;--ly:89vh;--r0:6deg;--rl:-6deg"></i>
+          <i class="pp-leaf a" style="--sx:94vw;--lx:93vw;--ly:87vh;--r0:20deg;--rl:10deg"></i>
+          <i class="pp-leaf b" style="--sx:50vw;--lx:48vw;--ly:91vh;--r0:-14deg;--rl:24deg"></i>
+        </div>
       </div>
       <header class="paradise-topbar">
         <div class="pp-glass paradise-topbar-left">
@@ -7581,7 +7598,7 @@
       const AUTH_POLICY = "36";
       const STORAGE_THEME = "webchat-theme";
       const STORAGE_NOTIFS_READ = "webchat-notifs-read";
-      const CLIENT_BUILD = "183";
+      const CLIENT_BUILD = "184";
       const STORAGE_BOARD_OPEN = "webchat-board-open";
       const BASE_DOC_TITLE = "WebChat Hub";
 
