@@ -95,9 +95,10 @@
   background: linear-gradient(145deg, #ffc078 0%, #e87838 70%, #c45c28 100%);
   border-radius: 80% 0 72% 8px;
   box-shadow: inset -2px -2px 0 rgba(255, 226, 186, 0.35);
-  animation: pp-fall 22s cubic-bezier(0.28, 0.08, 0.22, 1) infinite;
+  animation: pp-fall var(--dur, 14s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
   will-change: transform, opacity;
-  transform-origin: 50% 60%;
+  transform-origin: 50% 40%;
   backface-visibility: hidden;
 }
 
@@ -598,34 +599,45 @@
   }
 }
 
+/* ── Lá rơi tự nhiên: lắc ngang, xoay nhẹ, mờ dần ở đáy rồi reset ── */
 @keyframes pp-fall {
   0% {
-    transform: translate3d(var(--sx), -14vh, 0) rotate(var(--r0, 0deg));
+    transform: translate3d(var(--sx), -12vh, 0) rotate(var(--r0, 0deg));
     opacity: 0;
   }
-  5% {
-    opacity: 0.92;
+  6% {
+    opacity: 0.88;
   }
-  12% {
-    transform: translate3d(calc(var(--sx) + 4.5vw), 14vh, 0)
-      rotate(calc(var(--r0, 0deg) + 50deg));
+  18% {
+    transform: translate3d(calc(var(--sx) + var(--wx, 3vw)), 18vh, 0)
+      rotate(calc(var(--r0, 0deg) + var(--spd, 40deg)));
   }
-  22% {
-    transform: translate3d(calc(var(--sx) - 3.5vw), 32vh, 0)
-      rotate(calc(var(--r0, 0deg) - 32deg));
+  30% {
+    transform: translate3d(calc(var(--sx) - var(--wx, 3vw)), 36vh, 0)
+      rotate(calc(var(--r0, 0deg) - var(--spd, 40deg) * 0.6));
   }
-  32% {
-    transform: translate3d(calc(var(--sx) + 2.2vw), 58vh, 0)
-      rotate(calc(var(--r0, 0deg) + 44deg));
+  44% {
+    transform: translate3d(calc(var(--sx) + var(--wx, 3vw) * 0.7), 55vh, 0)
+      rotate(calc(var(--r0, 0deg) + var(--spd, 40deg) * 1.3));
   }
-  39% {
-    transform: translate3d(var(--lx), calc(var(--ly) - 1.6vh), 0)
-      rotate(calc(var(--rl, 0deg) - 6deg));
+  58% {
+    transform: translate3d(calc(var(--sx) - var(--wx, 3vw) * 0.4), 72vh, 0)
+      rotate(calc(var(--r0, 0deg) - var(--spd, 40deg) * 0.8));
+    opacity: 0.82;
   }
-  42%,
-  100% {
-    transform: translate3d(var(--lx), var(--ly), 0) rotate(var(--rl, 0deg));
-    opacity: 0.9;
+  74% {
+    transform: translate3d(calc(var(--sx) + var(--wx, 3vw) * 0.2), 88vh, 0)
+      rotate(calc(var(--r0, 0deg) + var(--spd, 40deg) * 1.6));
+    opacity: 0.5;
+  }
+  88% {
+    transform: translate3d(var(--sx), 96vh, 0)
+      rotate(calc(var(--r0, 0deg) + var(--spd, 40deg) * 1.9));
+    opacity: 0;
+  }
+  89%, 100% {
+    transform: translate3d(var(--sx), -14vh, 0) rotate(var(--r0, 0deg));
+    opacity: 0;
   }
 }
 
