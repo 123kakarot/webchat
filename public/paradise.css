@@ -9,7 +9,7 @@
   --pp-glass: rgba(255, 250, 242, 0.72);
   --pp-glass-strong: rgba(255, 255, 255, 0.84);
   --pp-gold: #ffe8a1;
-  --pp-park: url("/assets/meocho-park-bg.jpg");
+  --pp-park: url("/assets/pawly-park.jpg");
   font-family: "Quicksand", "Plus Jakarta Sans", "Be Vietnam Pro", system-ui, sans-serif;
   color: var(--pp-on-surface);
   background: transparent !important;
@@ -901,71 +901,36 @@
   filter: drop-shadow(0 8px 16px rgba(61, 46, 38, 0.2));
 }
 
-/* Corgi chạy — trái dưới */
+/* Corgi chạy nhảy — trái dưới đường đi */
 .app-shell .pp-pet-corgi {
-  bottom: 9%;
-  left: 5%;
-  width: clamp(75px, 8.5vw, 128px);
-  animation: pp-pet-wag 4.0s ease-in-out infinite;
-  transform-origin: 50% 92%;
+  bottom: 8%;
+  left: 7%;
+  width: clamp(95px, 11vw, 160px);
+  transform-origin: 50% 90%;
 }
 
-/* Chó trắng ngồi — giữa dưới */
+/* Chó trắng ngồi vẫy đuôi/chân — giữa phải */
 .app-shell .pp-pet-white {
-  bottom: 4%;
-  left: 37%;
-  width: clamp(88px, 10vw, 150px);
-  animation: pp-pet-breathe 3.8s ease-in-out infinite;
-  animation-delay: -0.9s;
+  bottom: 6%;
+  right: 27%;
+  width: clamp(100px, 12vw, 170px);
   transform-origin: 50% 95%;
 }
 
-/* Corgi trên hàng rào — phải giữa */
+/* Corgi bên hàng rào — phải giữa */
 .app-shell .pp-pet-fence {
-  top: 22%;
-  right: 18%;
-  width: clamp(58px, 6.5vw, 96px);
-  animation: pp-pet-peek 3.4s ease-in-out infinite;
-  animation-delay: -1.6s;
+  top: 26%;
+  right: 17%;
+  width: clamp(85px, 9.5vw, 138px);
   transform-origin: 50% 100%;
 }
 
-/* Mèo trong hộp — phải dưới */
+/* Mèo trong hộp carton — góc phải dưới */
 .app-shell .pp-pet-cat {
-  bottom: 4%;
-  right: 5%;
-  width: clamp(100px, 11vw, 168px);
-  animation: pp-pet-cat-bob 5.4s ease-in-out infinite;
-  animation-delay: -2.2s;
+  bottom: 5%;
+  right: 6%;
+  width: clamp(95px, 11vw, 165px);
   transform-origin: 50% 80%;
-}
-
-@keyframes pp-pet-breathe {
-  0%, 100% { transform: translateY(0) scale(1); }
-  45%       { transform: translateY(-8px) scale(1.028); }
-  72%       { transform: translateY(-4px) scale(1.01); }
-}
-
-@keyframes pp-pet-wag {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  18%       { transform: translateY(-5px) rotate(-2.8deg); }
-  35%       { transform: translateY(-10px) rotate(1.8deg); }
-  52%       { transform: translateY(-12px) rotate(-1.2deg); }
-  70%       { transform: translateY(-6px) rotate(2.2deg); }
-  88%       { transform: translateY(-2px) rotate(-0.8deg); }
-}
-
-@keyframes pp-pet-peek {
-  0%, 38%, 100% { transform: translateY(0); }
-  18%            { transform: translateY(-12px); }
-  28%            { transform: translateY(-8px); }
-}
-
-@keyframes pp-pet-cat-bob {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  22%       { transform: translateY(-6px) rotate(-1.8deg); }
-  50%       { transform: translateY(-9px) rotate(0.6deg); }
-  76%       { transform: translateY(-4px) rotate(1.2deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
