@@ -932,9 +932,9 @@
 
 /* Mèo trong hộp — phải dưới */
 .app-shell .pp-pet-cat {
-  bottom: 6%;
-  right: 6%;
-  width: clamp(82px, 9.5vw, 142px);
+  bottom: 4%;
+  right: 5%;
+  width: clamp(100px, 11vw, 168px);
   animation: pp-pet-cat-bob 5.4s ease-in-out infinite;
   animation-delay: -2.2s;
   transform-origin: 50% 80%;

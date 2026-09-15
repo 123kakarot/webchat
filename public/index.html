@@ -6573,7 +6573,7 @@
       href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700&family=Orbitron:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/paradise.css?v=17" />
+    <link rel="stylesheet" href="/paradise.css?v=18" />
   </head>
   <body>
     <div id="upgrade-overlay" class="upgrade-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -6677,11 +6677,12 @@
       <div class="paradise-bg" aria-hidden="true"><div class="pp-month-overlay"></div></div>
       <!-- Thú cưng animated — overlay trên nền -->
       <div class="pp-pets-layer" aria-hidden="true">
-        <img class="pp-pet pp-pet-corgi" src="/assets/pets/pet-01.png" alt="" draggable="false">
-        <img class="pp-pet pp-pet-white" src="/assets/pets/pet-02.png" alt="" draggable="false">
-        <img class="pp-pet pp-pet-fence" src="/assets/pets/peek-puppy.png" alt="" draggable="false">
-        <img class="pp-pet pp-pet-cat"   src="/assets/pets/pet-36.png" alt="" draggable="false">
+        <img id="pp-pet-corgi" class="pp-pet pp-pet-corgi" src="/assets/pets/pet-01.png" alt="" draggable="false">
+        <img id="pp-pet-white" class="pp-pet pp-pet-white" src="/assets/pets/pet-03.png" alt="" draggable="false">
+        <img id="pp-pet-fence" class="pp-pet pp-pet-fence" src="/assets/pets/peek-puppy.png" alt="" draggable="false">
+        <img id="pp-pet-cat"   class="pp-pet pp-pet-cat"   src="/assets/pets/pet-08.png" alt="" draggable="false">
       </div>
+
 
       <div class="pp-leaves" aria-hidden="true">
         <div class="pp-wind"></div>
@@ -10278,7 +10279,103 @@
         if (ppProfile && navAv) ppProfile.innerHTML = navAv.innerHTML;
       }
 
+      // ─── Pet Flipbook Animation ─────────────────────────────────────
+      // Swap từng pose của thú cưng theo trình tự, tạo animation sống động
+      (function initPetFlipbook() {
+        // Khai báo các bộ frames theo nhân vật
+        // Mỗi "sequence" là 1 mảng: [src, thời gian hiển thị ms, ...ghi chú]
+        const PETS = [
+          {
+            id: "pp-pet-corgi",
+            // Corgi đứng: ngồi vui → nằm → quay lưng → ngồi nhắm mắt → chạy → ngồi vui
+            frames: [
+              { src: "/assets/pets/pet-01.png", hold: 2800 },  // ngồi vui vẻ
+              { src: "/assets/pets/pet-05.png", hold: 2000 },  // nằm thoải mái
+              { src: "/assets/pets/pet-01.png", hold: 800  },  // quay lại
+              { src: "/assets/pets/pet-07.png", hold: 1600 },  // ngồi mắt nhắm
+              { src: "/assets/pets/pet-01.png", hold: 600  },  // reset
+              { src: "/assets/pets/pet-02.png", hold: 1200 },  // chạy
+              { src: "/assets/pets/pet-01.png", hold: 500  },  // về vị trí
+              { src: "/assets/pets/pet-09.png", hold: 1800 },  // quay lưng
+              { src: "/assets/pets/pet-01.png", hold: 1000 },  // quay lại
+            ],
+          },
+          {
+            id: "pp-pet-white",
+            // Chó trắng: ngồi → vui vẻ → vẫy đuôi → nhắm mắt → ngồi
+            frames: [
+              { src: "/assets/pets/pet-03.png", hold: 3000 },  // ngồi bình thường
+              { src: "/assets/pets/pet-27.png", hold: 1800 },  // ngồi khác (có khăn vàng nhỏ)
+              { src: "/assets/pets/pet-03.png", hold: 800  },  // reset
+              { src: "/assets/pets/pet-03.png", hold: 2400 },  // giữ pose
+              { src: "/assets/pets/pet-27.png", hold: 1200 },  // vẫy
+              { src: "/assets/pets/pet-03.png", hold: 600  },  // về
+            ],
+          },
+          {
+            id: "pp-pet-fence",
+            // Corgi hàng rào: nhìn ra ngoài ↔ peek cat → peek puppy
+            frames: [
+              { src: "/assets/pets/peek-puppy.png", hold: 3500 },  // nhìn ra ngoài
+              { src: "/assets/pets/pet-32.png",     hold: 1000 },  // peek cute
+              { src: "/assets/pets/peek-puppy.png", hold: 2200 },  // quay lại
+              { src: "/assets/pets/pet-32.png",     hold: 800  },  // peek lại
+              { src: "/assets/pets/peek-puppy.png", hold: 1500 },  // reset
+            ],
+          },
+          {
+            id: "pp-pet-cat",
+            // Mèo hộp: ngồi → nhìn lên → ngủ → trở lại
+            frames: [
+              { src: "/assets/pets/pet-08.png", hold: 3200 },  // ngồi trong hộp
+              { src: "/assets/pets/pet-33.png", hold: 1500 },  // mèo peek nhìn lên
+              { src: "/assets/pets/pet-08.png", hold: 1000 },  // quay lại
+              { src: "/assets/pets/pet-36.png", hold: 2400 },  // mèo ngủ
+              { src: "/assets/pets/pet-08.png", hold: 800  },  // về hộp
+            ],
+          },
+        ];
+
+        // Preload tất cả ảnh để tránh flicker khi swap lần đầu
+        const preloaded = new Set();
+        PETS.forEach(pet => pet.frames.forEach(f => {
+          if (!preloaded.has(f.src)) {
+            const img = new Image();
+            img.src = f.src;
+            preloaded.add(f.src);
+          }
+        }));
+
+        // Khởi động flipbook cho từng nhân vật (độc lập nhau)
+        PETS.forEach((pet, pi) => {
+          let frameIdx = 0;
+          // Stagger khởi đầu để không sync cùng lúc
+          const startDelay = pi * 1700 + Math.random() * 800;
+
+          function nextFrame() {
+            const el = document.getElementById(pet.id);
+            if (!el) return; // phần tử không tồn tại → dừng
+
+            const frame = pet.frames[frameIdx];
+            frameIdx = (frameIdx + 1) % pet.frames.length;
+
+            // Fade out nhẹ khi swap
+            el.style.transition = "opacity 0.25s ease";
+            el.style.opacity = "0.65";
+            setTimeout(() => {
+              if (el.src !== location.origin + frame.src) el.src = frame.src;
+              el.style.opacity = "1";
+              setTimeout(nextFrame, frame.hold);
+            }, 200);
+          }
+
+          setTimeout(nextFrame, startDelay);
+        });
+      })();
+      // ────────────────────────────────────────────────────────────────
+
       function applyProfileTheme() {
+
         if (document.getElementById("app-shell")?.classList.contains("active")) {
           applyMeoChoChatBackground();
           return;
