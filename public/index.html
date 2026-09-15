@@ -6573,7 +6573,7 @@
       href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@600;700&family=Orbitron:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/paradise.css?v=16" />
+    <link rel="stylesheet" href="/paradise.css?v=17" />
   </head>
   <body>
     <div id="upgrade-overlay" class="upgrade-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
@@ -6674,9 +6674,18 @@
     </section>
 
     <div class="app-shell" id="app-shell">
-      <div class="paradise-bg" aria-hidden="true"></div>
+      <div class="paradise-bg" aria-hidden="true"><div class="pp-month-overlay"></div></div>
+      <!-- Thú cưng animated — overlay trên nền -->
+      <div class="pp-pets-layer" aria-hidden="true">
+        <img class="pp-pet pp-pet-corgi" src="/assets/pets/pet-01.png" alt="" draggable="false">
+        <img class="pp-pet pp-pet-white" src="/assets/pets/pet-02.png" alt="" draggable="false">
+        <img class="pp-pet pp-pet-fence" src="/assets/pets/peek-puppy.png" alt="" draggable="false">
+        <img class="pp-pet pp-pet-cat"   src="/assets/pets/pet-36.png" alt="" draggable="false">
+      </div>
+
       <div class="pp-leaves" aria-hidden="true">
         <div class="pp-wind"></div>
+
         <div class="pp-gust"></div>
         <!-- Lá rơi — mỗi cái có delay/tốc độ/biên độ xoay riêng -->
         <i class="pp-leaf a" style="--sx:5vw;  --r0:-20deg; --wx:3.2vw; --spd:38deg; --dur:13s; --delay:-1s"></i>
@@ -10250,6 +10259,9 @@
       }
 
       function syncParadiseUi() {
+        // Áp dụng theme theo tháng hiện tại
+        if (appShell) appShell.dataset.month = new Date().getMonth() + 1;
+
         const card = document.getElementById("pp-room-card");
         const inRoom = appShell?.classList.contains("show-chat");
         if (card) card.hidden = !inRoom;
