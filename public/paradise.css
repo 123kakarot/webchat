@@ -1043,10 +1043,42 @@ html:has(.app-shell.active) body {
     margin-top: 0.4rem;
   }
 
-  .app-shell .composer-peek,
-  .app-shell .pp-leaves,
-  .app-shell .pp-pets-layer {
+  .app-shell .composer-peek {
     display: none;
+  }
+
+  .app-shell .pp-leaves {
+    display: block !important;
+    opacity: 0.85;
+  }
+
+  .app-shell .pp-pets-layer {
+    display: block !important;
+  }
+
+  /* Vị trí thú cưng tối ưu trên màn hình di động */
+  .app-shell .pp-pet-corgi {
+    bottom: clamp(82px, 13vh, 115px);
+    left: 4%;
+    width: clamp(70px, 20vw, 95px);
+  }
+
+  .app-shell .pp-pet-white {
+    bottom: clamp(82px, 13vh, 115px);
+    right: 28%;
+    width: clamp(75px, 22vw, 105px);
+  }
+
+  .app-shell .pp-pet-cat {
+    bottom: clamp(78px, 12.5vh, 110px);
+    right: 4%;
+    width: clamp(72px, 21vw, 100px);
+  }
+
+  .app-shell .pp-pet-fence {
+    top: 41%;
+    right: 4%;
+    width: clamp(65px, 18vw, 88px);
   }
 
   .app-shell .room-info-mascot {
